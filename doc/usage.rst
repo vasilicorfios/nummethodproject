@@ -14,7 +14,7 @@ Loading the data
 
 .. code-block:: python
 
-    from data_loader import load_airfoil_data
+    from functions.data_loader import load_airfoil_data
 
     df = load_airfoil_data()
     print(df.head())
