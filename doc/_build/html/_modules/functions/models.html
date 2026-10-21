@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>functions.models &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for functions.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Model registry: every model is built as the same scikit-learn pipeline.</span>
+
+<span class="sd">Each model returned by :func:`build_model` has the structure::</span>
+
+<span class="sd">    TransformedTargetRegressor(</span>
+<span class="sd">        regressor=Pipeline([("scaler", StandardScaler()),   # if scale_inputs</span>
+<span class="sd">                            ("regressor", &lt;estimator&gt;)]),</span>
+<span class="sd">        transformer=StandardScaler(),                       # scales spl_db</span>
+<span class="sd">    )</span>
+
+<span class="sd">Because the scalers sit inside the estimator, calling ``fit`` on the training</span>
+<span class="sd">rows fits them on those rows only; validation and test rows are transformed</span>
+<span class="sd">with the training mean and standard deviation and never influence them.</span>
+
+<span class="sd">Scaling the target to zero mean and unit variance matters for SVR (its</span>
+<span class="sd">``epsilon`` tube and ``C`` are in target units) and for neural networks</span>
+<span class="sd">(output scale and loss magnitude). For the linear baseline neither scaling</span>
+<span class="sd">step changes the predictions, but it is applied anyway so every model runs</span>
+<span class="sd">through the same pipeline and the linear coefficients are comparable in size.</span>
+
+<span class="sd">Only the linear baseline is registered so far. Tree-based models, SVR and an</span>
+<span class="sd">MLP are planned; each is added as one :class:`ModelSpec` entry in</span>
+<span class="sd">:data:`MODELS` (trees do not need input scaling, so they would use</span>
+<span class="sd">``scale_inputs=False``).</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    &gt;&gt;&gt; from functions.models import build_model</span>
+<span class="sd">    &gt;&gt;&gt; model = build_model("linear")</span>
+<span class="sd">    &gt;&gt;&gt; model.fit(X_train, y_train).predict(X_val)  # doctest: +SKIP</span>
+<span class="sd">"""</span>
+
+<span class="c1"># Postponed annotations: the docs build mocks pandas, and evaluating</span>
+<span class="c1"># ``pd.Series | None`` on the mock at import time would fail.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegressorMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformedTargetRegressor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearRegression</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+
+
+<div class="viewcode-block" id="ModelSpec">
+<a class="viewcode-back" href="../../api.html#functions.models.ModelSpec">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ModelSpec</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""How to build one registered model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        make: Zero-argument callable returning a new, unfitted estimator.</span>
+<span class="sd">            A fresh estimator is needed for every fold so no fitted state is</span>
+<span class="sd">            shared between folds.</span>
+<span class="sd">        scale_inputs: Whether to standardise the inputs before the</span>
+<span class="sd">            estimator. Needed for distance- and gradient-based models (SVR,</span>
+<span class="sd">            MLP), unnecessary for trees.</span>
+<span class="sd">    """</span>
+
+    <span class="n">make</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">RegressorMixin</span><span class="p">]</span>
+    <span class="n">scale_inputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
+<span class="c1">#: Model name -&gt; :class:`ModelSpec`. Add planned models (tree-based, SVR,</span>
+<span class="c1">#: MLP) here; anything with randomness must be given a fixed</span>
+<span class="c1">#: ``random_state`` so results are reproducible.</span>
+<span class="n">MODELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"linear"</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">LinearRegression</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="build_model">
+<a class="viewcode-back" href="../../api.html#functions.models.build_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_model</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformedTargetRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a new, unfitted model wrapped in the standard scaling pipeline.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: Key of :data:`MODELS`, e.g. ``"linear"``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~sklearn.compose.TransformedTargetRegressor` whose inner</span>
+<span class="sd">        regressor is a :class:`~sklearn.pipeline.Pipeline` of an optional</span>
+<span class="sd">        input :class:`~sklearn.preprocessing.StandardScaler` and the</span>
+<span class="sd">        estimator. The target is standardised by a second ``StandardScaler``</span>
+<span class="sd">        and predictions are converted back to dB automatically.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        KeyError: If ``name`` is not a registered model.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MODELS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown model </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; choose from </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">MODELS</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">MODELS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">scale_inputs</span><span class="p">:</span>
+        <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"scaler"</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()))</span>
+    <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">"regressor"</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">make</span><span class="p">()))</span>
+
+    <span class="k">return</span> <span class="n">TransformedTargetRegressor</span><span class="p">(</span>
+        <span class="n">regressor</span><span class="o">=</span><span class="n">Pipeline</span><span class="p">(</span><span class="n">steps</span><span class="p">),</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">StandardScaler</span><span class="p">(),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="coefficient_effects">
+<a class="viewcode-back" href="../../api.html#functions.models.coefficient_effects">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">coefficient_effects</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">TransformedTargetRegressor</span><span class="p">,</span> <span class="n">feature_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a fitted linear model's coefficients as dB per standard deviation.</span>
+
+<span class="sd">    Inside the pipeline both inputs and target are standardised, so each</span>
+<span class="sd">    fitted coefficient is the change in SPL, in target standard deviations,</span>
+<span class="sd">    for a one-standard-deviation change in that input with all other inputs</span>
+<span class="sd">    held fixed. Multiplying by the target's standard deviation turns this</span>
+<span class="sd">    into dB per input standard deviation, which can be compared directly</span>
+<span class="sd">    across features with very different units (Hz, m, m/s, Reynolds number).</span>
+
+<span class="sd">    Correlated inputs (e.g. ``frequency_hz`` and ``log_frequency`` in set B)</span>
+<span class="sd">    share their effect between them, so individual coefficients can be large,</span>
+<span class="sd">    of opposite sign and unstable between folds even when predictions are</span>
+<span class="sd">    good. Look at the spread over folds before interpreting one.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A model from :func:`build_model` that has been fitted.</span>
+<span class="sd">        feature_names: Input columns in the order the model was fitted on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A Series indexed by feature name, in dB per input standard deviation,</span>
+<span class="sd">        or ``None`` if the model has no linear coefficients or does not scale</span>
+<span class="sd">        its inputs (raw-unit coefficients are not comparable across features).</span>
+<span class="sd">    """</span>
+    <span class="n">steps</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">regressor_</span><span class="o">.</span><span class="n">named_steps</span>
+    <span class="n">estimator</span> <span class="o">=</span> <span class="n">steps</span><span class="p">[</span><span class="s2">"regressor"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="s2">"coef_"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"scaler"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="c1"># transformer_ is the target scaler fitted on this model's training rows.</span>
+    <span class="n">target_sd</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transformer_</span><span class="o">.</span><span class="n">scale_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">estimator</span><span class="o">.</span><span class="n">coef_</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="o">*</span> <span class="n">target_sd</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">feature_names</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

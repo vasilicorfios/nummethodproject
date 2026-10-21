@@ -1,0 +1,9 @@
+Feature,linear / A,linear / B
+frequency_hz,-3.94 ± 0.09 [100%],-2.82 ± 0.29 [100%]
+attack_angle_deg,-2.23 ± 0.26 [100%],-1.92 ± 0.19 [100%]
+chord_length_m,-3.31 ± 0.10 [100%],-3.14 ± 0.38 [100%]
+velocity_mps,1.55 ± 0.13 [100%],1.05 ± 0.25 [100%]
+disp_thickness_m,-2.15 ± 0.34 [100%],-0.66 ± 0.39 [87%]
+log_frequency,,-0.13 ± 0.43 [60%]
+strouhal,,-2.52 ± 0.16 [100%]
+reynolds,,0.09 ± 0.40 [60%]

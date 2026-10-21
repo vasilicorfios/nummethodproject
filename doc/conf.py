@@ -17,6 +17,9 @@ extensions = [
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+# Render "Attributes:" sections as field lists. Otherwise dataclass fields are
+# documented twice (once from the docstring, once by :undoc-members:).
+napoleon_use_ivar = True
 
 autodoc_member_order = "bysource"
 # Keep viewcode on the documenting module. Otherwise it follows module-level
