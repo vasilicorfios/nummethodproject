@@ -24,5 +24,8 @@ Exploratory plots
 .. automodule:: functions.plot_spl_by_chord_length
    :members:
 
+.. automodule:: functions.plot_spl_vs_physics_features
+   :members:
+
 .. automodule:: explore_plots
    :members:
