@@ -39,7 +39,7 @@
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
 <p>Place <code class="docutils literal notranslate"><span class="pre">airfoil_self_noise.xlsx</span></code> in the <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory (it is not
 committed to the repository), then install the dependencies:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pandas</span> <span class="n">openpyxl</span> <span class="n">matplotlib</span> <span class="n">scikit</span><span class="o">-</span><span class="n">learn</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pandas</span> <span class="n">openpyxl</span> <span class="n">matplotlib</span> <span class="n">scikit</span><span class="o">-</span><span class="n">learn</span> <span class="n">pytest</span> <span class="n">pytest</span><span class="o">-</span><span class="n">html</span>
 </pre></div>
 </div>
 </section>
@@ -83,11 +83,95 @@ repeat:</p>
 </pre></div>
 </div>
 </section>
+<section id="training-and-cross-validating-models">
+<h2>Training and cross-validating models<a class="headerlink" href="#training-and-cross-validating-models" title="Link to this heading">¶</a></h2>
+<p>Models (<a class="reference internal" href="api.html#module-functions.models" title="functions.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.models</span></code></a>) and feature sets
+(<a class="reference internal" href="api.html#module-functions.feature_sets" title="functions.feature_sets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.feature_sets</span></code></a>) are chosen by name, so any model can be run
+on any feature set. Feature set <code class="docutils literal notranslate"><span class="pre">A</span></code> is the five raw inputs; <code class="docutils literal notranslate"><span class="pre">B</span></code> adds
+log-frequency, Strouhal number and Reynolds number. Each model is a
+scikit-learn pipeline that standardises the inputs and, through
+<code class="docutils literal notranslate"><span class="pre">TransformedTargetRegressor</span></code>, the target. Both scalers are fitted on the
+training folds only.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_cv.py                                   # linear on A and B</span>
+<span class="go">python src/run_cv.py --models linear --feature-sets B</span>
+</pre></div>
+</div>
+<p>The script reports out-of-fold RMSE (the main metric), MAE and R², averaged
+over the three CV seeds, along with the mean fit and predict time per fold.
+It also breaks the out-of-fold RMSE down by chord, velocity, angle band
+(0, 0-5, 5-10, 10-15, &gt;15 deg) and frequency band. Results are saved as CSV
+files in <code class="docutils literal notranslate"><span class="pre">results/</span></code>. The test hold-out is not used.</p>
+<p>From Python:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span><span class="p">,</span> <span class="n">summarise</span><span class="p">,</span> <span class="n">oof_rmse_breakdown</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">summarise</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">oof_rmse_breakdown</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">coefficient_summary</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>   <span class="c1"># linear models only</span>
+</pre></div>
+</div>
+<p>For linear models the script also prints each input’s coefficient in dB per
+standard deviation of that input, with its spread over all 15 fits (5 folds
+x 3 seeds). A coefficient whose sign changes between fits (<code class="docutils literal notranslate"><span class="pre">sign_agreement</span></code>
+below 1) is not reliably estimated. In feature set B this happens to
+<code class="docutils literal notranslate"><span class="pre">log_frequency</span></code> and <code class="docutils literal notranslate"><span class="pre">reynolds</span></code>, which are strongly correlated with other
+inputs, so their individual coefficients should not be interpreted
+physically.</p>
+</section>
+<section id="profiling-runtime-memory-and-flops">
+<h2>Profiling runtime, memory and FLOPs<a class="headerlink" href="#profiling-runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_profile.py</span>
+</pre></div>
+</div>
+<p>This trains each model on all cross-validation rows (not the test set) and
+reports:</p>
+<ul class="simple">
+<li><p>the median fit and predict time over 20 repeats;</p></li>
+<li><p>peak memory during a fit (traced with <code class="docutils literal notranslate"><span class="pre">tracemalloc</span></code>);</p></li>
+<li><p>an estimated FLOP count and the achieved FLOP rate;</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">cProfile</span></code> report of where the fit time goes.</p></li>
+</ul>
+<p>For the linear baseline, the fit needs only about 10<sup>5</sup> FLOPs but
+takes about 3 ms. That is tens of MFLOP/s, a tiny fraction of the CPU’s
+capability. The profile shows the time goes to scikit-learn and pandas input
+checks and scaling rather than the least-squares solve, so at this data size
+the cost is fixed overhead, not arithmetic.</p>
+</section>
 <section id="exploratory-plots">
 <h2>Exploratory plots<a class="headerlink" href="#exploratory-plots" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/explore_plots.py</span>
 </pre></div>
 </div>
+</section>
+<section id="running-the-tests">
+<h2>Running the tests<a class="headerlink" href="#running-the-tests" title="Link to this heading">¶</a></h2>
+<p>The tests in <code class="docutils literal notranslate"><span class="pre">test/</span></code> use pytest (configured in <code class="docutils literal notranslate"><span class="pre">pytest.ini</span></code>, which puts
+<code class="docutils literal notranslate"><span class="pre">src/</span></code> on the import path). Run them from the project root and write the
+HTML test report to <code class="docutils literal notranslate"><span class="pre">test/test_report.html</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install pytest pytest-html</span>
+<span class="go">python -m pytest --html=test/test_report.html --self-contained-html</span>
+</pre></div>
+</div>
+<p>The tests check:</p>
+<ul class="simple">
+<li><p><strong>Hand-calculated values:</strong> physics features, metrics, band edges, RMSE
+breakdown, coefficient summary and FLOP counts against results worked out
+by hand.</p></li>
+<li><p><strong>A manufactured solution:</strong> noise-free data from a known linear formula,
+with inputs about 10<sup>8</sup> apart in scale. The linear pipeline must
+reproduce it exactly and recover the known coefficients, which verifies
+the scaling and unscaling steps.</p></li>
+<li><p><strong>No data leakage:</strong> setups are never split across folds, the test set is
+the same for every CV seed and is never trained on or predicted, every CV
+row is predicted exactly once per seed, and scalers are fitted on training
+rows only.</p></li>
+<li><p><strong>A regression check:</strong> the linear baseline’s recorded RMSE on set A
+(4.897 dB), so an unintended change to the pipeline is caught.</p></li>
+<li><p><strong>Input handling:</strong> the data are within their physical ranges with no
+missing values; unknown model or feature-set names raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>, and
+a missing data file raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code>.</p></li>
+</ul>
 </section>
 <section id="building-these-docs">
 <h2>Building these docs<a class="headerlink" href="#building-these-docs" title="Link to this heading">¶</a></h2>
@@ -131,7 +215,10 @@ repeat:</p>
 <li class="toctree-l2"><a class="reference internal" href="#loading-the-data">Loading the data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#adding-physics-features">Adding physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#splitting-the-data">Splitting the data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#training-and-cross-validating-models">Training and cross-validating models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#profiling-runtime-memory-and-flops">Profiling runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-tests">Running the tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#building-these-docs">Building these docs</a></li>
 </ul>
 </li>

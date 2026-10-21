@@ -22,6 +22,40 @@ Data split
    :members:
    :undoc-members:
 
+Feature sets
+------------
+
+.. automodule:: functions.feature_sets
+   :members:
+   :undoc-members:
+
+Models
+------
+
+.. automodule:: functions.models
+   :members:
+   :undoc-members:
+
+Cross-validation and metrics
+----------------------------
+
+.. automodule:: functions.evaluate
+   :members:
+   :undoc-members:
+
+.. automodule:: run_cv
+   :members:
+
+Performance profiling
+---------------------
+
+.. automodule:: functions.profiling
+   :members:
+   :undoc-members:
+
+.. automodule:: run_profile
+   :members:
+
 Exploratory plots
 -----------------
 

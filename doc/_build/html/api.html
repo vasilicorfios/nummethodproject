@@ -269,6 +269,694 @@ columns, if present, are carried through unchanged).</p></li>
 </dd></dl>
 
 </section>
+<section id="module-functions.feature_sets">
+<span id="feature-sets"></span><h2>Feature sets<a class="headerlink" href="#module-functions.feature_sets" title="Link to this heading">¶</a></h2>
+<p>Named input feature sets, so models can be compared on different inputs.</p>
+<p>Each feature set is a list of column names. Any model in
+<a class="reference internal" href="#module-functions.models" title="functions.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.models</span></code></a> can be trained on any feature set, so swapping inputs
+is a matter of changing one name.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">A</span></code>: the five raw wind-tunnel inputs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">B</span></code>: <code class="docutils literal notranslate"><span class="pre">A</span></code> plus the physics-derived features <code class="docutils literal notranslate"><span class="pre">log_frequency</span></code>,
+<code class="docutils literal notranslate"><span class="pre">strouhal</span></code> and <code class="docutils literal notranslate"><span class="pre">reynolds</span></code>. These columns only exist after
+<a class="reference internal" href="#functions.physics_features.add_physics_features" title="functions.physics_features.add_physics_features"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_features.add_physics_features()</span></code></a> has been applied.</p></li>
+</ul>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_feature_columns</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_feature_columns</span><span class="p">(</span><span class="s2">"B"</span><span class="p">)[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+<span class="go">['log_frequency', 'strouhal', 'reynolds']</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.feature_sets.FEATURE_SETS">
+<span class="sig-prename descclassname"><span class="pre">functions.feature_sets.</span></span><span class="sig-name descname"><span class="pre">FEATURE_SETS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'A':</span> <span class="pre">['frequency_hz',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m'],</span> <span class="pre">'B':</span> <span class="pre">['frequency_hz',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m',</span> <span class="pre">'log_frequency',</span> <span class="pre">'strouhal',</span> <span class="pre">'reynolds']}</span></em><a class="headerlink" href="#functions.feature_sets.FEATURE_SETS" title="Link to this definition">¶</a></dt>
+<dd><p>Feature set name -&gt; input columns. Add a new entry here to make another
+set available to every model and to <code class="docutils literal notranslate"><span class="pre">src/run_cv.py</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.feature_sets.get_feature_columns">
+<span class="sig-prename descclassname"><span class="pre">functions.feature_sets.</span></span><span class="sig-name descname"><span class="pre">get_feature_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/feature_sets.html#get_feature_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.feature_sets.get_feature_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Return the input columns for a named feature set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Key of <a class="reference internal" href="#functions.feature_sets.FEATURE_SETS" title="functions.feature_sets.FEATURE_SETS"><code class="xref py py-data docutils literal notranslate"><span class="pre">FEATURE_SETS</span></code></a>, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;A&quot;</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new list of column names (safe for the caller to modify).</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>KeyError</strong> – If <code class="docutils literal notranslate"><span class="pre">name</span></code> is not a known feature set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-functions.models">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-functions.models" title="Link to this heading">¶</a></h2>
+<p>Model registry: every model is built as the same scikit-learn pipeline.</p>
+<p>Each model returned by <a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">build_model()</span></code></a> has the structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TransformedTargetRegressor</span><span class="p">(</span>
+    <span class="n">regressor</span><span class="o">=</span><span class="n">Pipeline</span><span class="p">([(</span><span class="s2">"scaler"</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>   <span class="c1"># if scale_inputs</span>
+                        <span class="p">(</span><span class="s2">"regressor"</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">estimator</span><span class="o">&gt;</span><span class="p">)]),</span>
+    <span class="n">transformer</span><span class="o">=</span><span class="n">StandardScaler</span><span class="p">(),</span>                       <span class="c1"># scales spl_db</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Because the scalers sit inside the estimator, calling <code class="docutils literal notranslate"><span class="pre">fit</span></code> on the training
+rows fits them on those rows only; validation and test rows are transformed
+with the training mean and standard deviation and never influence them.</p>
+<p>Scaling the target to zero mean and unit variance matters for SVR (its
+<code class="docutils literal notranslate"><span class="pre">epsilon</span></code> tube and <code class="docutils literal notranslate"><span class="pre">C</span></code> are in target units) and for neural networks
+(output scale and loss magnitude). For the linear baseline neither scaling
+step changes the predictions, but it is applied anyway so every model runs
+through the same pipeline and the linear coefficients are comparable in size.</p>
+<p>Only the linear baseline is registered so far. Tree-based models, SVR and an
+MLP are planned; each is added as one <a class="reference internal" href="#functions.models.ModelSpec" title="functions.models.ModelSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelSpec</span></code></a> entry in
+<a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MODELS</span></code></a> (trees do not need input scaling, so they would use
+<code class="docutils literal notranslate"><span class="pre">scale_inputs=False</span></code>).</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">(</span><span class="s2">"linear"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span>  
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="functions.models.ModelSpec">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">ModelSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">make</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RegressorMixin</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/models.html#ModelSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.models.ModelSpec" title="Link to this definition">¶</a></dt>
+<dd><p>How to build one registered model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>make</strong> (<em>collections.abc.Callable</em><em>[</em><em>[</em><em>]</em><em>, </em><em>sklearn.base.RegressorMixin</em><em>]</em>) – Zero-argument callable returning a new, unfitted estimator.
+A fresh estimator is needed for every fold so no fitted state is
+shared between folds.</p></li>
+<li><p><strong>scale_inputs</strong> (<em>bool</em>) – Whether to standardise the inputs before the
+estimator. Needed for distance- and gradient-based models (SVR,
+MLP), unnecessary for trees.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.models.ModelSpec.make">
+<span class="sig-name descname"><span class="pre">make</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RegressorMixin</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#functions.models.ModelSpec.make" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.models.ModelSpec.scale_inputs">
+<span class="sig-name descname"><span class="pre">scale_inputs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#functions.models.ModelSpec.scale_inputs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.models.MODELS">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">MODELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">ModelSpec(make=&lt;class</span> <span class="pre">'sklearn.linear_model._base.LinearRegression'&gt;,</span> <span class="pre">scale_inputs=True)}</span></em><a class="headerlink" href="#functions.models.MODELS" title="Link to this definition">¶</a></dt>
+<dd><p>Model name -&gt; <a class="reference internal" href="#functions.models.ModelSpec" title="functions.models.ModelSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelSpec</span></code></a>. Add planned models (tree-based, SVR,
+MLP) here; anything with randomness must be given a fixed
+<code class="docutils literal notranslate"><span class="pre">random_state</span></code> so results are reproducible.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.models.build_model">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">TransformedTargetRegressor</span></span></span><a class="reference internal" href="_modules/functions/models.html#build_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.models.build_model" title="Link to this definition">¶</a></dt>
+<dd><p>Build a new, unfitted model wrapped in the standard scaling pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MODELS</span></code></a>, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;linear&quot;</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">TransformedTargetRegressor</span></code> whose inner
+regressor is a <code class="xref py py-class docutils literal notranslate"><span class="pre">Pipeline</span></code> of an optional
+input <code class="xref py py-class docutils literal notranslate"><span class="pre">StandardScaler</span></code> and the
+estimator. The target is standardised by a second <code class="docutils literal notranslate"><span class="pre">StandardScaler</span></code>
+and predictions are converted back to dB automatically.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>KeyError</strong> – If <code class="docutils literal notranslate"><span class="pre">name</span></code> is not a registered model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.models.coefficient_effects">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">coefficient_effects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransformedTargetRegressor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pd.Series</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/models.html#coefficient_effects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.models.coefficient_effects" title="Link to this definition">¶</a></dt>
+<dd><p>Return a fitted linear model’s coefficients as dB per standard deviation.</p>
+<p>Inside the pipeline both inputs and target are standardised, so each
+fitted coefficient is the change in SPL, in target standard deviations,
+for a one-standard-deviation change in that input with all other inputs
+held fixed. Multiplying by the target’s standard deviation turns this
+into dB per input standard deviation, which can be compared directly
+across features with very different units (Hz, m, m/s, Reynolds number).</p>
+<p>Correlated inputs (e.g. <code class="docutils literal notranslate"><span class="pre">frequency_hz</span></code> and <code class="docutils literal notranslate"><span class="pre">log_frequency</span></code> in set B)
+share their effect between them, so individual coefficients can be large,
+of opposite sign and unstable between folds even when predictions are
+good. Look at the spread over folds before interpreting one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – A model from <a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">build_model()</span></code></a> that has been fitted.</p></li>
+<li><p><strong>feature_names</strong> – Input columns in the order the model was fitted on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A Series indexed by feature name, in dB per input standard deviation,
+or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the model has no linear coefficients or does not scale
+its inputs (raw-unit coefficients are not comparable across features).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-functions.evaluate">
+<span id="cross-validation-and-metrics"></span><h2>Cross-validation and metrics<a class="headerlink" href="#module-functions.evaluate" title="Link to this heading">¶</a></h2>
+<p>Repeated cross-validation, metrics and error breakdowns for any model.</p>
+<p><a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a> trains a model from <a class="reference internal" href="#module-functions.models" title="functions.models"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.models</span></code></a> on a
+feature set from <a class="reference internal" href="#module-functions.feature_sets" title="functions.feature_sets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.feature_sets</span></code></a> using the grouped folds from
+<a class="reference internal" href="#module-functions.make_folds" title="functions.make_folds"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.make_folds</span></code></a>, repeated for every seed in
+<a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CV_SEEDS</span></code></a>. It returns:</p>
+<ul class="simple">
+<li><p>per-fold scores (RMSE, MAE, R², fit and predict time), and</p></li>
+<li><p>out-of-fold (OOF) predictions: every cross-validation row predicted once
+per seed by the model that did not see it during training.</p></li>
+</ul>
+<p>Rows in the held-out test set are dropped before anything is fitted, so this
+module never trains on, tunes on or scores the test set.</p>
+<p>RMSE is the main metric. <a class="reference internal" href="#functions.evaluate.oof_rmse_breakdown" title="functions.evaluate.oof_rmse_breakdown"><code class="xref py py-func docutils literal notranslate"><span class="pre">oof_rmse_breakdown()</span></code></a> splits the OOF RMSE by
+chord length, free-stream velocity, angle-of-attack band and frequency band
+to show where a model’s errors come from. For linear models,
+<a class="reference internal" href="#functions.evaluate.coefficient_summary" title="functions.evaluate.coefficient_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">coefficient_summary()</span></code></a> reports each input’s effect in dB per standard
+deviation and how stable it is across folds.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span><span class="p">,</span> <span class="n">summarise</span><span class="p">,</span> <span class="n">oof_rmse_breakdown</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">summarise</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>            
+<span class="gp">&gt;&gt;&gt; </span><span class="n">oof_rmse_breakdown</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>   
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.ANGLE_BAND_EDGES_DEG">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">ANGLE_BAND_EDGES_DEG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[0.0,</span> <span class="pre">5.0,</span> <span class="pre">10.0,</span> <span class="pre">15.0]</span></em><a class="headerlink" href="#functions.evaluate.ANGLE_BAND_EDGES_DEG" title="Link to this definition">¶</a></dt>
+<dd><p>Upper edges (deg, inclusive) of the angle-of-attack bands. Zero is its own
+band because the symmetric NACA 0012 behaves differently at 0 deg.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.ANGLE_BAND_LABELS">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">ANGLE_BAND_LABELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['0',</span> <span class="pre">'0-5',</span> <span class="pre">'5-10',</span> <span class="pre">'10-15',</span> <span class="pre">'&gt;15']</span></em><a class="headerlink" href="#functions.evaluate.ANGLE_BAND_LABELS" title="Link to this definition">¶</a></dt>
+<dd><p>Labels for the bands defined by <a class="reference internal" href="#functions.evaluate.ANGLE_BAND_EDGES_DEG" title="functions.evaluate.ANGLE_BAND_EDGES_DEG"><code class="xref py py-data docutils literal notranslate"><span class="pre">ANGLE_BAND_EDGES_DEG</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.FREQUENCY_BAND_EDGES_HZ">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">FREQUENCY_BAND_EDGES_HZ</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[630.0,</span> <span class="pre">2000.0,</span> <span class="pre">6300.0]</span></em><a class="headerlink" href="#functions.evaluate.FREQUENCY_BAND_EDGES_HZ" title="Link to this definition">¶</a></dt>
+<dd><p>Lower edges (Hz, inclusive) of the frequency bands after the first. The
+measured frequencies are 1/3-octave centres from 200 Hz to 20 kHz; these
+edges give half-decade bands containing 5, 5, 5 and 6 frequencies.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.FREQUENCY_BAND_LABELS">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">FREQUENCY_BAND_LABELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['200-500</span> <span class="pre">Hz',</span> <span class="pre">'630-1600</span> <span class="pre">Hz',</span> <span class="pre">'2-5</span> <span class="pre">kHz',</span> <span class="pre">'6.3-20</span> <span class="pre">kHz']</span></em><a class="headerlink" href="#functions.evaluate.FREQUENCY_BAND_LABELS" title="Link to this definition">¶</a></dt>
+<dd><p>Labels for the bands defined by <a class="reference internal" href="#functions.evaluate.FREQUENCY_BAND_EDGES_HZ" title="functions.evaluate.FREQUENCY_BAND_EDGES_HZ"><code class="xref py py-data docutils literal notranslate"><span class="pre">FREQUENCY_BAND_EDGES_HZ</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.BREAKDOWN_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">BREAKDOWN_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'angle_band',</span> <span class="pre">'frequency_band']</span></em><a class="headerlink" href="#functions.evaluate.BREAKDOWN_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Columns the OOF RMSE is broken down by, in report order.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">CVResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fold_scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/evaluate.html#CVResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.CVResult" title="Link to this definition">¶</a></dt>
+<dd><p>Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>str</em>) – Name of the model that was evaluated.</p></li>
+<li><p><strong>feature_set</strong> (<em>str</em>) – Name of the feature set it was trained on.</p></li>
+<li><p><strong>fold_scores</strong> (<em>pandas.DataFrame</em>) – One row per (seed, fold) with columns <code class="docutils literal notranslate"><span class="pre">seed</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fold</span></code>, <code class="docutils literal notranslate"><span class="pre">n_train</span></code>, <code class="docutils literal notranslate"><span class="pre">n_val</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">mae</span></code>, <code class="docutils literal notranslate"><span class="pre">r2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fit_time_s</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_time_s</span></code>.</p></li>
+<li><p><strong>oof</strong> (<em>pandas.DataFrame</em>) – One row per (seed, cross-validation measurement) with columns
+<code class="docutils literal notranslate"><span class="pre">seed</span></code>, <code class="docutils literal notranslate"><span class="pre">fold</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">y_true</span></code>, <code class="docutils literal notranslate"><span class="pre">y_pred</span></code> and the
+columns in <a class="reference internal" href="#functions.evaluate.BREAKDOWN_COLUMNS" title="functions.evaluate.BREAKDOWN_COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">BREAKDOWN_COLUMNS</span></code></a>. <code class="docutils literal notranslate"><span class="pre">row</span></code> is the index of the
+measurement in the input DataFrame.</p></li>
+<li><p><strong>coefficients</strong> (<em>pandas.DataFrame</em>) – One row per (seed, fold, feature) with columns
+<code class="docutils literal notranslate"><span class="pre">seed</span></code>, <code class="docutils literal notranslate"><span class="pre">fold</span></code>, <code class="docutils literal notranslate"><span class="pre">feature</span></code> and <code class="docutils literal notranslate"><span class="pre">effect_db_per_sd</span></code> (see
+<a class="reference internal" href="#functions.models.coefficient_effects" title="functions.models.coefficient_effects"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.coefficient_effects()</span></code></a>). Empty for models
+without linear coefficients.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult.model">
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#functions.evaluate.CVResult.model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult.feature_set">
+<span class="sig-name descname"><span class="pre">feature_set</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#functions.evaluate.CVResult.feature_set" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult.fold_scores">
+<span class="sig-name descname"><span class="pre">fold_scores</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span></em><a class="headerlink" href="#functions.evaluate.CVResult.fold_scores" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult.oof">
+<span class="sig-name descname"><span class="pre">oof</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span></em><a class="headerlink" href="#functions.evaluate.CVResult.oof" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.evaluate.CVResult.coefficients">
+<span class="sig-name descname"><span class="pre">coefficients</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span></em><a class="headerlink" href="#functions.evaluate.CVResult.coefficients" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.compute_metrics">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">compute_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#compute_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.compute_metrics" title="Link to this definition">¶</a></dt>
+<dd><p>Return RMSE, MAE and R² for a set of predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> – Measured sound pressure levels (dB).</p></li>
+<li><p><strong>y_pred</strong> – Predicted sound pressure levels (dB), same length.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with keys <code class="docutils literal notranslate"><span class="pre">rmse</span></code> and <code class="docutils literal notranslate"><span class="pre">mae</span></code> (both in dB) and <code class="docutils literal notranslate"><span class="pre">r2</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.angle_band">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">angle_band</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle_deg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.Series</span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#angle_band"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.angle_band" title="Link to this definition">¶</a></dt>
+<dd><p>Label each angle of attack with its band.</p>
+<p>Bands are <code class="docutils literal notranslate"><span class="pre">0</span></code> (exactly zero), <code class="docutils literal notranslate"><span class="pre">0-5</span></code> (0 &lt; a &lt;= 5), <code class="docutils literal notranslate"><span class="pre">5-10</span></code>,
+<code class="docutils literal notranslate"><span class="pre">10-15</span></code> and <code class="docutils literal notranslate"><span class="pre">&gt;15</span></code> degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>angle_deg</strong> – Angles of attack in degrees.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ordered categorical Series of band labels, same index as the input.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.frequency_band">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">frequency_band</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frequency_hz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.Series</span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#frequency_band"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.frequency_band" title="Link to this definition">¶</a></dt>
+<dd><p>Label each frequency with its half-decade band.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>frequency_hz</strong> – Frequencies in Hz.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An ordered categorical Series of band labels (see
+<a class="reference internal" href="#functions.evaluate.FREQUENCY_BAND_LABELS" title="functions.evaluate.FREQUENCY_BAND_LABELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">FREQUENCY_BAND_LABELS</span></code></a>), same index as the input.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.cross_validate">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">cross_validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_seeds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[42,</span> <span class="pre">43,</span> <span class="pre">44]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></span><a class="reference internal" href="_modules/functions/evaluate.html#cross_validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.cross_validate" title="Link to this definition">¶</a></dt>
+<dd><p>Run repeated grouped k-fold cross-validation for one model/feature set.</p>
+<p>For each seed, <a class="reference internal" href="#functions.make_folds.assign_folds" title="functions.make_folds.assign_folds"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.make_folds.assign_folds()</span></code></a> assigns folds,
+the test hold-out is dropped, and for each fold a fresh model is fitted on
+the other folds and predicts the held-out fold. Fit and predict are
+timed separately with <code class="xref py py-func docutils literal notranslate"><span class="pre">time.perf_counter()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Dataset from <a class="reference internal" href="#functions.data_loader.load_airfoil_data" title="functions.data_loader.load_airfoil_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.data_loader.load_airfoil_data()</span></code></a>.
+It must already contain any columns the feature set needs (call
+<a class="reference internal" href="#functions.physics_features.add_physics_features" title="functions.physics_features.add_physics_features"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_features.add_physics_features()</span></code></a> for set
+<code class="docutils literal notranslate"><span class="pre">B</span></code>).</p></li>
+<li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
+<li><p><strong>feature_set</strong> – Key of <a class="reference internal" href="#functions.feature_sets.FEATURE_SETS" title="functions.feature_sets.FEATURE_SETS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.feature_sets.FEATURE_SETS</span></code></a>.</p></li>
+<li><p><strong>cv_seeds</strong> – Seeds for repeated CV. Defaults to
+<a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.make_folds.CV_SEEDS</span></code></a> and should not be changed
+when comparing models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CVResult</span></code></a> with per-fold scores, OOF predictions and, for
+linear models, per-fold coefficients.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>KeyError</strong> – If the model or feature set name is unknown, or <code class="docutils literal notranslate"><span class="pre">data</span></code> is
+    missing a column the feature set needs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.summarise">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">summarise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#summarise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.summarise" title="Link to this definition">¶</a></dt>
+<dd><p>Summarise a CV run as one row of headline numbers.</p>
+<p>The headline metrics are computed on each seed’s pooled OOF predictions
+(every CV row predicted once), then averaged over seeds; the <code class="docutils literal notranslate"><span class="pre">_std</span></code>
+entries are the spread over seeds. Timings are averaged over all folds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>result</strong> – Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">feature_set</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_std</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mae</span></code>, <code class="docutils literal notranslate"><span class="pre">mae_std</span></code>, <code class="docutils literal notranslate"><span class="pre">r2</span></code>, <code class="docutils literal notranslate"><span class="pre">r2_std</span></code>, <code class="docutils literal notranslate"><span class="pre">fit_time_s</span></code> and
+<code class="docutils literal notranslate"><span class="pre">predict_time_s</span></code> (mean seconds per fold).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.oof_rmse_breakdown">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">oof_rmse_breakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#oof_rmse_breakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.oof_rmse_breakdown" title="Link to this definition">¶</a></dt>
+<dd><p>Break the OOF RMSE down by chord, velocity, angle band and frequency band.</p>
+<p>For each breakdown column and each group within it, RMSE is computed on
+that group’s OOF predictions separately for every seed, then averaged
+over seeds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>result</strong> – Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame with columns <code class="docutils literal notranslate"><span class="pre">breakdown</span></code> (which column was grouped on),
+<code class="docutils literal notranslate"><span class="pre">group</span></code> (the value or band label), <code class="docutils literal notranslate"><span class="pre">n</span></code> (rows per seed),
+<code class="docutils literal notranslate"><span class="pre">rmse</span></code> (mean over seeds, dB) and <code class="docutils literal notranslate"><span class="pre">rmse_std</span></code> (std over seeds).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.coefficient_summary">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">coefficient_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#coefficient_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.coefficient_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Summarise a linear model’s per-fold coefficients.</p>
+<p>Every (seed, fold) fit gives one coefficient per feature; this reports
+their mean and spread. A coefficient whose sign flips between folds, or
+whose std is comparable to its mean, is not reliably estimated and
+should not be given a physical interpretation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>result</strong> – Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DataFrame indexed by feature (in feature-set order) with columns
+<code class="docutils literal notranslate"><span class="pre">effect_db_per_sd</span></code> (mean over fits), <code class="docutils literal notranslate"><span class="pre">std</span></code>, <code class="docutils literal notranslate"><span class="pre">min</span></code>, <code class="docutils literal notranslate"><span class="pre">max</span></code> and
+<code class="docutils literal notranslate"><span class="pre">sign_agreement</span></code> (fraction of fits whose sign matches the mean’s).
+Empty if the model has no linear coefficients.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-run_cv">Entry point that cross-validates models on feature sets and reports results.</p>
+<p>Every combination of the requested models and feature sets is evaluated with
+repeated grouped 5-fold CV (<a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>). The
+test hold-out is never used. Defaults run the linear baseline on sets A and
+B:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_cv</span><span class="o">.</span><span class="n">py</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_cv</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">models</span> <span class="n">linear</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">A</span>
+</pre></div>
+</div>
+<p>Results are printed and written as CSV files to <code class="docutils literal notranslate"><span class="pre">results/</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cv_summary.csv</span></code>: one row per model/feature set (OOF RMSE, MAE, R² as
+mean and std over seeds; mean fit and predict time per fold).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cv_fold_scores.csv</span></code>: scores and timings for every seed and fold.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cv_rmse_breakdown.csv</span></code>: OOF RMSE by chord, velocity, angle band and
+frequency band.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cv_coefficients.csv</span></code>: for linear models, each input’s effect in dB per
+standard deviation (mean and spread over all folds and seeds).</p></li>
+</ul>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_cv.RESULTS_DIR">
+<span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">RESULTS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results')</span></em><a class="headerlink" href="#run_cv.RESULTS_DIR" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&lt;project</span> <span class="pre">root&gt;/results</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Directory the CSV results are written to</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_cv.parse_args">
+<span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_cv.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_cv.parse_args" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">--models</span></code> and <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code> command-line options.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">models</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_sets</span></code> lists.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_cv.main">
+<span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_cv.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_cv.main" title="Link to this definition">¶</a></dt>
+<dd><p>Run CV for every model/feature-set pair, print and save the results.</p>
+</dd></dl>
+
+</section>
+<section id="module-functions.profiling">
+<span id="performance-profiling"></span><h2>Performance profiling<a class="headerlink" href="#module-functions.profiling" title="Link to this heading">¶</a></h2>
+<p>Runtime, memory, profiler and FLOP analysis of model training and prediction.</p>
+<p><a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">profile_model()</span></code></a> fits a model once on all cross-validation rows (the
+test hold-out is dropped first, exactly as in <a class="reference internal" href="#module-functions.evaluate" title="functions.evaluate"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.evaluate</span></code></a>) and
+measures:</p>
+<ul class="simple">
+<li><p><strong>Time:</strong> median of repeated fit and predict calls, timed with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">time.perf_counter()</span></code>. Repeats smooth out timer noise on fits that
+take only milliseconds.</p></li>
+<li><p><strong>Peak memory:</strong> with <code class="xref py py-mod docutils literal notranslate"><span class="pre">tracemalloc</span></code>, which sees Python and NumPy
+allocations. Memory allocated directly inside compiled BLAS/LAPACK code is
+not seen, so the figure is a lower bound. Memory is measured in its own
+fit because tracemalloc slows code down and would distort the timings.</p></li>
+<li><p><strong>Profile:</strong> a <code class="xref py py-mod docutils literal notranslate"><span class="pre">cProfile</span></code> run of one fit, listing where the time goes.</p></li>
+<li><p><strong>FLOPs:</strong> an analytical estimate (<a class="reference internal" href="#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_flop_estimate()</span></code></a>) for
+models that have one. Dividing it by the measured time gives the achieved
+FLOP rate, which shows whether a fit is limited by arithmetic or by
+Python and library overhead.</p></li>
+</ul>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.profiling</span><span class="w"> </span><span class="kn">import</span> <span class="n">profile_model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">profile_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">)</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>   
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.profiling.N_TIMING_REPEATS">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">N_TIMING_REPEATS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#functions.profiling.N_TIMING_REPEATS" title="Link to this definition">¶</a></dt>
+<dd><p>Number of timed fit/predict repeats; the median is reported.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.profiling.N_PROFILE_LINES">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">N_PROFILE_LINES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#functions.profiling.N_PROFILE_LINES" title="Link to this definition">¶</a></dt>
+<dd><p>Number of functions listed in the cProfile report.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.profiling.linear_flop_estimate">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">linear_flop_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/profiling.html#linear_flop_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.linear_flop_estimate" title="Link to this definition">¶</a></dt>
+<dd><p>Estimate floating-point operations for the linear pipeline.</p>
+<p>Counts for an <code class="docutils literal notranslate"><span class="pre">n</span></code> x <code class="docutils literal notranslate"><span class="pre">p</span></code> training matrix:</p>
+<ul class="simple">
+<li><p>Input scaler: mean and variance (~3np) plus transform (~2np).</p></li>
+<li><p>Target scaler: the same for one column (~5n).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LinearRegression</span></code>: centring (~2np), then a least-squares solve with
+LAPACK <code class="docutils literal notranslate"><span class="pre">gelsd</span></code> (SVD based). For <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">&gt;&gt;</span> <span class="pre">p</span></code> this costs about
+<code class="docutils literal notranslate"><span class="pre">2np^2</span> <span class="pre">+</span> <span class="pre">11p^3</span></code> FLOPs (R-SVD least squares, Golub &amp; Van Loan,
+<em>Matrix Computations</em>). The <code class="docutils literal notranslate"><span class="pre">2np^2</span></code> term dominates.</p></li>
+<li><p>Predict: input transform (2np), matrix-vector product (2np) and
+inverse target transform (2n).</p></li>
+</ul>
+<p>These are leading-order counts for comparison with measured times, not
+exact operation counts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> – Number of rows.</p></li>
+<li><p><strong>p</strong> – Number of input features.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">fit_flops</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_flops</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.profiling.FLOP_ESTIMATES">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">FLOP_ESTIMATES</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">&lt;function</span> <span class="pre">linear_flop_estimate&gt;}</span></em><a class="headerlink" href="#functions.profiling.FLOP_ESTIMATES" title="Link to this definition">¶</a></dt>
+<dd><p>Model name -&gt; FLOP estimate function <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">p)</span> <span class="pre">-&gt;</span> <span class="pre">dict</span></code>. Models without an
+entry are profiled without a FLOP estimate.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">ProfileResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_fit_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/profiling.html#ProfileResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.ProfileResult" title="Link to this definition">¶</a></dt>
+<dd><p>Output of <a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">profile_model()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>str</em>) – Name of the profiled model.</p></li>
+<li><p><strong>feature_set</strong> (<em>str</em>) – Name of the feature set.</p></li>
+<li><p><strong>n_rows</strong> (<em>int</em>) – Training rows (all cross-validation rows, no test rows).</p></li>
+<li><p><strong>n_features</strong> (<em>int</em>) – Number of input features.</p></li>
+<li><p><strong>fit_time_s</strong> (<em>float</em>) – Median fit time over the timing repeats.</p></li>
+<li><p><strong>predict_time_s</strong> (<em>float</em>) – Median time to predict all <code class="docutils literal notranslate"><span class="pre">n_rows</span></code> rows.</p></li>
+<li><p><strong>input_bytes</strong> (<em>int</em>) – Size of the training input matrix as float64.</p></li>
+<li><p><strong>peak_fit_bytes</strong> (<em>int</em>) – Peak memory traced by tracemalloc during one fit.</p></li>
+<li><p><strong>fit_flops</strong> (<em>float</em><em> | </em><em>None</em>) – Estimated fit FLOPs, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no estimate exists.</p></li>
+<li><p><strong>predict_flops</strong> (<em>float</em><em> | </em><em>None</em>) – Estimated predict FLOPs, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>profile_text</strong> (<em>str</em>) – The cProfile report of one fit, sorted by cumulative
+time.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.model">
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.model" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.feature_set">
+<span class="sig-name descname"><span class="pre">feature_set</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.feature_set" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.n_rows">
+<span class="sig-name descname"><span class="pre">n_rows</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.n_rows" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.n_features">
+<span class="sig-name descname"><span class="pre">n_features</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.n_features" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.fit_time_s">
+<span class="sig-name descname"><span class="pre">fit_time_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.fit_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.predict_time_s">
+<span class="sig-name descname"><span class="pre">predict_time_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.predict_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.input_bytes">
+<span class="sig-name descname"><span class="pre">input_bytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.input_bytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.peak_fit_bytes">
+<span class="sig-name descname"><span class="pre">peak_fit_bytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.peak_fit_bytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.fit_flops">
+<span class="sig-name descname"><span class="pre">fit_flops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.fit_flops" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.predict_flops">
+<span class="sig-name descname"><span class="pre">predict_flops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.predict_flops" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.profile_text">
+<span class="sig-name descname"><span class="pre">profile_text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.profile_text" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/profiling.html#ProfileResult.summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.ProfileResult.summary" title="Link to this definition">¶</a></dt>
+<dd><p>Return the headline numbers as one flat row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dict of every attribute except <code class="docutils literal notranslate"><span class="pre">profile_text</span></code>, plus
+<code class="docutils literal notranslate"><span class="pre">fit_mflops_per_s</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_mflops_per_s</span></code> (achieved rate,
+estimated FLOPs / measured time, in millions per second; <code class="docutils literal notranslate"><span class="pre">None</span></code>
+without a FLOP estimate).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.profiling.profile_model">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">profile_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_repeats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.profiling.ProfileResult" title="functions.profiling.ProfileResult"><span class="pre">ProfileResult</span></a></span></span><a class="reference internal" href="_modules/functions/profiling.html#profile_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.profile_model" title="Link to this definition">¶</a></dt>
+<dd><p>Measure time, peak memory and the call profile of one model.</p>
+<p>The model is trained on all cross-validation rows for the first seed in
+<a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CV_SEEDS</span></code></a> (the test hold-out is the same for
+every seed and is dropped). This is the largest training set used during
+model selection, so it gives an upper bound on per-fold costs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Dataset with every column the feature set needs (see
+<a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>).</p></li>
+<li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
+<li><p><strong>feature_set</strong> – Key of <a class="reference internal" href="#functions.feature_sets.FEATURE_SETS" title="functions.feature_sets.FEATURE_SETS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.feature_sets.FEATURE_SETS</span></code></a>.</p></li>
+<li><p><strong>n_repeats</strong> – Number of timed fit and predict calls; the median is
+reported. Lower it for slow models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#functions.profiling.ProfileResult" title="functions.profiling.ProfileResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProfileResult</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>KeyError</strong> – If the model or feature set name is unknown.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-run_profile">Entry point that profiles runtime, memory and FLOPs of models.</p>
+<p>Each requested model/feature-set pair is trained on all cross-validation
+rows (never the test hold-out) by <a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.profile_model()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">models</span> <span class="n">linear</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">B</span>
+</pre></div>
+</div>
+<p>Writes to <code class="docutils literal notranslate"><span class="pre">results/</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">profile_summary.csv</span></code>: time, peak memory, estimated FLOPs and achieved
+FLOP rate per model/feature set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profile_&lt;model&gt;_&lt;feature</span> <span class="pre">set&gt;.txt</span></code>: the cProfile report of one fit.</p></li>
+</ul>
+<dl class="py function">
+<dt class="sig sig-object py" id="run_profile.parse_args">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_profile.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.parse_args" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">--models</span></code> and <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code> command-line options.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">models</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_sets</span></code> lists.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_profile.main">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.main" title="Link to this definition">¶</a></dt>
+<dd><p>Profile every model/feature-set pair, print and save the results.</p>
+</dd></dl>
+
+</section>
 <section id="module-functions.plot_spl_vs_features">
 <span id="exploratory-plots"></span><h2>Exploratory plots<a class="headerlink" href="#module-functions.plot_spl_vs_features" title="Link to this heading">¶</a></h2>
 <p>Overview scatter plot of SPL against every input feature.</p>
@@ -377,6 +1065,10 @@ data, adds the physics features and shows all three figures:</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.make_folds">Data split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.feature_sets">Feature sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.models">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.evaluate">Cross-validation and metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_vs_features">Exploratory plots</a></li>
 </ul>
 </li>
