@@ -165,6 +165,110 @@ train/validation/test split does not leak information between sets.</p>
 </dd></dl>
 
 </section>
+<section id="module-functions.make_folds">
+<span id="data-split"></span><h2>Data split<a class="headerlink" href="#module-functions.make_folds" title="Link to this heading">¶</a></h2>
+<p>Grouped, chord-stratified test hold-out and 5-fold cross-validation split.</p>
+<p>Each wind-tunnel setup (a unique chord length, free-stream velocity and angle
+of attack) contributes one noise spectrum of 8-19 rows. Rows from the same
+spectrum are strongly correlated, so whole setups are assigned to a split:
+a setup’s rows are never divided between training and validation/test.</p>
+<p>The split is stratified on chord length because chord is the only variable
+tested at the same values throughout the dataset; the angles tested differ
+for every chord and some velocity/angle combinations were never measured.</p>
+<p>Splitting happens on a table with one row per setup, so ordinary stratified
+splitters give a grouped split automatically. The result is mapped back onto
+the measurement rows as two columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">setup_id</span></code>: integer id of the setup, numbered in order of
+(chord, velocity, angle).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fold</span></code>: <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">N_FOLDS</span> <span class="pre">-</span> <span class="pre">1</span></code> for cross-validation rows, or
+<a class="reference internal" href="#functions.make_folds.TEST_FOLD" title="functions.make_folds.TEST_FOLD"><code class="xref py py-data docutils literal notranslate"><span class="pre">TEST_FOLD</span></code></a> for rows in the held-out test set.</p></li>
+</ul>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_folds</span><span class="p">,</span> <span class="n">CV_SEEDS</span><span class="p">,</span> <span class="n">TEST_FOLD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">raw</span> <span class="o">=</span> <span class="n">load_airfoil_data</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="n">CV_SEEDS</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">df</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">cv_seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">TEST_FOLD</span><span class="p">]</span>  <span class="c1"># same setups for every seed</span>
+<span class="gp">... </span>    <span class="n">cv</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.SETUP_KEYS">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">SETUP_KEYS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'attack_angle_deg']</span></em><a class="headerlink" href="#functions.make_folds.SETUP_KEYS" title="Link to this definition">¶</a></dt>
+<dd><p>Columns that together identify one wind-tunnel setup.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.STRATIFY_ON">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">STRATIFY_ON</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'chord_length_m'</span></em><a class="headerlink" href="#functions.make_folds.STRATIFY_ON" title="Link to this definition">¶</a></dt>
+<dd><p>Column the split is stratified on.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.N_FOLDS">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">N_FOLDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#functions.make_folds.N_FOLDS" title="Link to this definition">¶</a></dt>
+<dd><p>Number of cross-validation folds.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.TEST_FRACTION">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">TEST_FRACTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.15</span></em><a class="headerlink" href="#functions.make_folds.TEST_FRACTION" title="Link to this definition">¶</a></dt>
+<dd><p>Fraction of setups held out as the untouched test set.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.TEST_FOLD">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">TEST_FOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em><a class="headerlink" href="#functions.make_folds.TEST_FOLD" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">fold</span></code> value given to rows in the held-out test set.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.TEST_SEED">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">TEST_SEED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">41</span></em><a class="headerlink" href="#functions.make_folds.TEST_SEED" title="Link to this definition">¶</a></dt>
+<dd><p>Seed for the test hold-out, distinct from every CV seed. Kept fixed across
+CV repeats so the test set stays the same setups and is never used for
+tuning in any repeat.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.make_folds.CV_SEEDS">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">CV_SEEDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[42,</span> <span class="pre">43,</span> <span class="pre">44]</span></em><a class="headerlink" href="#functions.make_folds.CV_SEEDS" title="Link to this definition">¶</a></dt>
+<dd><p>Seeds for repeated cross-validation. Each seed reshuffles the 5 folds
+within the same non-test setups; averaging scores over all repeats shows
+how much results depend on the particular split.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.make_folds.assign_folds">
+<span class="sig-prename descclassname"><span class="pre">functions.make_folds.</span></span><span class="sig-name descname"><span class="pre">assign_folds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_folds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">41</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/make_folds.html#assign_folds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.make_folds.assign_folds" title="Link to this definition">¶</a></dt>
+<dd><p>Return a copy of the dataset with <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> and <code class="docutils literal notranslate"><span class="pre">fold</span></code> columns.</p>
+<p>First holds out <code class="docutils literal notranslate"><span class="pre">test_fraction</span></code> of the setups as a test set, then
+splits the remaining setups into <code class="docutils literal notranslate"><span class="pre">n_folds</span></code> cross-validation folds.
+Both steps are stratified on chord length and work on whole setups.
+For repeated CV, call once per seed in <a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CV_SEEDS</span></code></a>; the test set
+depends only on <code class="docutils literal notranslate"><span class="pre">test_seed</span></code> and so is identical across repeats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – Dataset as returned by
+<a class="reference internal" href="#functions.data_loader.load_airfoil_data" title="functions.data_loader.load_airfoil_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.data_loader.load_airfoil_data()</span></code></a> (physics feature
+columns, if present, are carried through unchanged).</p></li>
+<li><p><strong>n_folds</strong> – Number of cross-validation folds.</p></li>
+<li><p><strong>test_fraction</strong> – Fraction of setups held out as the test set.</p></li>
+<li><p><strong>cv_seed</strong> – Random seed for shuffling setups into CV folds.</p></li>
+<li><p><strong>test_seed</strong> – Random seed for choosing the test hold-out.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new DataFrame with the original columns plus <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> and
+<code class="docutils literal notranslate"><span class="pre">fold</span></code>. The input DataFrame is not modified.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="module-functions.plot_spl_vs_features">
 <span id="exploratory-plots"></span><h2>Exploratory plots<a class="headerlink" href="#module-functions.plot_spl_vs_features" title="Link to this heading">¶</a></h2>
 <p>Overview scatter plot of SPL against every input feature.</p>
@@ -204,17 +308,37 @@ is shared so noise levels are comparable across rows.</p>
 </dl>
 </dd></dl>
 
+<p id="module-functions.plot_spl_vs_physics_features">Scatter plot of SPL against each physics-derived feature.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_spl_vs_physics_features.plot_spl_vs_physics_features">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_spl_vs_physics_features.</span></span><span class="sig-name descname"><span class="pre">plot_spl_vs_physics_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_spl_vs_physics_features.html#plot_spl_vs_physics_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_spl_vs_physics_features.plot_spl_vs_physics_features" title="Link to this definition">¶</a></dt>
+<dd><p>Plot SPL against log-frequency, Strouhal number and Reynolds number.</p>
+<p>Strouhal and Reynolds numbers each span two to three decades, so their
+axes are log-scaled. Log-frequency is already logarithmic and is plotted
+on a linear axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Dataset with physics features, as returned by
+<a class="reference internal" href="#functions.physics_features.add_physics_features" title="functions.physics_features.add_physics_features"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_features.add_physics_features()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created matplotlib figure (not yet shown).</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-explore_plots">Entry point that displays the exploratory plots for the airfoil dataset.</p>
 <p>The plotting functions live in their own modules
-(<a class="reference internal" href="#module-functions.plot_spl_vs_features" title="functions.plot_spl_vs_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_features</span></code></a> and <a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a>); this
-script just loads the data and shows both figures:</p>
+(<a class="reference internal" href="#module-functions.plot_spl_vs_features" title="functions.plot_spl_vs_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_features</span></code></a>, <a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a>
+and <a class="reference internal" href="#module-functions.plot_spl_vs_physics_features" title="functions.plot_spl_vs_physics_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_physics_features</span></code></a>); this script just loads the
+data, adds the physics features and shows all three figures:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">explore_plots</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="explore_plots.main">
 <span class="sig-prename descclassname"><span class="pre">explore_plots.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/explore_plots.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#explore_plots.main" title="Link to this definition">¶</a></dt>
-<dd><p>Load the dataset and display both exploratory figures.</p>
+<dd><p>Load the dataset and display all exploratory figures.</p>
 </dd></dl>
 
 </section>
@@ -252,6 +376,7 @@ script just loads the data and shows both figures:</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.make_folds">Data split</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_vs_features">Exploratory plots</a></li>
 </ul>
 </li>

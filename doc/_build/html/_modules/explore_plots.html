@@ -34,8 +34,9 @@
 <span></span><span class="sd">"""Entry point that displays the exploratory plots for the airfoil dataset.</span>
 
 <span class="sd">The plotting functions live in their own modules</span>
-<span class="sd">(:mod:`functions.plot_spl_vs_features` and :mod:`functions.plot_spl_by_chord_length`); this</span>
-<span class="sd">script just loads the data and shows both figures::</span>
+<span class="sd">(:mod:`functions.plot_spl_vs_features`, :mod:`functions.plot_spl_by_chord_length`</span>
+<span class="sd">and :mod:`functions.plot_spl_vs_physics_features`); this script just loads the</span>
+<span class="sd">data, adds the physics features and shows all three figures::</span>
 
 <span class="sd">    python src/explore_plots.py</span>
 <span class="sd">"""</span>
@@ -43,17 +44,20 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_by_chord_length</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_by_chord_length</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_features</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_physics_features</span>
 
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../api.html#explore_plots.main">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Load the dataset and display both exploratory figures."""</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">load_airfoil_data</span><span class="p">()</span>
+<span class="w">    </span><span class="sd">"""Load the dataset and display all exploratory figures."""</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
     <span class="n">plot_spl_vs_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_by_chord_length</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">plot_spl_vs_physics_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 

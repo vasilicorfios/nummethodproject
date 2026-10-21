@@ -15,6 +15,13 @@ Physics features
    :members:
    :undoc-members:
 
+Data split
+----------
+
+.. automodule:: functions.make_folds
+   :members:
+   :undoc-members:
+
 Exploratory plots
 -----------------
 

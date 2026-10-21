@@ -15,6 +15,13 @@ Physics features
    :members:
    :undoc-members:
 
+Data split
+----------
+
+.. automodule:: functions.make_folds
+   :members:
+   :undoc-members:
+
 Exploratory plots
 -----------------
 
@@ -22,6 +29,9 @@ Exploratory plots
    :members:
 
 .. automodule:: functions.plot_spl_by_chord_length
+   :members:
+
+.. automodule:: functions.plot_spl_vs_physics_features
    :members:
 
 .. automodule:: explore_plots

@@ -39,7 +39,7 @@
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
 <p>Place <code class="docutils literal notranslate"><span class="pre">airfoil_self_noise.xlsx</span></code> in the <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory (it is not
 committed to the repository), then install the dependencies:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pandas</span> <span class="n">openpyxl</span> <span class="n">matplotlib</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">pandas</span> <span class="n">openpyxl</span> <span class="n">matplotlib</span> <span class="n">scikit</span><span class="o">-</span><span class="n">learn</span>
 </pre></div>
 </div>
 </section>
@@ -60,6 +60,26 @@ columns on load rather than stored in the Excel file:</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+<section id="splitting-the-data">
+<h2>Splitting the data<a class="headerlink" href="#splitting-the-data" title="Link to this heading">¶</a></h2>
+<p>About 15% of the 106 setups are held out as a test set, and the rest are
+split into 5 cross-validation folds. Both steps keep each setup’s rows
+together and are stratified on chord length. Cross-validation is repeated
+with seeds 42, 43 and 44; the test set (seed 41) is the same in every
+repeat:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">assign_folds</span><span class="p">,</span> <span class="n">CV_SEEDS</span><span class="p">,</span> <span class="n">TEST_FOLD</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="n">CV_SEEDS</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cv_seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">test</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">train</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">cv</span><span class="p">[</span><span class="n">cv</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">k</span><span class="p">],</span> <span class="n">cv</span><span class="p">[</span><span class="n">cv</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">k</span><span class="p">]</span>
 </pre></div>
 </div>
 </section>
@@ -110,6 +130,7 @@ columns on load rather than stored in the Excel file:</p>
 <li class="toctree-l2"><a class="reference internal" href="#setup">Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#loading-the-data">Loading the data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#adding-physics-features">Adding physics features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#splitting-the-data">Splitting the data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#building-these-docs">Building these docs</a></li>
 </ul>
