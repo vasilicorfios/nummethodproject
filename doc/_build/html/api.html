@@ -106,6 +106,65 @@ according to <a class="reference internal" href="#functions.data_loader.COLUMN_R
 </dd></dl>
 
 </section>
+<section id="module-functions.physics_features">
+<span id="physics-features"></span><h2>Physics features<a class="headerlink" href="#module-functions.physics_features" title="Link to this heading">¶</a></h2>
+<p>Physics-derived features for the airfoil self-noise dataset.</p>
+<p>The raw inputs are dimensional, but airfoil noise is governed largely by
+dimensionless groups. This module adds three engineered features computed
+row-wise from the raw columns, so they are recomputed on every load rather
+than stored in the Excel file.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="p">[[</span><span class="s2">"log_frequency"</span><span class="p">,</span> <span class="s2">"strouhal"</span><span class="p">,</span> <span class="s2">"reynolds"</span><span class="p">]]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.physics_features.KINEMATIC_VISCOSITY_M2PS">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_features.</span></span><span class="sig-name descname"><span class="pre">KINEMATIC_VISCOSITY_M2PS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5e-05</span></em><a class="headerlink" href="#functions.physics_features.KINEMATIC_VISCOSITY_M2PS" title="Link to this definition">¶</a></dt>
+<dd><p>Kinematic viscosity of air at roughly 20 °C (m^2/s), used for the
+Reynolds number. The wind-tunnel temperature is not recorded in the
+dataset, so a standard room-temperature value is assumed.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.physics_features.PHYSICS_FEATURES">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_features.</span></span><span class="sig-name descname"><span class="pre">PHYSICS_FEATURES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['log_frequency',</span> <span class="pre">'strouhal',</span> <span class="pre">'reynolds']</span></em><a class="headerlink" href="#functions.physics_features.PHYSICS_FEATURES" title="Link to this definition">¶</a></dt>
+<dd><p>Names of the columns added by <a class="reference internal" href="#functions.physics_features.add_physics_features" title="functions.physics_features.add_physics_features"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_physics_features()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.physics_features.add_physics_features">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_features.</span></span><span class="sig-name descname"><span class="pre">add_physics_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/physics_features.html#add_physics_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.physics_features.add_physics_features" title="Link to this definition">¶</a></dt>
+<dd><p>Return a copy of the dataset with physics-derived feature columns.</p>
+<p>Adds:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">log_frequency</span></code>: <code class="docutils literal notranslate"><span class="pre">log10(frequency_hz)</span></code>. Frequencies span about two
+decades, and acoustic spectra are naturally read on a log axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strouhal</span></code>: <code class="docutils literal notranslate"><span class="pre">frequency_hz</span> <span class="pre">*</span> <span class="pre">disp_thickness_m</span> <span class="pre">/</span> <span class="pre">velocity_mps</span></code>. Uses
+the suction-side displacement thickness as the length scale, the
+scaling used for turbulent boundary-layer trailing-edge noise in the
+Brooks-Pope-Marcolini (BPM) model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reynolds</span></code>: <code class="docutils literal notranslate"><span class="pre">velocity_mps</span> <span class="pre">*</span> <span class="pre">chord_length_m</span> <span class="pre">/</span> <span class="pre">nu</span></code>, the chord-based
+Reynolds number with <code class="docutils literal notranslate"><span class="pre">nu</span></code> = <a class="reference internal" href="#functions.physics_features.KINEMATIC_VISCOSITY_M2PS" title="functions.physics_features.KINEMATIC_VISCOSITY_M2PS"><code class="xref py py-data docutils literal notranslate"><span class="pre">KINEMATIC_VISCOSITY_M2PS</span></code></a>.</p></li>
+</ul>
+<p>Each feature depends only on its own row, so adding them before the
+train/validation/test split does not leak information between sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Dataset as returned by
+<a class="reference internal" href="#functions.data_loader.load_airfoil_data" title="functions.data_loader.load_airfoil_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.data_loader.load_airfoil_data()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new DataFrame with the original columns plus the columns listed in
+<a class="reference internal" href="#functions.physics_features.PHYSICS_FEATURES" title="functions.physics_features.PHYSICS_FEATURES"><code class="xref py py-data docutils literal notranslate"><span class="pre">PHYSICS_FEATURES</span></code></a>. The input DataFrame is not modified.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="module-functions.plot_spl_vs_features">
 <span id="exploratory-plots"></span><h2>Exploratory plots<a class="headerlink" href="#module-functions.plot_spl_vs_features" title="Link to this heading">¶</a></h2>
 <p>Overview scatter plot of SPL against every input feature.</p>
@@ -192,6 +251,7 @@ script just loads the data and shows both figures:</p>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_vs_features">Exploratory plots</a></li>
 </ul>
 </li>

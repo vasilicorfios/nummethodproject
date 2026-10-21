@@ -8,6 +8,13 @@ Data loading
    :members:
    :undoc-members:
 
+Physics features
+----------------
+
+.. automodule:: functions.physics_features
+   :members:
+   :undoc-members:
+
 Exploratory plots
 -----------------
 

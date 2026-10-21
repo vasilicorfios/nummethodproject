@@ -52,6 +52,17 @@ committed to the repository), then install the dependencies:</p>
 </pre></div>
 </div>
 </section>
+<section id="adding-physics-features">
+<h2>Adding physics features<a class="headerlink" href="#adding-physics-features" title="Link to this heading">¶</a></h2>
+<p>Log-frequency, Strouhal number and Reynolds number are computed from the raw
+columns on load rather than stored in the Excel file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
 <section id="exploratory-plots">
 <h2>Exploratory plots<a class="headerlink" href="#exploratory-plots" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/explore_plots.py</span>
@@ -98,6 +109,7 @@ committed to the repository), then install the dependencies:</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#setup">Setup</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#loading-the-data">Loading the data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-physics-features">Adding physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#building-these-docs">Building these docs</a></li>
 </ul>
