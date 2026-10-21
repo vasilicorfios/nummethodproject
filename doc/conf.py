@@ -19,6 +19,10 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
 autodoc_member_order = "bysource"
+# Keep viewcode on the documenting module. Otherwise it follows module-level
+# objects to their type's module (``DATA_PATH`` is a ``Path``) and renders an
+# unlinked copy of the standard library's ``pathlib`` source.
+viewcode_follow_imported_members = False
 # Avoid import errors when the plotting backend is unavailable on a doc build.
 autodoc_mock_imports = ["matplotlib", "pandas", "openpyxl"]
 

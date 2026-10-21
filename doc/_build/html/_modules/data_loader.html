@@ -68,6 +68,18 @@
     <span class="s2">"scaled-sound-pressure (dB)"</span><span class="p">:</span> <span class="s2">"spl_db"</span><span class="p">,</span>
 <span class="p">}</span>
 
+<span class="c1">#: Name of the target column (scaled sound pressure level, dB).</span>
+<span class="n">TARGET</span> <span class="o">=</span> <span class="s2">"spl_db"</span>
+
+<span class="c1">#: Input feature columns, in the order they appear in the dataset.</span>
+<span class="n">FEATURES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"frequency_hz"</span><span class="p">,</span>
+    <span class="s2">"attack_angle_deg"</span><span class="p">,</span>
+    <span class="s2">"chord_length_m"</span><span class="p">,</span>
+    <span class="s2">"velocity_mps"</span><span class="p">,</span>
+    <span class="s2">"disp_thickness_m"</span><span class="p">,</span>
+<span class="p">]</span>
+
 
 <div class="viewcode-block" id="load_airfoil_data">
 <a class="viewcode-back" href="../api.html#data_loader.load_airfoil_data">[docs]</a>

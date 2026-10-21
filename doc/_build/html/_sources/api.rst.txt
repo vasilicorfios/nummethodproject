@@ -4,13 +4,35 @@ API reference
 Data loading
 ------------
 
-.. automodule:: data_loader
+.. automodule:: functions.data_loader
+   :members:
+   :undoc-members:
+
+Physics features
+----------------
+
+.. automodule:: functions.physics_features
+   :members:
+   :undoc-members:
+
+Data split
+----------
+
+.. automodule:: functions.make_folds
    :members:
    :undoc-members:
 
 Exploratory plots
 -----------------
 
+.. automodule:: functions.plot_spl_vs_features
+   :members:
+
+.. automodule:: functions.plot_spl_by_chord_length
+   :members:
+
+.. automodule:: functions.plot_spl_vs_physics_features
+   :members:
+
 .. automodule:: explore_plots
    :members:
-   :undoc-members:

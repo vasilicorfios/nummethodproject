@@ -10,7 +10,7 @@ committed to the repository and must be kept locally, as noted in the
 project README.
 
 Example:
-    >>> from data_loader import load_airfoil_data
+    >>> from functions.data_loader import load_airfoil_data
     >>> df = load_airfoil_data()
     >>> df.columns.tolist()[-1]
     'spl_db'
@@ -21,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 
 #: Default location of the dataset: ``<project root>/data/airfoil_self_noise.xlsx``.
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "airfoil_self_noise.xlsx"
+DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "airfoil_self_noise.xlsx"
 
 #: Mapping from the verbose source column headers to short, code-friendly names.
 #: Unit suffixes (``_hz``, ``_deg``, ``_m``, ``_mps``, ``_db``) are kept in the
@@ -34,6 +34,18 @@ COLUMN_RENAME = {
     "suction-side-displacement-thickness (m)": "disp_thickness_m",
     "scaled-sound-pressure (dB)": "spl_db",
 }
+
+#: Name of the target column (scaled sound pressure level, dB).
+TARGET = "spl_db"
+
+#: Input feature columns, in the order they appear in the dataset.
+FEATURES = [
+    "frequency_hz",
+    "attack_angle_deg",
+    "chord_length_m",
+    "velocity_mps",
+    "disp_thickness_m",
+]
 
 
 def load_airfoil_data(path: Path = DATA_PATH) -> pd.DataFrame:
