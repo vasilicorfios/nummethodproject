@@ -2,9 +2,9 @@ Results
 =======
 
 This page reports the cross-validation results for every model run so far.
-The numbers are not typed in by hand: they are read from the tables in
-``doc/generated/``, which ``src/run_cv.py`` and ``src/run_profile.py``
-write. To update this page after changing the code:
+The numbers are not typed in by hand: they are read from the tables and
+figures in ``doc/generated/``, which ``src/run_cv.py`` and
+``src/run_profile.py`` write. To update this page after changing the code:
 
 .. code-block:: console
 
@@ -52,6 +52,18 @@ raises R² compared with set A. Both feature sets still leave around half of
 the SPL variance unexplained, which suggests the relationship is strongly
 non-linear and motivates the non-linear models planned next.
 
+.. figure:: generated/cv_predicted_vs_measured.png
+   :width: 100%
+   :alt: Scatter of out-of-fold predicted SPL against measured SPL for each
+         feature set, with a dashed y = x line.
+
+   Out-of-fold predicted vs measured SPL for one CV seed, so every
+   cross-validation row appears once. Points on the dashed line are perfect
+   predictions. The clouds are flatter than the line: the models
+   over-predict quiet conditions and under-predict loud ones, pulling
+   extremes towards the mean. The RMSE in each title is for this one seed,
+   so it differs slightly from the mean over seeds in the table above.
+
 Where the errors are
 --------------------
 
@@ -62,11 +74,40 @@ RMSE (dB) of the OOF predictions for each subgroup, averaged over seeds.
    :file: generated/cv_rmse_breakdown.csv
    :header-rows: 1
 
+.. figure:: generated/cv_rmse_breakdown.png
+   :width: 100%
+   :alt: Grouped bar charts of out-of-fold RMSE by chord, velocity, angle
+         band and frequency band, one bar per model and feature set.
+
+   The same breakdown as the table, drawn as bars.
+
 For the linear baseline, the largest errors are at the smallest chord, the
 lowest frequency band and the highest angle band (above 15°, where the
 boundary layer is likely to be separated or near stall). Free-stream velocity
 has a much smaller effect on error. These are the regions where a straight
 line in the inputs fits the measured spectra worst.
+
+.. figure:: generated/cv_residual_by_frequency.png
+   :width: 100%
+   :alt: Line chart of mean out-of-fold residual against frequency on a log
+         axis, one line per model and feature set.
+
+   Mean residual (measured − predicted) at each measured frequency, for one
+   CV seed. An unbiased model would follow the zero line. A curve that
+   rises sharply at the highest frequencies means the model systematically
+   under-predicts there: SPL does not change linearly with frequency, so a
+   linear model cannot follow the spectrum's shape.
+
+.. figure:: generated/cv_example_spectra.png
+   :width: 100%
+   :alt: Three panels of SPL against frequency for the best, median and
+         worst predicted setups, comparing measured spectra with predictions.
+
+   Measured and predicted spectra for the best, median and worst predicted
+   setups, ranked by the first model's per-setup RMSE. Each prediction comes
+   from a model that never saw that setup. The linear models can only
+   produce smooth, monotonic curves, so they miss the peaked spectra that
+   appear at smaller chords and higher angles.
 
 What the linear model learned
 -----------------------------
@@ -80,6 +121,15 @@ compared directly even though the inputs have very different units.
 .. csv-table:: Linear coefficients (dB per input standard deviation) [sign agreement]
    :file: generated/cv_coefficients.csv
    :header-rows: 1
+
+.. figure:: generated/cv_coefficients.png
+   :width: 85%
+   :alt: Dot and whisker plot of each feature's coefficient with its spread
+         across folds, for each feature set.
+
+   The same coefficients, with whiskers of ± one standard deviation over
+   the 15 fits. A whisker that crosses zero marks a coefficient whose sign
+   is not reliably estimated.
 
 On set A every coefficient keeps the same sign in every fit, so the
 direction of each effect is reliable. Higher frequency, longer chord, larger

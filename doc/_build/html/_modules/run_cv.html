@@ -51,9 +51,10 @@
 <span class="sd">* ``cv_coefficients.csv``: for linear models, each input's effect in dB per</span>
 <span class="sd">  standard deviation (mean and spread over all folds and seeds).</span>
 
-<span class="sd">Rounded copies of the summary, breakdown and coefficient tables are also</span>
-<span class="sd">written to ``doc/generated/`` for the HTML results page; rebuild the docs</span>
-<span class="sd">afterwards to publish them.</span>
+<span class="sd">Rounded copies of the summary, breakdown and coefficient tables, and the</span>
+<span class="sd">results figures (:mod:`functions.plot_results`), are also written to</span>
+<span class="sd">``doc/generated/`` for the HTML results page; rebuild the docs afterwards to</span>
+<span class="sd">publish them.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -71,6 +72,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">FEATURE_SETS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MODELS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_result_figures</span>
 
 <span class="c1">#: Directory the CSV results are written to: ``&lt;project root&gt;/results``.</span>
 <span class="n">RESULTS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"results"</span>
@@ -176,10 +178,11 @@
     <span class="c1"># Physics columns are added for every run; feature set A simply ignores them.</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
 
-    <span class="n">summaries</span><span class="p">,</span> <span class="n">fold_scores</span><span class="p">,</span> <span class="n">breakdowns</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">results</span><span class="p">,</span> <span class="n">summaries</span><span class="p">,</span> <span class="n">fold_scores</span><span class="p">,</span> <span class="n">breakdowns</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">model_name</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">feature_set</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">feature_sets</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
             <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">summarise</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
             <span class="n">labels</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">model_name</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">:</span> <span class="n">feature_set</span><span class="p">}</span>
             <span class="n">fold_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">fold_scores</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="o">**</span><span class="n">labels</span><span class="p">))</span>
@@ -221,8 +224,9 @@
     <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">fold_scores</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_fold_scores.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">breakdown</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_rmse_breakdown.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">write_doc_tables</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">breakdown</span><span class="p">,</span> <span class="n">coefficient_table</span><span class="p">)</span>
+    <span class="n">save_result_figures</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">CSV files written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation tables written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation tables and figures written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 

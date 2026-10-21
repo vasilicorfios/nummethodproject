@@ -699,9 +699,10 @@ frequency band.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cv_coefficients.csv</span></code>: for linear models, each input’s effect in dB per
 standard deviation (mean and spread over all folds and seeds).</p></li>
 </ul>
-<p>Rounded copies of the summary, breakdown and coefficient tables are also
-written to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML results page; rebuild the docs
-afterwards to publish them.</p>
+<p>Rounded copies of the summary, breakdown and coefficient tables, and the
+results figures (<a class="reference internal" href="#module-functions.plot_results" title="functions.plot_results"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_results</span></code></a>), are also written to
+<code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML results page; rebuild the docs afterwards to
+publish them.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="run_cv.RESULTS_DIR">
 <span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">RESULTS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results')</span></em><a class="headerlink" href="#run_cv.RESULTS_DIR" title="Link to this definition">¶</a></dt>
@@ -759,6 +760,162 @@ may be empty.</p></li>
 <dt class="sig sig-object py" id="run_cv.main">
 <span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_cv.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_cv.main" title="Link to this definition">¶</a></dt>
 <dd><p>Run CV for every model/feature-set pair, print and save the results.</p>
+</dd></dl>
+
+</section>
+<section id="module-functions.plot_results">
+<span id="results-figures"></span><h2>Results figures<a class="headerlink" href="#module-functions.plot_results" title="Link to this heading">¶</a></h2>
+<p>Figures of cross-validation results for the HTML results page.</p>
+<p>Every function takes one or more <a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">functions.evaluate.CVResult</span></code></a>
+objects and returns a matplotlib figure; <a class="reference internal" href="#functions.plot_results.save_result_figures" title="functions.plot_results.save_result_figures"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_result_figures()</span></code></a> draws
+them all and writes PNGs. Each result keeps the same colour in every figure
+(first result blue, second orange, …), so a model/feature set is
+recognisable across the page. Measured data are drawn in neutral ink, never
+a series colour.</p>
+<p>Figures that show individual predictions use one CV seed
+(<a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.make_folds.CV_SEEDS</span></code></a> <code class="docutils literal notranslate"><span class="pre">[0]</span></code> by default) so that every row
+appears exactly once.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_result_figures</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">cross_validate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span> <span class="k">for</span> <span class="n">fs</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_result_figures</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"doc/generated"</span><span class="p">))</span>  
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_results.SERIES_COLOURS">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">SERIES_COLOURS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['#2a78d6',</span> <span class="pre">'#eb6834',</span> <span class="pre">'#1baf7a',</span> <span class="pre">'#eda100']</span></em><a class="headerlink" href="#functions.plot_results.SERIES_COLOURS" title="Link to this definition">¶</a></dt>
+<dd><p>Series colours in fixed order (validated categorical palette, light mode).
+Results beyond the third should be split across figures rather than
+added to the same scatter, where more hues stop being distinguishable.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_results.INK">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">INK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'#0b0b0b'</span></em><a class="headerlink" href="#functions.plot_results.INK" title="Link to this definition">¶</a></dt>
+<dd><p>measured data, reference lines, grid and text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Neutral chart colours</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_results.BREAKDOWN_TITLES">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">BREAKDOWN_TITLES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'angle_band':</span> <span class="pre">'Angle</span> <span class="pre">of</span> <span class="pre">attack</span> <span class="pre">(deg)',</span> <span class="pre">'chord_length_m':</span> <span class="pre">'Chord</span> <span class="pre">(m)',</span> <span class="pre">'frequency_band':</span> <span class="pre">'Frequency</span> <span class="pre">band',</span> <span class="pre">'velocity_mps':</span> <span class="pre">'Velocity</span> <span class="pre">(m/s)'}</span></em><a class="headerlink" href="#functions.plot_results.BREAKDOWN_TITLES" title="Link to this definition">¶</a></dt>
+<dd><p>Readable labels for the breakdown columns.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_predicted_vs_measured">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_predicted_vs_measured</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_predicted_vs_measured"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_predicted_vs_measured" title="Link to this definition">¶</a></dt>
+<dd><p>Scatter OOF predicted SPL against measured SPL, one panel per result.</p>
+<p>Points on the dashed y = x line are perfect predictions. A cloud flatter
+than the line means the model shrinks extremes towards the mean.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
+<li><p><strong>seed</strong> – CV seed whose OOF predictions are shown.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_residual_by_frequency">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_residual_by_frequency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_residual_by_frequency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_residual_by_frequency" title="Link to this definition">¶</a></dt>
+<dd><p>Plot the mean OOF residual at each measured frequency.</p>
+<p>An unbiased model would sit on the zero line at every frequency; a
+systematic curve shows spectral shape the model cannot represent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
+<li><p><strong>data</strong> – The dataset the results were computed on (for frequencies).</p></li>
+<li><p><strong>seed</strong> – CV seed whose OOF predictions are used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_rmse_breakdown">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_rmse_breakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_rmse_breakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_rmse_breakdown" title="Link to this definition">¶</a></dt>
+<dd><p>Grouped bars of OOF RMSE for each subgroup, one panel per breakdown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_coefficients">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Figure</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_coefficients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_coefficients" title="Link to this definition">¶</a></dt>
+<dd><p>Dot-and-whisker plot of linear coefficients (mean ± std over fits).</p>
+<p>A whisker crossing zero means the coefficient’s sign is not reliably
+estimated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.
+Results without linear coefficients are skipped.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no result has coefficients.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_example_spectra">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_example_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_example_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_example_spectra" title="Link to this definition">¶</a></dt>
+<dd><p>Measured and predicted spectra for the best, median and worst setups.</p>
+<p>Setups are ranked by the first result’s per-setup OOF RMSE, so the
+three panels show what a good, typical and poor prediction looks like.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
+<li><p><strong>data</strong> – The dataset the results were computed on.</p></li>
+<li><p><strong>seed</strong> – CV seed whose OOF predictions are shown.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.save_result_figures">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">save_result_figures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#save_result_figures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.save_result_figures" title="Link to this definition">¶</a></dt>
+<dd><p>Draw every results figure and save it as a PNG.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – The dataset the results were computed on.</p></li>
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>, in the
+order their colours should be assigned.</p></li>
+<li><p><strong>out_dir</strong> – Directory for the PNG files (created if missing).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Paths of the files written. <code class="docutils literal notranslate"><span class="pre">cv_coefficients.png</span></code> is skipped when
+no result has linear coefficients.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -1119,6 +1276,7 @@ data, adds the physics features and shows all three figures:</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.feature_sets">Feature sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.models">Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.evaluate">Cross-validation and metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_results">Results figures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_vs_features">Exploratory plots</a></li>
 </ul>

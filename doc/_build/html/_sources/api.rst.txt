@@ -46,6 +46,12 @@ Cross-validation and metrics
 .. automodule:: run_cv
    :members:
 
+Results figures
+---------------
+
+.. automodule:: functions.plot_results
+   :members:
+
 Performance profiling
 ---------------------
 

@@ -18,9 +18,10 @@ Results are printed and written as CSV files to ``results/``:
 * ``cv_coefficients.csv``: for linear models, each input's effect in dB per
   standard deviation (mean and spread over all folds and seeds).
 
-Rounded copies of the summary, breakdown and coefficient tables are also
-written to ``doc/generated/`` for the HTML results page; rebuild the docs
-afterwards to publish them.
+Rounded copies of the summary, breakdown and coefficient tables, and the
+results figures (:mod:`functions.plot_results`), are also written to
+``doc/generated/`` for the HTML results page; rebuild the docs afterwards to
+publish them.
 """
 
 import argparse
@@ -38,6 +39,7 @@ from functions.evaluate import (
 from functions.feature_sets import FEATURE_SETS
 from functions.models import MODELS
 from functions.physics_features import add_physics_features
+from functions.plot_results import save_result_figures
 
 #: Directory the CSV results are written to: ``<project root>/results``.
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
@@ -135,10 +137,11 @@ def main() -> None:
     # Physics columns are added for every run; feature set A simply ignores them.
     data = add_physics_features(load_airfoil_data())
 
-    summaries, fold_scores, breakdowns, coefficients = [], [], [], []
+    results, summaries, fold_scores, breakdowns, coefficients = [], [], [], [], []
     for model_name in args.models:
         for feature_set in args.feature_sets:
             result = cross_validate(data, model_name, feature_set)
+            results.append(result)
             summaries.append(summarise(result))
             labels = {"model": model_name, "feature_set": feature_set}
             fold_scores.append(result.fold_scores.assign(**labels))
@@ -180,8 +183,9 @@ def main() -> None:
     pd.concat(fold_scores, ignore_index=True).to_csv(RESULTS_DIR / "cv_fold_scores.csv", index=False)
     breakdown.to_csv(RESULTS_DIR / "cv_rmse_breakdown.csv", index=False)
     write_doc_tables(summary, breakdown, coefficient_table)
+    save_result_figures(data, results, DOC_TABLES_DIR)
     print(f"\nCSV files written to {RESULTS_DIR}")
-    print(f"Documentation tables written to {DOC_TABLES_DIR}")
+    print(f"Documentation tables and figures written to {DOC_TABLES_DIR}")
 
 
 if __name__ == "__main__":
