@@ -44,6 +44,9 @@
 <span class="sd">* ``profile_summary.csv``: time, peak memory, estimated FLOPs and achieved</span>
 <span class="sd">  FLOP rate per model/feature set.</span>
 <span class="sd">* ``profile_&lt;model&gt;_&lt;feature set&gt;.txt``: the cProfile report of one fit.</span>
+
+<span class="sd">A rounded copy of the summary is written to ``doc/generated/`` for the HTML</span>
+<span class="sd">results page.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -55,7 +58,34 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MODELS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.profiling</span><span class="w"> </span><span class="kn">import</span> <span class="n">profile_model</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">run_cv</span><span class="w"> </span><span class="kn">import</span> <span class="n">RESULTS_DIR</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">run_cv</span><span class="w"> </span><span class="kn">import</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="n">RESULTS_DIR</span>
+
+
+<div class="viewcode-block" id="write_doc_table">
+<a class="viewcode-back" href="../api.html#run_profile.write_doc_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_doc_table</span><span class="p">(</span><span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write the profile summary as a rounded table for the HTML documentation.</span>
+
+<span class="sd">    Times are converted to ms and memory to kB so the table reads at a glance</span>
+<span class="sd">    on ``doc/results.rst``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        summary: One row per model/feature set from</span>
+<span class="sd">            :meth:`functions.profiling.ProfileResult.summary`.</span>
+<span class="sd">    """</span>
+    <span class="n">DOC_TABLES_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Model"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+        <span class="s2">"Feature set"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">],</span>
+        <span class="s2">"Rows x features"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"n_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" x "</span> <span class="o">+</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"n_features"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"Fit time (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Predict time (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Input size (kB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"input_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"Peak fit memory (kB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"peak_fit_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"Fit FLOPs (est.)"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"fit_flops"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s2">"</span><span class="si">{:.2e}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">),</span>
+        <span class="s2">"Fit rate (MFLOP/s)"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"fit_mflops_per_s"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"profile_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="parse_args">
@@ -97,7 +127,9 @@
         <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
     <span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"profile_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Summary and cProfile reports written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+    <span class="n">write_doc_table</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Summary and cProfile reports written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation table written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 
@@ -133,6 +165,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 </ul>
 

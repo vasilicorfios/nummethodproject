@@ -1,0 +1,3 @@
+Model,Feature set,RMSE (dB),MAE (dB),R²,Fit time per fold (ms),Predict time per fold (ms)
+linear,A,4.897 ± 0.020,3.813 ± 0.023,0.497 ± 0.004,4.61,1.78
+linear,B,4.586 ± 0.007,3.572 ± 0.007,0.559 ± 0.001,4.03,1.57

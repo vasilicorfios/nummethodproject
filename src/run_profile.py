@@ -11,6 +11,9 @@ Writes to ``results/``:
 * ``profile_summary.csv``: time, peak memory, estimated FLOPs and achieved
   FLOP rate per model/feature set.
 * ``profile_<model>_<feature set>.txt``: the cProfile report of one fit.
+
+A rounded copy of the summary is written to ``doc/generated/`` for the HTML
+results page.
 """
 
 import argparse
@@ -22,7 +25,31 @@ from functions.feature_sets import FEATURE_SETS
 from functions.models import MODELS
 from functions.physics_features import add_physics_features
 from functions.profiling import profile_model
-from run_cv import RESULTS_DIR
+from run_cv import DOC_TABLES_DIR, RESULTS_DIR
+
+
+def write_doc_table(summary: pd.DataFrame) -> None:
+    """Write the profile summary as a rounded table for the HTML documentation.
+
+    Times are converted to ms and memory to kB so the table reads at a glance
+    on ``doc/results.rst``.
+
+    Args:
+        summary: One row per model/feature set from
+            :meth:`functions.profiling.ProfileResult.summary`.
+    """
+    DOC_TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({
+        "Model": summary["model"],
+        "Feature set": summary["feature_set"],
+        "Rows x features": summary["n_rows"].astype(str) + " x " + summary["n_features"].astype(str),
+        "Fit time (ms)": (summary["fit_time_s"] * 1e3).round(2),
+        "Predict time (ms)": (summary["predict_time_s"] * 1e3).round(2),
+        "Input size (kB)": (summary["input_bytes"] / 1e3).round(1),
+        "Peak fit memory (kB)": (summary["peak_fit_bytes"] / 1e3).round(1),
+        "Fit FLOPs (est.)": summary["fit_flops"].map("{:.2e}".format),
+        "Fit rate (MFLOP/s)": summary["fit_mflops_per_s"].round(1),
+    }).to_csv(DOC_TABLES_DIR / "profile_summary.csv", index=False)
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,7 +86,9 @@ def main() -> None:
         print(summary.to_string(index=False))
 
     summary.to_csv(RESULTS_DIR / "profile_summary.csv", index=False)
+    write_doc_table(summary)
     print(f"\nSummary and cProfile reports written to {RESULTS_DIR}")
+    print(f"Documentation table written to {DOC_TABLES_DIR}")
 
 
 if __name__ == "__main__":

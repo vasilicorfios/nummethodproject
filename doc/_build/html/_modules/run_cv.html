@@ -50,6 +50,10 @@
 <span class="sd">  frequency band.</span>
 <span class="sd">* ``cv_coefficients.csv``: for linear models, each input's effect in dB per</span>
 <span class="sd">  standard deviation (mean and spread over all folds and seeds).</span>
+
+<span class="sd">Rounded copies of the summary, breakdown and coefficient tables are also</span>
+<span class="sd">written to ``doc/generated/`` for the HTML results page; rebuild the docs</span>
+<span class="sd">afterwards to publish them.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -70,6 +74,81 @@
 
 <span class="c1">#: Directory the CSV results are written to: ``&lt;project root&gt;/results``.</span>
 <span class="n">RESULTS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"results"</span>
+
+<span class="c1">#: Directory for rounded, presentation-ready tables included by the Sphinx</span>
+<span class="c1">#: results page (``doc/results.rst``): ``&lt;project root&gt;/doc/generated``.</span>
+<span class="n">DOC_TABLES_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"doc"</span> <span class="o">/</span> <span class="s2">"generated"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mean_std</span><span class="p">(</span><span class="n">mean</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">std</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">decimals</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format paired mean and std columns as ``"mean ± std"`` strings."""</span>
+    <span class="k">return</span> <span class="n">mean</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decimals</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">{{</span><span class="s2">:.</span><span class="si">{</span><span class="n">decimals</span><span class="si">}</span><span class="s2">f</span><span class="se">}}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" ± "</span> <span class="o">+</span> <span class="n">std</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="se">{{</span><span class="s2">:.</span><span class="si">{</span><span class="n">decimals</span><span class="si">}</span><span class="s2">f</span><span class="se">}}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="write_doc_tables">
+<a class="viewcode-back" href="../api.html#run_cv.write_doc_tables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_doc_tables</span><span class="p">(</span>
+    <span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">breakdown</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write the CV results as rounded CSV tables for the HTML documentation.</span>
+
+<span class="sd">    The full-precision CSVs in :data:`RESULTS_DIR` are for analysis; these</span>
+<span class="sd">    copies are rounded, labelled with units and laid out with one column per</span>
+<span class="sd">    model/feature set so ``doc/results.rst`` can show them with</span>
+<span class="sd">    ``csv-table`` directives. Re-running this script and rebuilding the docs</span>
+<span class="sd">    keeps the published numbers in sync with the code.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        summary: One row per model/feature set from</span>
+<span class="sd">            :func:`functions.evaluate.summarise`.</span>
+<span class="sd">        breakdown: Concatenated :func:`functions.evaluate.oof_rmse_breakdown`</span>
+<span class="sd">            outputs with ``model`` and ``feature_set`` columns.</span>
+<span class="sd">        coefficients: Concatenated :func:`functions.evaluate.coefficient_summary`</span>
+<span class="sd">            outputs (reset index) with ``model`` and ``feature_set`` columns;</span>
+<span class="sd">            may be empty.</span>
+<span class="sd">    """</span>
+    <span class="n">DOC_TABLES_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Model"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+        <span class="s2">"Feature set"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">],</span>
+        <span class="s2">"RMSE (dB)"</span><span class="p">:</span> <span class="n">_mean_std</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"rmse"</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"rmse_std"</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="s2">"MAE (dB)"</span><span class="p">:</span> <span class="n">_mean_std</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"mae"</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"mae_std"</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="s2">"R²"</span><span class="p">:</span> <span class="n">_mean_std</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"r2"</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"r2_std"</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="s2">"Fit time per fold (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Predict time per fold (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"cv_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># One RMSE column per model/feature set, so rows compare like for like.</span>
+    <span class="n">labelled</span> <span class="o">=</span> <span class="n">breakdown</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="n">breakdown</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" / "</span> <span class="o">+</span> <span class="n">breakdown</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">])</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">labelled</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span>
+        <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"breakdown"</span><span class="p">,</span> <span class="s2">"group"</span><span class="p">,</span> <span class="s2">"n"</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"column"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">wide</span><span class="p">[</span><span class="s2">"breakdown"</span><span class="p">]</span> <span class="o">=</span> <span class="n">wide</span><span class="p">[</span><span class="s2">"breakdown"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span>
+        <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="s2">"Chord (m)"</span><span class="p">,</span>
+        <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="s2">"Velocity (m/s)"</span><span class="p">,</span>
+        <span class="s2">"angle_band"</span><span class="p">:</span> <span class="s2">"Angle band (deg)"</span><span class="p">,</span>
+        <span class="s2">"frequency_band"</span><span class="p">:</span> <span class="s2">"Frequency band"</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">wide</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"breakdown"</span><span class="p">:</span> <span class="s2">"Grouped by"</span><span class="p">,</span> <span class="s2">"group"</span><span class="p">:</span> <span class="s2">"Group"</span><span class="p">,</span> <span class="s2">"n"</span><span class="p">:</span> <span class="s2">"Rows"</span><span class="p">})</span>
+    <span class="n">wide</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">wide</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"cv_rmse_breakdown.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">cells</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+            <span class="n">column</span><span class="o">=</span><span class="n">coefficients</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" / "</span> <span class="o">+</span> <span class="n">coefficients</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">],</span>
+            <span class="n">cell</span><span class="o">=</span><span class="n">_mean_std</span><span class="p">(</span><span class="n">coefficients</span><span class="p">[</span><span class="s2">"effect_db_per_sd"</span><span class="p">],</span> <span class="n">coefficients</span><span class="p">[</span><span class="s2">"std"</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">" ["</span> <span class="o">+</span> <span class="p">(</span><span class="n">coefficients</span><span class="p">[</span><span class="s2">"sign_agreement"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"%]"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">cells</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"feature"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"column"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"cell"</span><span class="p">)</span>
+        <span class="c1"># Keep feature-set order (raw inputs first), not alphabetical.</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">cells</span><span class="p">[</span><span class="s2">"feature"</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">())</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">"Feature"</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"cv_coefficients.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="parse_args">
@@ -131,15 +210,19 @@
                   <span class="s2">"(dB per input std; spread over all folds and seeds)"</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">coefs</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"model"</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">])</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
+    <span class="n">coefficient_table</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">coefficients</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="p">)</span>
+
     <span class="n">RESULTS_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">coefficients</span><span class="p">:</span>
-        <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
-            <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_coefficients.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">coefficient_table</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">coefficient_table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_coefficients.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">fold_scores</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_fold_scores.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">breakdown</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"cv_rmse_breakdown.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">CSV files written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+    <span class="n">write_doc_tables</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">breakdown</span><span class="p">,</span> <span class="n">coefficient_table</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">CSV files written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation tables written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 
@@ -175,6 +258,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 </ul>
 

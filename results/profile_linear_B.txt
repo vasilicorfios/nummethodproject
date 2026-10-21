@@ -1,23 +1,23 @@
-         8538 function calls (8346 primitive calls) in 0.007 seconds
+         8538 function calls (8346 primitive calls) in 0.010 seconds
 
    Ordered by: cumulative time
    List reduced from 424 to 15 due to restriction <15>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-      5/1    0.000    0.000    0.007    0.007 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\base.py:1348(wrapper)
-        1    0.000    0.000    0.007    0.007 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\compose\_target.py:220(fit)
-        1    0.000    0.000    0.005    0.005 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:604(fit)
-      4/3    0.000    0.000    0.004    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\_set_output.py:314(wrapped)
-       11    0.000    0.000    0.004    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\validation.py:734(check_array)
-        1    0.000    0.000    0.004    0.004 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:554(_fit)
-        6    0.000    0.000    0.004    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\validation.py:2845(validate_data)
-        1    0.000    0.000    0.004    0.004 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\joblib\memory.py:330(__call__)
-        1    0.000    0.000    0.004    0.004 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:1527(_fit_transform_one)
-        1    0.000    0.000    0.004    0.004 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\base.py:839(fit_transform)
-        2    0.000    0.000    0.003    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:882(fit)
-        2    0.000    0.000    0.002    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:909(partial_fit)
-        3    0.000    0.000    0.002    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:1057(transform)
+      5/1    0.000    0.000    0.010    0.010 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\base.py:1348(wrapper)
+        1    0.000    0.000    0.009    0.009 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\compose\_target.py:220(fit)
+        1    0.000    0.000    0.006    0.006 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:604(fit)
+       11    0.000    0.000    0.006    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\validation.py:734(check_array)
+      4/3    0.000    0.000    0.005    0.002 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\_set_output.py:314(wrapped)
+        6    0.000    0.000    0.005    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\validation.py:2845(validate_data)
+        1    0.000    0.000    0.005    0.005 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:554(_fit)
+        1    0.000    0.000    0.005    0.005 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\joblib\memory.py:330(__call__)
+        1    0.000    0.000    0.005    0.005 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:1527(_fit_transform_one)
+        1    0.000    0.000    0.005    0.005 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\base.py:839(fit_transform)
+        2    0.000    0.000    0.003    0.002 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:882(fit)
+        2    0.000    0.000    0.003    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:909(partial_fit)
+        3    0.000    0.000    0.003    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\preprocessing\_data.py:1057(transform)
        16    0.000    0.000    0.002    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\pandas\core\generic.py:6454(dtypes)
-       18    0.000    0.000    0.001    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\pandas\core\series.py:392(__init__)
+       18    0.000    0.000    0.002    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\pandas\core\series.py:392(__init__)
 
 

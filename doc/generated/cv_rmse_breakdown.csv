@@ -1,0 +1,20 @@
+Grouped by,Group,Rows,linear / A,linear / B
+Chord (m),0.0254,238,6.817,6.699
+Chord (m),0.0508,196,4.331,3.884
+Chord (m),0.1016,226,4.734,4.042
+Chord (m),0.1524,240,4.579,4.097
+Chord (m),0.2286,221,4.465,4.221
+Chord (m),0.3048,155,2.96,3.142
+Velocity (m/s),31.7,223,4.717,4.366
+Velocity (m/s),39.6,436,4.953,4.735
+Velocity (m/s),55.5,240,4.869,4.314
+Velocity (m/s),71.3,377,4.953,4.702
+Angle band (deg),0,311,4.364,3.892
+Angle band (deg),0-5,304,3.999,3.89
+Angle band (deg),5-10,333,5.318,4.936
+Angle band (deg),10-15,158,5.287,4.715
+Angle band (deg),>15,170,5.931,5.887
+Frequency band,200-500 Hz,240,6.938,6.733
+Frequency band,630-1600 Hz,407,4.465,4.236
+Frequency band,2-5 kHz,434,3.73,3.267
+Frequency band,6.3-20 kHz,195,5.01,4.537

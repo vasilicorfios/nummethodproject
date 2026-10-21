@@ -14,7 +14,7 @@
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Usage" href="usage.html" />
+    <link rel="prev" title="Results" href="results.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -699,6 +699,9 @@ frequency band.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cv_coefficients.csv</span></code>: for linear models, each input’s effect in dB per
 standard deviation (mean and spread over all folds and seeds).</p></li>
 </ul>
+<p>Rounded copies of the summary, breakdown and coefficient tables are also
+written to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML results page; rebuild the docs
+afterwards to publish them.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="run_cv.RESULTS_DIR">
 <span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">RESULTS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results')</span></em><a class="headerlink" href="#run_cv.RESULTS_DIR" title="Link to this definition">¶</a></dt>
@@ -706,6 +709,37 @@ standard deviation (mean and spread over all folds and seeds).</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Directory the CSV results are written to</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="run_cv.DOC_TABLES_DIR">
+<span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">DOC_TABLES_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/doc/generated')</span></em><a class="headerlink" href="#run_cv.DOC_TABLES_DIR" title="Link to this definition">¶</a></dt>
+<dd><p>Directory for rounded, presentation-ready tables included by the Sphinx
+results page (<code class="docutils literal notranslate"><span class="pre">doc/results.rst</span></code>): <code class="docutils literal notranslate"><span class="pre">&lt;project</span> <span class="pre">root&gt;/doc/generated</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_cv.write_doc_tables">
+<span class="sig-prename descclassname"><span class="pre">run_cv.</span></span><span class="sig-name descname"><span class="pre">write_doc_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakdown</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_cv.html#write_doc_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_cv.write_doc_tables" title="Link to this definition">¶</a></dt>
+<dd><p>Write the CV results as rounded CSV tables for the HTML documentation.</p>
+<p>The full-precision CSVs in <a class="reference internal" href="#run_cv.RESULTS_DIR" title="run_cv.RESULTS_DIR"><code class="xref py py-data docutils literal notranslate"><span class="pre">RESULTS_DIR</span></code></a> are for analysis; these
+copies are rounded, labelled with units and laid out with one column per
+model/feature set so <code class="docutils literal notranslate"><span class="pre">doc/results.rst</span></code> can show them with
+<code class="docutils literal notranslate"><span class="pre">csv-table</span></code> directives. Re-running this script and rebuilding the docs
+keeps the published numbers in sync with the code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary</strong> – One row per model/feature set from
+<a class="reference internal" href="#functions.evaluate.summarise" title="functions.evaluate.summarise"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.summarise()</span></code></a>.</p></li>
+<li><p><strong>breakdown</strong> – Concatenated <a class="reference internal" href="#functions.evaluate.oof_rmse_breakdown" title="functions.evaluate.oof_rmse_breakdown"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.oof_rmse_breakdown()</span></code></a>
+outputs with <code class="docutils literal notranslate"><span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_set</span></code> columns.</p></li>
+<li><p><strong>coefficients</strong> – Concatenated <a class="reference internal" href="#functions.evaluate.coefficient_summary" title="functions.evaluate.coefficient_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.coefficient_summary()</span></code></a>
+outputs (reset index) with <code class="docutils literal notranslate"><span class="pre">model</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_set</span></code> columns;
+may be empty.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -939,6 +973,22 @@ rows (never the test hold-out) by <a class="reference internal" href="#functions
 FLOP rate per model/feature set.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">profile_&lt;model&gt;_&lt;feature</span> <span class="pre">set&gt;.txt</span></code>: the cProfile report of one fit.</p></li>
 </ul>
+<p>A rounded copy of the summary is written to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML
+results page.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="run_profile.write_doc_table">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">write_doc_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#write_doc_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.write_doc_table" title="Link to this definition">¶</a></dt>
+<dd><p>Write the profile summary as a rounded table for the HTML documentation.</p>
+<p>Times are converted to ms and memory to kB so the table reads at a glance
+on <code class="docutils literal notranslate"><span class="pre">doc/results.rst</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>summary</strong> – One row per model/feature set from
+<a class="reference internal" href="#functions.profiling.ProfileResult.summary" title="functions.profiling.ProfileResult.summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">functions.profiling.ProfileResult.summary()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="run_profile.parse_args">
 <span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_profile.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.parse_args" title="Link to this definition">¶</a></dt>
@@ -1061,6 +1111,7 @@ data, adds the physics features and shows all three figures:</p>
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
@@ -1078,7 +1129,7 @@ data, adds the physics features and shows all three figures:</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="usage.html" title="previous chapter">Usage</a></li>
+      <li>Previous: <a href="results.html" title="previous chapter">Results</a></li>
   </ul></li>
 </ul>
 </div>
