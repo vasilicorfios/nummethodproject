@@ -20,6 +20,8 @@ Run every command from the project root.
 | `python src/run_profile.py` | Timing, memory, size and FLOP profile of linear (A, B), the final MLP and the runner-up MLP (B), with machine and thread settings | about 25 s |
 | `python src/run_tuning.py` | Tunes the MLP by nested CV and compares it with linear on the same folds | about an hour (see below) |
 | `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error, plots the 10 worst spectra, and adds an error map, a Strouhal-scaling check on spectral peaks and a residual heatmap (needs `run_tuning.py` results) | about 1 min |
+| `python src/run_shift_tests.py` | Robustness: leave one chord / one velocity out, final MLP (3 seeds) vs linear | about 1 min |
+| `python src/run_physics_check.py` | Physics check (faster flow is louder) on out-of-fold predictions, then the acceptance criteria table | about 5 s |
 | `python -m pytest --html=test/test_report.html --self-contained-html` | Runs the tests and writes the HTML test report | about 10 s |
 
 Results are written as CSV files to `results/`. Rounded tables and figures go to `doc/generated/`. Rebuild the HTML docs with `sphinx-build -b html doc doc/_build/html`.

@@ -1165,6 +1165,467 @@ different thread setting, will differ; the machine table above records the
 setup used.</p>
 </section>
 </section>
+<section id="robustness-conditions-never-seen-in-training">
+<h2>Robustness: conditions never seen in training<a class="headerlink" href="#robustness-conditions-never-seen-in-training" title="Link to this heading">¶</a></h2>
+<p>Cross-validation holds out <em>setups</em>, but a held-out setup still has
+neighbours in training with the same chord and velocity. The shift tests are
+harder: they hold out <strong>every</strong> setup with one chord (or one velocity), so the
+model has to predict a value of that input it has never seen. A held-out
+value between the training values is <strong>interpolation</strong>. The smallest or
+largest value is <strong>extrapolation</strong>, outside the training range.</p>
+<ul class="simple">
+<li><p><strong>Models:</strong> the final MLP (<code class="docutils literal notranslate"><span class="pre">FINAL_MLP</span></code>, set B), run with random seeds 0,
+1 and 2 and averaged, and the linear baseline on set B. Nothing was
+re-tuned.</p></li>
+<li><p><strong>Data:</strong> cross-validation rows only; the test hold-out was not used.</p></li>
+<li><p><strong>Reference:</strong> the dashed lines are each model’s nested-CV RMSE, i.e. its
+accuracy on unseen setups whose chord and velocity <em>were</em> seen in
+training. It is read from the saved tuning results, not recomputed.</p></li>
+</ul>
+<table class="docutils align-default" id="id28">
+<caption><span class="caption-text">Shift tests (MLP: mean ± SD over 3 seeds; bias = mean of measured − predicted)</span><a class="headerlink" href="#id28" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Shift test</p></th>
+<th class="head"><p>Held out</p></th>
+<th class="head"><p>Regime</p></th>
+<th class="head"><p>Model</p></th>
+<th class="head"><p>Setups / rows</p></th>
+<th class="head"><p>RMSE (dB)</p></th>
+<th class="head"><p>Nested-CV RMSE (dB)</p></th>
+<th class="head"><p>MAE (dB)</p></th>
+<th class="head"><p>R²</p></th>
+<th class="head"><p>Bias (dB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.0254</p></td>
+<td><p>extrapolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>17 / 238</p></td>
+<td><p>7.68</p></td>
+<td><p>4.58</p></td>
+<td><p>6.23</p></td>
+<td><p>-0.54</p></td>
+<td><p>0.36</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.0254</p></td>
+<td><p>extrapolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>17 / 238</p></td>
+<td><p>4.93 ± 0.18</p></td>
+<td><p>2.36</p></td>
+<td><p>4.06</p></td>
+<td><p>0.37</p></td>
+<td><p>1.01</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.0508</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>15 / 196</p></td>
+<td><p>4.03</p></td>
+<td><p>4.58</p></td>
+<td><p>3.4</p></td>
+<td><p>0.49</p></td>
+<td><p>-0.06</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.0508</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>15 / 196</p></td>
+<td><p>2.62 ± 0.04</p></td>
+<td><p>2.36</p></td>
+<td><p>1.94</p></td>
+<td><p>0.78</p></td>
+<td><p>-0.87</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.1016</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>17 / 226</p></td>
+<td><p>4.10</p></td>
+<td><p>4.58</p></td>
+<td><p>3.1</p></td>
+<td><p>0.72</p></td>
+<td><p>0.83</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.1016</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>17 / 226</p></td>
+<td><p>2.79 ± 0.10</p></td>
+<td><p>2.36</p></td>
+<td><p>2.07</p></td>
+<td><p>0.87</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.1524</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>16 / 240</p></td>
+<td><p>4.39</p></td>
+<td><p>4.58</p></td>
+<td><p>3.74</p></td>
+<td><p>0.63</p></td>
+<td><p>-1.66</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.1524</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>16 / 240</p></td>
+<td><p>2.63 ± 0.11</p></td>
+<td><p>2.36</p></td>
+<td><p>1.92</p></td>
+<td><p>0.87</p></td>
+<td><p>-1.58</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.2286</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>15 / 221</p></td>
+<td><p>4.45</p></td>
+<td><p>4.58</p></td>
+<td><p>3.44</p></td>
+<td><p>0.47</p></td>
+<td><p>0.5</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.2286</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>15 / 221</p></td>
+<td><p>2.33 ± 0.03</p></td>
+<td><p>2.36</p></td>
+<td><p>1.7</p></td>
+<td><p>0.86</p></td>
+<td><p>1.02</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-chord-out</p></td>
+<td><p>0.3048</p></td>
+<td><p>extrapolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>10 / 155</p></td>
+<td><p>3.37</p></td>
+<td><p>4.58</p></td>
+<td><p>2.72</p></td>
+<td><p>0.7</p></td>
+<td><p>0.54</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-chord-out</p></td>
+<td><p>0.3048</p></td>
+<td><p>extrapolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>10 / 155</p></td>
+<td><p>2.52 ± 0.12</p></td>
+<td><p>2.36</p></td>
+<td><p>1.94</p></td>
+<td><p>0.83</p></td>
+<td><p>0.42</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-velocity-out</p></td>
+<td><p>31.7</p></td>
+<td><p>extrapolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>16 / 223</p></td>
+<td><p>4.29</p></td>
+<td><p>4.58</p></td>
+<td><p>3.4</p></td>
+<td><p>0.59</p></td>
+<td><p>0.63</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-velocity-out</p></td>
+<td><p>31.7</p></td>
+<td><p>extrapolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>16 / 223</p></td>
+<td><p>2.07 ± 0.06</p></td>
+<td><p>2.36</p></td>
+<td><p>1.56</p></td>
+<td><p>0.9</p></td>
+<td><p>0.66</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-velocity-out</p></td>
+<td><p>39.6</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>30 / 436</p></td>
+<td><p>4.76</p></td>
+<td><p>4.58</p></td>
+<td><p>3.72</p></td>
+<td><p>0.55</p></td>
+<td><p>-0.49</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-velocity-out</p></td>
+<td><p>39.6</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>30 / 436</p></td>
+<td><p>2.25 ± 0.05</p></td>
+<td><p>2.36</p></td>
+<td><p>1.63</p></td>
+<td><p>0.9</p></td>
+<td><p>-0.38</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-velocity-out</p></td>
+<td><p>55.5</p></td>
+<td><p>interpolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>17 / 240</p></td>
+<td><p>4.32</p></td>
+<td><p>4.58</p></td>
+<td><p>3.38</p></td>
+<td><p>0.52</p></td>
+<td><p>-0.02</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-velocity-out</p></td>
+<td><p>55.5</p></td>
+<td><p>interpolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>17 / 240</p></td>
+<td><p>1.76 ± 0.03</p></td>
+<td><p>2.36</p></td>
+<td><p>1.3</p></td>
+<td><p>0.92</p></td>
+<td><p>0.22</p></td>
+</tr>
+<tr class="row-even"><td><p>leave-one-velocity-out</p></td>
+<td><p>71.3</p></td>
+<td><p>extrapolation</p></td>
+<td><p>linear / B</p></td>
+<td><p>27 / 377</p></td>
+<td><p>4.61</p></td>
+<td><p>4.58</p></td>
+<td><p>3.53</p></td>
+<td><p>0.56</p></td>
+<td><p>0.3</p></td>
+</tr>
+<tr class="row-odd"><td><p>leave-one-velocity-out</p></td>
+<td><p>71.3</p></td>
+<td><p>extrapolation</p></td>
+<td><p>final MLP / B</p></td>
+<td><p>27 / 377</p></td>
+<td><p>3.55 ± 0.09</p></td>
+<td><p>2.36</p></td>
+<td><p>2.59</p></td>
+<td><p>0.74</p></td>
+<td><p>0.4</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id29">
+<a class="reference internal image-reference" href="_images/shift_tests.png"><img alt="Grouped bars of RMSE for each held-out chord and velocity, linear and final MLP, with dashed lines at each model's nested-CV RMSE." src="_images/shift_tests.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">RMSE on the held-out chord (left) or velocity (right). Error bars are the
+SD over the MLP’s 3 random seeds; “extrap.” marks values outside the
+training range.</span><a class="headerlink" href="#id29" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p><strong>The MLP beats linear in all 10 shift tests.</strong></p></li>
+<li><p><strong>Interpolation costs the MLP little.</strong> For held-out values inside the
+training range, its RMSE is 1.8–2.8 dB, close to its nested-CV 2.36 dB.</p></li>
+<li><p><strong>Extrapolation can hurt.</strong> Holding out the smallest chord (0.0254 m)
+roughly doubles the MLP’s RMSE, to about 4.9 dB. For linear it rises to
+about 7.7 dB, with R² below zero, i.e. worse than predicting the average.
+Holding out the highest velocity (71.3 m/s) raises the MLP’s RMSE to about
+3.5 dB. The largest chord and the lowest velocity extrapolate well.</p></li>
+<li><p><strong>The result is not luck.</strong> The MLP’s RMSE varies by at most about 0.2 dB
+across the 3 seeds.</p></li>
+<li><p><strong>Caveats.</strong></p>
+<ul>
+<li><p>Each shift test scores a different set of setups and trains on a
+different amount of data from the nested-CV folds, so the comparison
+with the dashed lines is approximate. Some interpolation results come
+out slightly <em>below</em> the nested-CV RMSE for this reason.</p></li>
+<li><p>Chord and angle are confounded: high angles were only tested on small
+chords, so leaving out the 0.0254 m chord also removes most of the
+high-angle setups. Part of that chord’s difficulty is really angle. An
+angle-extrapolation test was deliberately not run for the same reason.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="physics-check-is-faster-flow-louder">
+<h2>Physics check: is faster flow louder?<a class="headerlink" href="#physics-check-is-faster-flow-louder" title="Link to this heading">¶</a></h2>
+<p>At a fixed chord and angle, a higher free-stream velocity produces more
+turbulent trailing-edge noise, so the overall level should rise with speed.
+The measured spectra in the BPM report (NASA RP-1218) show this.</p>
+<ul class="simple">
+<li><p><strong>Groups:</strong> setups are grouped by (chord, angle), keeping groups tested at
+2 or more speeds.</p></li>
+<li><p><strong>Like with like:</strong> within a group, each setup’s SPL is averaged over the
+frequency bands measured at <strong>every</strong> speed in that group.</p></li>
+<li><p><strong>Scoring:</strong> a group is “fully in order” if the predicted averages rise
+with speed like the measured ones, and each pair of speeds is also checked
+on its own.</p></li>
+<li><p><strong>Predictions are out-of-fold:</strong> each setup was predicted by a model that
+never saw it. The MLP’s predictions come from the nested-CV MLPs (each
+outer fold’s own tuned setting; the final setting was the most common
+choice), and linear’s from the same folds. Both are averaged over the 3 CV
+seeds.</p></li>
+<li><p><strong>Data:</strong> cross-validation rows only.</p></li>
+</ul>
+<table class="docutils align-default" id="id30">
+<caption><span class="caption-text">Speed-order check (out-of-fold predictions)</span><a class="headerlink" href="#id30" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Groups fully in order</p></th>
+<th class="head"><p>Speed pairs in order</p></th>
+<th class="head"><p>Groups excluded (measured not louder at higher speed)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MLP (nested-CV, B)</p></td>
+<td><p>19 / 21 (90.5%)</p></td>
+<td><p>66 / 68 (97.1%)</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p>linear / B</p></td>
+<td><p>21 / 21 (100.0%)</p></td>
+<td><p>68 / 68 (100.0%)</p></td>
+<td><p>7</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id31">
+<caption><span class="caption-text">Groups left out because the measured data is not louder at every higher speed</span><a class="headerlink" href="#id31" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Chord (m)</p></th>
+<th class="head"><p>Angle (deg)</p></th>
+<th class="head"><p>Speeds (m/s)</p></th>
+<th class="head"><p>Shared bands</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0.0254</p></td>
+<td><p>0.0</p></td>
+<td><p>31.7, 39.6, 55.5, 71.3</p></td>
+<td><p>9</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.0254</p></td>
+<td><p>4.8</p></td>
+<td><p>39.6, 55.5, 71.3</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p>0.0254</p></td>
+<td><p>9.5</p></td>
+<td><p>31.7, 39.6, 55.5</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.0254</p></td>
+<td><p>17.4</p></td>
+<td><p>31.7, 39.6, 71.3</p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-even"><td><p>0.0508</p></td>
+<td><p>0.0</p></td>
+<td><p>31.7, 39.6, 55.5, 71.3</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p>0.2286</p></td>
+<td><p>2.0</p></td>
+<td><p>31.7, 39.6, 71.3</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-even"><td><p>0.2286</p></td>
+<td><p>4.0</p></td>
+<td><p>31.7, 39.6, 55.5</p></td>
+<td><p>13</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id32">
+<a class="reference internal image-reference" href="_images/physics_speed_order.png"><img alt="Mean SPL against velocity for four chord and angle groups: measured points, MLP and linear lines." src="_images/physics_speed_order.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Mean SPL over the shared bands against velocity for four example groups:
+the two where the MLP’s order is wrong (left), then two typical ones.</span><a class="headerlink" href="#id32" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p><strong>The MLP gets 97% of speed pairs right</strong> (66 of 68), and the full order
+right in 19 of 21 groups.</p></li>
+<li><p><strong>Its two misses</strong> are the 0.0254 m chord at 22.2°, the worst-predicted
+conditions in the whole error analysis, where the measured level rises by
+only about 0.2 dB, and one of three pairs at 0.1016 m and 6.7°.</p></li>
+<li><p><strong>Linear scores 100%, but that says little about its accuracy.</strong> A linear
+model shifts SPL with speed by a fixed amount everywhere. Once it has
+learned that faster is louder, it applies that in every group. Passing
+this check is necessary for a physically sensible model, but not enough
+on its own.</p></li>
+<li><p><strong>The measured data itself breaks the rule in 7 of 28 groups</strong>, mostly at
+the smallest chord, where tonal peaks dominate. These groups are left out
+of the score.</p></li>
+</ul>
+</section>
+<section id="acceptance-criteria">
+<h2>Acceptance criteria<a class="headerlink" href="#acceptance-criteria" title="Link to this heading">¶</a></h2>
+<p>The criteria below were fixed in <code class="docutils literal notranslate"><span class="pre">src/functions/acceptance.py</span></code> and committed
+on their own <strong>before</strong> the hold-out evaluation, and before the shift tests
+and physics check were run, so the pass marks cannot have been chosen to suit
+the results.</p>
+<ul class="simple">
+<li><p><strong>C1</strong> The MLP beats linear in at least 13 of the 15 nested-CV folds, and on
+the hold-out.</p></li>
+<li><p><strong>C2</strong> Hold-out RMSE ≤ nested-CV mean + 2 × fold SD (2.365 + 2 × 0.227 =
+2.819 dB, set B).</p></li>
+<li><p><strong>C3</strong> Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.</p></li>
+<li><p><strong>P1</strong> The MLP gets the speed order right in at least 90% of speed pairs.</p></li>
+</ul>
+<p>Criteria that need the hold-out stay <strong>pending</strong> until the single final run.</p>
+<table class="docutils align-default" id="id33">
+<caption><span class="caption-text">Acceptance criteria (fixed before the hold-out evaluation)</span><a class="headerlink" href="#id33" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Criterion</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Threshold</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>C1a</p></td>
+<td><p>MLP beats linear in nested-CV outer folds</p></td>
+<td><p>&gt;= 13 of 15 folds</p></td>
+<td><p>15 of 15 folds</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>C1b</p></td>
+<td><p>MLP RMSE &lt; linear RMSE on the hold-out</p></td>
+<td><p>MLP &lt; linear</p></td>
+<td></td>
+<td><p>pending (hold-out)</p></td>
+</tr>
+<tr class="row-even"><td><p>C2</p></td>
+<td><p>Hold-out RMSE &lt;= CV mean + 2 x fold SD</p></td>
+<td><p>&lt;= 2.819 dB</p></td>
+<td></td>
+<td><p>pending (hold-out)</p></td>
+</tr>
+<tr class="row-odd"><td><p>C3</p></td>
+<td><p>Hold-out MLP RMSE small enough to be useful</p></td>
+<td><p>&lt;= 3 dB</p></td>
+<td></td>
+<td><p>pending (hold-out)</p></td>
+</tr>
+<tr class="row-even"><td><p>P1</p></td>
+<td><p>MLP predicts faster flow is louder (speed pairs)</p></td>
+<td><p>&gt;= 90% of pairs</p></td>
+<td><p>97.1%</p></td>
+<td><p>PASS</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="what-these-results-cannot-show">
 <h2>What these results cannot show<a class="headerlink" href="#what-these-results-cannot-show" title="Link to this heading">¶</a></h2>
 <ul class="simple">
@@ -1219,6 +1680,9 @@ not separated from model error, so the lowest achievable RMSE is unknown.</p></l
 <li class="toctree-l2"><a class="reference internal" href="#tuned-mlp-nested-cross-validation">Tuned MLP (nested cross-validation)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#worst-predicted-setups">Worst-predicted setups</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#runtime-memory-and-flops">Runtime, memory and FLOPs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#robustness-conditions-never-seen-in-training">Robustness: conditions never seen in training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#physics-check-is-faster-flow-louder">Physics check: is faster flow louder?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#acceptance-criteria">Acceptance criteria</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-these-results-cannot-show">What these results cannot show</a></li>
 </ul>
 </li>
