@@ -65,6 +65,16 @@ def test_build_model_structure():
         assert not hasattr(a, "regressor_")  # not fitted
 
 
+def test_mlp_registered_with_early_stopping():
+    """The MLP stops early after 20 epochs without improvement, with a fixed seed."""
+    mlp = build_model("mlp").regressor.named_steps["regressor"]
+    assert mlp.early_stopping is True
+    assert mlp.n_iter_no_change == 20
+    assert mlp.max_iter == 2000
+    assert mlp.random_state == 0
+    assert MODELS["mlp"].scale_inputs
+
+
 def test_linear_recovers_manufactured_solution(linear_data):
     """Scaling must not stop the linear model reproducing an exact linear law."""
     X, y = linear_data
