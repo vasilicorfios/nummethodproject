@@ -53,6 +53,9 @@
 <span class="sd">  difference (MLP minus linear).</span>
 <span class="sd">* ``tuning_summary.csv``: headline numbers per feature set (see</span>
 <span class="sd">  :func:`summary_row`).</span>
+<span class="sd">* ``tuning_oof_predictions.csv``: every outer-fold (out-of-fold) prediction,</span>
+<span class="sd">  one row per (feature set, seed, measurement), so per-setup analyses never</span>
+<span class="sd">  need to refit (see :func:`functions.tuning.tuned_result_from_saved`).</span>
 <span class="sd">* ``tuning_warnings.txt``: edge-of-grid and convergence warnings, if any.</span>
 
 <span class="sd">Rounded tables and the figures (PNG + PDF) go to ``doc/generated/`` for the</span>
@@ -73,6 +76,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_predicted_vs_measured</span><span class="p">,</span> <span class="n">plot_rmse_breakdown</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_inner_grid_heatmap</span><span class="p">,</span> <span class="n">plot_loss_curves</span><span class="p">,</span> <span class="n">save_png_pdf</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.tuning</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">OOF_FILENAME</span><span class="p">,</span>
     <span class="n">TuningResult</span><span class="p">,</span>
     <span class="n">edge_of_grid_warnings</span><span class="p">,</span>
     <span class="n">nested_cv</span><span class="p">,</span>
@@ -170,6 +174,11 @@
     <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">feature_set</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">feature_set</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">paired</span><span class="p">)],</span>
               <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"tuning_paired_vs_linear.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"tuning_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># Row-level predictions, so later analyses can use them without refitting.</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">cv_result</span><span class="o">.</span><span class="n">oof</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">feature_set</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">feature_set</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">],</span>
+                    <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">oof</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">,</span> <span class="n">oof</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"feature_set"</span><span class="p">))</span>
+    <span class="n">oof</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="n">OOF_FILENAME</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="p">(</span><span class="n">out_dir</span> <span class="o">/</span> <span class="s2">"tuning_warnings.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
         <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">warnings</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">warnings</span> <span class="k">else</span> <span class="s2">"No warnings.</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span></div>
 

@@ -730,10 +730,13 @@ axis.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a>
 6 of the 10 have the smallest chord (0.0254 m), 6 are at an angle of attack
 of 17.4° or more, and 5 are at the highest velocity (71.3 m/s). This
 matches the RMSE breakdown above.</p></li>
-<li><p><strong>Several have a sharp, narrow tonal peak</strong> about 10–15 dB above the
-broadband level (ranks 1, 4, 5 and 9: all 0.0254 m chord at 17.4–22.2°).
-Both models smooth the peak out, so most of the error sits within one or
-two frequency bands. The smallest chord also gives the lowest chord
+<li><p><strong>Several have a sharp, narrow tonal peak</strong> standing 18–21 dB above the
+neighbouring troughs (ranks 1, 4, 5 and 9: all 0.0254 m chord at
+17.4–22.2°). Both models flatten the peak. For three of these four, the
+frequencies around the peak hold 64–84% of the MLP’s squared error, so
+the miss is concentrated there. Rank 5 is the exception: its error is
+spread along the spectrum (see <a class="reference internal" href="#where-along-the-spectrum-the-errors-are">Where along the spectrum the errors
+are</a>). The smallest chord also gives the lowest chord
 Reynolds numbers in the dataset (about 5×10⁴ to 1.2×10⁵). Narrow peaks
 like these are consistent with tonal noise mechanisms that appear at low
 Reynolds number, such as laminar boundary-layer vortex shedding. The
@@ -751,6 +754,161 @@ out, the model sees at most a few setups with the same chord at nearby
 angles, so it has to extrapolate. These setups are therefore where the model
 is least trustworthy, and the main limit on its use near stall and at small
 chords.</p>
+<section id="error-map-over-the-test-conditions">
+<h3>Error map over the test conditions<a class="headerlink" href="#error-map-over-the-test-conditions" title="Link to this heading">¶</a></h3>
+<figure class="align-default" id="id20">
+<a class="reference internal image-reference" href="_images/error_map_B.png"><img alt="Panels for each free-stream velocity placing every setup by angle of attack and chord, coloured by its RMSE, for linear and tuned MLP." src="_images/error_map_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Every cross-validation setup placed by its test conditions (one panel per
+velocity, angle across, chord up) and coloured by RMSE on one shared
+scale; top row linear, bottom row tuned MLP (feature set B). Numbers mark
+the 10 worst MLP setups. Hollow grey circles are held-out test setups,
+shown only to make gaps in the test matrix visible (they are not scored).</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The map shows that the tested conditions do not form a full grid: each chord
+was tested at its own set of angles, and some combinations are missing.
+Linear’s errors are large across the whole matrix. The MLP’s are small in
+most places and concentrate at the smallest chord at high angle, and at the
+highest velocity. Those are the edges of the tested region, where a held-out
+setup has the fewest similar neighbours to learn from.</p>
+</section>
+<section id="do-the-peaks-follow-strouhal-scaling">
+<h3>Do the peaks follow Strouhal scaling?<a class="headerlink" href="#do-the-peaks-follow-strouhal-scaling" title="Link to this heading">¶</a></h3>
+<p>A noise source that sheds at a fixed <strong>Strouhal number</strong> <code class="docutils literal notranslate"><span class="pre">St</span> <span class="pre">=</span> <span class="pre">f</span> <span class="pre">L</span> <span class="pre">/</span> <span class="pre">U</span></code>
+(<code class="docutils literal notranslate"><span class="pre">L</span></code> a length scale of the flow) has a peak frequency proportional to
+<code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">L</span></code>. On log axes that is a straight line of slope 1. This is a physical
+check on the data itself, made with the measured spectra of the
+cross-validation setups only. A peak is the most prominent interior maximum
+of a spectrum that stands at least 5 dB above its neighbouring troughs; 64 of
+the 90 setups have one. The conclusions below were the same with 3 dB and
+8 dB thresholds.</p>
+<table class="docutils align-default" id="id21">
+<caption><span class="caption-text">Fit of log(peak frequency) against log(U / L). Constant Strouhal scaling would give slope 1 and a much smaller spread of St than of f</span><a class="headerlink" href="#id21" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Length scale L</p></th>
+<th class="head"><p>Setups with a peak</p></th>
+<th class="head"><p>Fitted slope (constant St gives 1)</p></th>
+<th class="head"><p>R²</p></th>
+<th class="head"><p>Median St = f L / U</p></th>
+<th class="head"><p>Spread of f (×)</p></th>
+<th class="head"><p>Spread of St (×)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>δ* (displacement thickness)</p></td>
+<td><p>64</p></td>
+<td><p>0.48 ± 0.09</p></td>
+<td><p>0.64</p></td>
+<td><p>0.0926</p></td>
+<td><p>1.96</p></td>
+<td><p>2.04</p></td>
+</tr>
+<tr class="row-odd"><td><p>c (chord)</p></td>
+<td><p>64</p></td>
+<td><p>0.4 ± 0.14</p></td>
+<td><p>0.34</p></td>
+<td><p>3</p></td>
+<td><p>1.96</p></td>
+<td><p>2.22</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id22">
+<a class="reference internal image-reference" href="_images/peak_scaling_B.png"><img alt="Left, measured peak frequency against U over displacement thickness on log axes with fitted and slope-1 lines. Right, tuned-MLP predicted peak frequency against measured peak frequency." src="_images/peak_scaling_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Left: measured peak frequency against <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">δ*</span></code>. The dashed line is
+constant-Strouhal scaling (slope 1) through the median Strouhal number;
+the solid line is the fitted slope. The horizontal bands are the discrete
+1/3-octave frequencies. Right: frequency of the tuned MLP’s predicted peak
+against the measured peak; marker area counts setups, and dotted lines
+are one 1/3-octave step either side of perfect agreement.</span><a class="headerlink" href="#id22" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p><strong>No single Strouhal number describes the peaks.</strong> The fitted slope
+against <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">δ*</span></code> is about 0.5, with a 95% interval well below 1, and the
+Strouhal number at the peak varies about as much as the peak frequency
+itself. The chord is a worse length scale still (lower R²). This fits the
+peaks coming from different noise mechanisms under different conditions,
+for example turbulent trailing-edge noise, tonal shedding at low Reynolds
+number and separated flow at high angle, each with its own scaling. The
+dataset also gives only the <em>suction-side</em> displacement thickness. Some
+mechanisms scale with other lengths, such as the pressure-side boundary
+layer.</p></li>
+<li><p><strong>The coarse frequency spacing limits this test.</strong> Peaks are known only to
+the nearest 1/3-octave step (about ±12%), and each geometry was tested at
+only 3–4 velocities.</p></li>
+<li><p><strong>The MLP puts its peak in the right place.</strong> For 92% of the peaked
+setups, its predicted spectrum peaks within one 1/3-octave step of the
+measured peak. The linear model never does: its predicted spectra only
+slope one way. So the MLP’s remaining errors are mostly about the
+<em>height</em> of the spectrum, not the <em>location</em> of its peak.</p></li>
+</ul>
+</section>
+<section id="where-along-the-spectrum-the-errors-are">
+<h3>Where along the spectrum the errors are<a class="headerlink" href="#where-along-the-spectrum-the-errors-are" title="Link to this heading">¶</a></h3>
+<figure class="align-default" id="id23">
+<a class="reference internal image-reference" href="_images/residual_heatmap_B.png"><img alt="Heatmaps of residual for every setup (rows, grouped by chord) and frequency (columns) for linear and tuned MLP, with measured peaks marked by dots." src="_images/residual_heatmap_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Residual (measured − predicted, averaged over seeds) for every
+cross-validation setup and frequency. Red means the model predicts too
+low, blue too high, and grey means that frequency was not measured.
+Rows are grouped by chord and ordered by angle, then velocity; dots mark
+measured peaks.</span><a class="headerlink" href="#id23" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<table class="docutils align-default" id="id24">
+<caption><span class="caption-text">Share of each setup’s squared error in the peak window (the peak ± one 1/3-octave step), median over setups. If errors were spread evenly, the two columns would match</span><a class="headerlink" href="#id24" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Setups</p></th>
+<th class="head"><p>Frequencies in peak window (median)</p></th>
+<th class="head"><p>Squared error in peak window (median)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>linear / B</p></td>
+<td><p>all peaks (&gt;= 5 dB), n = 64</p></td>
+<td><p>21%</p></td>
+<td><p>29%</p></td>
+</tr>
+<tr class="row-odd"><td><p>linear / B</p></td>
+<td><p>strongly tonal (&gt;= 15 dB), n = 4</p></td>
+<td><p>20%</p></td>
+<td><p>41%</p></td>
+</tr>
+<tr class="row-even"><td><p>mlp (tuned) / B</p></td>
+<td><p>all peaks (&gt;= 5 dB), n = 64</p></td>
+<td><p>21%</p></td>
+<td><p>12%</p></td>
+</tr>
+<tr class="row-odd"><td><p>mlp (tuned) / B</p></td>
+<td><p>strongly tonal (&gt;= 15 dB), n = 4</p></td>
+<td><p>20%</p></td>
+<td><p>67%</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>Linear has a systematic tilt.</strong> For most chords it predicts too low at
+low frequencies and too high at high frequencies, and misses peaks
+broadly. A straight line in the inputs cannot follow the spectral shape.</p></li>
+<li><p><strong>The MLP’s residuals are much smaller and mostly unstructured.</strong> For a
+typical peaked setup, the peak window holds <em>less</em> of the MLP’s error than
+its share of the frequencies, so ordinary peaks are not where the MLP
+fails.</p></li>
+<li><p><strong>The exception is the strongly tonal setups</strong> (peaks of 15 dB or more,
+all at the smallest chord and high angle). There the peak window, 20% of
+the frequencies, holds most of the MLP’s squared error. These narrow spikes
+are the clearest remaining failure. With only four such setups, and each
+held out in turn, the model has almost no examples to learn their height
+from.</p></li>
+</ul>
+</section>
 </section>
 <section id="runtime-memory-and-flops">
 <h2>Runtime, memory and FLOPs<a class="headerlink" href="#runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
@@ -759,8 +917,8 @@ of 20 repeats, and peak memory is traced with <code class="docutils literal notr
 bound, since it cannot see memory allocated inside compiled LAPACK code). The
 FLOP count comes from <a class="reference internal" href="api.html#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.linear_flop_estimate()</span></code></a>, and
 the fit rate is the estimated FLOPs divided by the measured fit time.</p>
-<table class="docutils align-default" id="id20">
-<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id20" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id25">
+<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id25" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>

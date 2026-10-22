@@ -137,10 +137,25 @@ Finding the worst-predicted setups
 This ranks every cross-validation setup by its out-of-fold RMSE for the tuned
 MLP, puts the linear model's RMSE alongside, and plots the worst spectra. It
 needs ``results/tuning_outer_scores.csv`` from ``run_tuning.py``. Rather than
-re-running the tuning, it refits each fold's chosen setting, which reproduces
-the tuned MLP's predictions exactly because the model has a fixed
-``random_state``. It checks every fold's RMSE against the saved value and
+re-running the tuning, it uses the saved out-of-fold predictions (see below),
+or refits each fold's chosen setting, which reproduces the tuned MLP's
+predictions exactly because the model has a fixed ``random_state``. Either
+way it checks every fold's RMSE against the saved value and
 stops with an error if they differ. It takes about a minute.
+
+The tuned MLP's out-of-fold predictions are saved by ``run_tuning.py`` in
+``results/tuning_oof_predictions.csv``, so this script normally just loads
+them. Only when the file is missing (results from before it was added) does
+it refit each fold's chosen setting, and then it saves the file.
+
+The same script also produces:
+
+* an **error map** placing every setup on the test matrix, coloured by RMSE;
+* a **Strouhal-scaling check**: whether measured peak frequencies scale
+  with ``U / δ*`` (constant Strouhal number), and whether the MLP's predicted
+  peak lands within one 1/3-octave step of the measured one;
+* a **residual heatmap** (setups x frequencies), and the share of each setup's
+  squared error that falls around its measured peak.
 
 Profiling runtime, memory and FLOPs
 -----------------------------------

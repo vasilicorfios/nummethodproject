@@ -184,6 +184,13 @@
 </li>
       </ul></li>
       <li>
+    functions.error_analysis
+
+      <ul>
+        <li><a href="api.html#module-functions.error_analysis">module</a>
+</li>
+      </ul></li>
+      <li>
     functions.evaluate
 
       <ul>
@@ -218,6 +225,13 @@
 
       <ul>
         <li><a href="api.html#module-functions.physics_features">module</a>
+</li>
+      </ul></li>
+      <li>
+    functions.plot_error_analysis
+
+      <ul>
+        <li><a href="api.html#module-functions.plot_error_analysis">module</a>
 </li>
       </ul></li>
       <li>
@@ -320,11 +334,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.tuning.LAYERS_KEY">LAYERS_KEY (in module functions.tuning)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.profiling.linear_flop_estimate">linear_flop_estimate() (in module functions.profiling)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.data_loader.load_airfoil_data">load_airfoil_data() (in module functions.data_loader)</a>
+</li>
+      <li><a href="api.html#run_error_analysis.load_tuned_mlp">load_tuned_mlp() (in module run_error_analysis)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -370,6 +386,8 @@
 </li>
         <li><a href="api.html#module-functions.data_loader">functions.data_loader</a>
 </li>
+        <li><a href="api.html#module-functions.error_analysis">functions.error_analysis</a>
+</li>
         <li><a href="api.html#module-functions.evaluate">functions.evaluate</a>
 </li>
         <li><a href="api.html#module-functions.feature_sets">functions.feature_sets</a>
@@ -379,6 +397,8 @@
         <li><a href="api.html#module-functions.models">functions.models</a>
 </li>
         <li><a href="api.html#module-functions.physics_features">functions.physics_features</a>
+</li>
+        <li><a href="api.html#module-functions.plot_error_analysis">functions.plot_error_analysis</a>
 </li>
         <li><a href="api.html#module-functions.plot_results">functions.plot_results</a>
 </li>
@@ -441,6 +461,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.evaluate.CVResult.oof">oof (functions.evaluate.CVResult attribute)</a>
 </li>
+      <li><a href="api.html#functions.tuning.OOF_FILENAME">OOF_FILENAME (in module functions.tuning)</a>
+</li>
       <li><a href="api.html#functions.evaluate.oof_frame">oof_frame() (in module functions.evaluate)</a>
 </li>
   </ul></td>
@@ -475,7 +497,17 @@
         <li><a href="api.html#run_tuning.parse_args">(in module run_tuning)</a>
 </li>
       </ul></li>
+      <li><a href="api.html#functions.error_analysis.peak_error_share">peak_error_share() (in module functions.error_analysis)</a>
+</li>
+      <li><a href="api.html#functions.error_analysis.peak_error_summary">peak_error_summary() (in module functions.error_analysis)</a>
+</li>
       <li><a href="api.html#functions.profiling.ProfileResult.peak_fit_bytes">peak_fit_bytes (functions.profiling.ProfileResult attribute)</a>
+</li>
+      <li><a href="api.html#functions.error_analysis.PEAK_PROMINENCE_DB">PEAK_PROMINENCE_DB (in module functions.error_analysis)</a>
+</li>
+      <li><a href="api.html#functions.error_analysis.peak_scaling_fit">peak_scaling_fit() (in module functions.error_analysis)</a>
+</li>
+      <li><a href="api.html#functions.error_analysis.PEAK_WINDOW_STEPS">PEAK_WINDOW_STEPS (in module functions.error_analysis)</a>
 </li>
       <li><a href="api.html#functions.evaluate.per_setup_rmse">per_setup_rmse() (in module functions.evaluate)</a>
 </li>
@@ -483,17 +515,23 @@
 </li>
       <li><a href="api.html#functions.plot_results.plot_coefficients">plot_coefficients() (in module functions.plot_results)</a>
 </li>
+      <li><a href="api.html#functions.plot_error_analysis.plot_error_map">plot_error_map() (in module functions.plot_error_analysis)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.plot_results.plot_example_spectra">plot_example_spectra() (in module functions.plot_results)</a>
 </li>
       <li><a href="api.html#functions.plot_tuning.plot_inner_grid_heatmap">plot_inner_grid_heatmap() (in module functions.plot_tuning)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.plot_tuning.plot_loss_curves">plot_loss_curves() (in module functions.plot_tuning)</a>
+</li>
+      <li><a href="api.html#functions.plot_error_analysis.plot_peak_scaling">plot_peak_scaling() (in module functions.plot_error_analysis)</a>
 </li>
       <li><a href="api.html#functions.plot_results.plot_predicted_vs_measured">plot_predicted_vs_measured() (in module functions.plot_results)</a>
 </li>
       <li><a href="api.html#functions.plot_results.plot_residual_by_frequency">plot_residual_by_frequency() (in module functions.plot_results)</a>
+</li>
+      <li><a href="api.html#functions.plot_error_analysis.plot_residual_heatmap">plot_residual_heatmap() (in module functions.plot_error_analysis)</a>
 </li>
       <li><a href="api.html#functions.plot_results.plot_rmse_breakdown">plot_rmse_breakdown() (in module functions.plot_results)</a>
 </li>
@@ -525,6 +563,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.tuning.refit_outer_predictions">refit_outer_predictions() (in module functions.tuning)</a>
 </li>
+      <li><a href="api.html#functions.plot_error_analysis.RESIDUAL_CMAP">RESIDUAL_CMAP (in module functions.plot_error_analysis)</a>
+</li>
+      <li><a href="api.html#functions.error_analysis.residual_matrix">residual_matrix() (in module functions.error_analysis)</a>
+</li>
       <li><a href="api.html#run_cv.RESULTS_DIR">RESULTS_DIR (in module run_cv)</a>
 </li>
       <li><a href="api.html#functions.plot_tuning.RMSE_CMAP">RMSE_CMAP (in module functions.plot_tuning)</a>
@@ -545,6 +587,8 @@
         <li><a href="api.html#module-run_error_analysis">module</a>
 </li>
       </ul></li>
+      <li><a href="api.html#run_error_analysis.run_extra_analyses">run_extra_analyses() (in module run_error_analysis)</a>
+</li>
       <li>
     run_profile
 
@@ -569,6 +613,8 @@
 </li>
       <li><a href="api.html#functions.plot_tuning.save_png_pdf">save_png_pdf() (in module functions.plot_tuning)</a>
 </li>
+      <li><a href="api.html#run_error_analysis.save_recovered_predictions">save_recovered_predictions() (in module run_error_analysis)</a>
+</li>
       <li><a href="api.html#functions.plot_results.save_result_figures">save_result_figures() (in module functions.plot_results)</a>
 </li>
       <li><a href="api.html#functions.models.ModelSpec.scale_inputs">scale_inputs (functions.models.ModelSpec attribute)</a>
@@ -591,6 +637,8 @@
 </li>
       <li><a href="api.html#functions.make_folds.SETUP_KEYS">SETUP_KEYS (in module functions.make_folds)</a>
 </li>
+      <li><a href="api.html#functions.error_analysis.spectral_peaks">spectral_peaks() (in module functions.error_analysis)</a>
+</li>
       <li><a href="api.html#functions.make_folds.STRATIFY_ON">STRATIFY_ON (in module functions.make_folds)</a>
 </li>
       <li><a href="api.html#functions.evaluate.summarise">summarise() (in module functions.evaluate)</a>
@@ -611,11 +659,15 @@
 </li>
       <li><a href="api.html#functions.make_folds.TEST_FRACTION">TEST_FRACTION (in module functions.make_folds)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.make_folds.TEST_SEED">TEST_SEED (in module functions.make_folds)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.error_analysis.TONAL_PROMINENCE_DB">TONAL_PROMINENCE_DB (in module functions.error_analysis)</a>
+</li>
       <li><a href="api.html#functions.tuning.TUNED_LABEL">TUNED_LABEL (in module functions.tuning)</a>
+</li>
+      <li><a href="api.html#functions.tuning.tuned_result_from_saved">tuned_result_from_saved() (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.tuning.TuningResult">TuningResult (class in functions.tuning)</a>
 </li>

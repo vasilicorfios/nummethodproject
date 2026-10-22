@@ -320,10 +320,13 @@ What the worst setups have in common:
   6 of the 10 have the smallest chord (0.0254 m), 6 are at an angle of attack
   of 17.4° or more, and 5 are at the highest velocity (71.3 m/s). This
   matches the RMSE breakdown above.
-* **Several have a sharp, narrow tonal peak** about 10–15 dB above the
-  broadband level (ranks 1, 4, 5 and 9: all 0.0254 m chord at 17.4–22.2°).
-  Both models smooth the peak out, so most of the error sits within one or
-  two frequency bands. The smallest chord also gives the lowest chord
+* **Several have a sharp, narrow tonal peak** standing 18–21 dB above the
+  neighbouring troughs (ranks 1, 4, 5 and 9: all 0.0254 m chord at
+  17.4–22.2°). Both models flatten the peak. For three of these four, the
+  frequencies around the peak hold 64–84% of the MLP's squared error, so
+  the miss is concentrated there. Rank 5 is the exception: its error is
+  spread along the spectrum (see `Where along the spectrum the errors
+  are`_). The smallest chord also gives the lowest chord
   Reynolds numbers in the dataset (about 5×10⁴ to 1.2×10⁵). Narrow peaks
   like these are consistent with tonal noise mechanisms that appear at low
   Reynolds number, such as laminar boundary-layer vortex shedding. The
@@ -341,6 +344,108 @@ out, the model sees at most a few setups with the same chord at nearby
 angles, so it has to extrapolate. These setups are therefore where the model
 is least trustworthy, and the main limit on its use near stall and at small
 chords.
+
+Error map over the test conditions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: generated/error_map_B.png
+   :width: 100%
+   :alt: Panels for each free-stream velocity placing every setup by angle of
+         attack and chord, coloured by its RMSE, for linear and tuned MLP.
+
+   Every cross-validation setup placed by its test conditions (one panel per
+   velocity, angle across, chord up) and coloured by RMSE on one shared
+   scale; top row linear, bottom row tuned MLP (feature set B). Numbers mark
+   the 10 worst MLP setups. Hollow grey circles are held-out test setups,
+   shown only to make gaps in the test matrix visible (they are not scored).
+
+The map shows that the tested conditions do not form a full grid: each chord
+was tested at its own set of angles, and some combinations are missing.
+Linear's errors are large across the whole matrix. The MLP's are small in
+most places and concentrate at the smallest chord at high angle, and at the
+highest velocity. Those are the edges of the tested region, where a held-out
+setup has the fewest similar neighbours to learn from.
+
+Do the peaks follow Strouhal scaling?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A noise source that sheds at a fixed **Strouhal number** ``St = f L / U``
+(``L`` a length scale of the flow) has a peak frequency proportional to
+``U / L``. On log axes that is a straight line of slope 1. This is a physical
+check on the data itself, made with the measured spectra of the
+cross-validation setups only. A peak is the most prominent interior maximum
+of a spectrum that stands at least 5 dB above its neighbouring troughs; 64 of
+the 90 setups have one. The conclusions below were the same with 3 dB and
+8 dB thresholds.
+
+.. csv-table:: Fit of log(peak frequency) against log(U / L). Constant Strouhal scaling would give slope 1 and a much smaller spread of St than of f
+   :file: generated/peak_scaling_B.csv
+   :header-rows: 1
+
+.. figure:: generated/peak_scaling_B.png
+   :width: 100%
+   :alt: Left, measured peak frequency against U over displacement thickness
+         on log axes with fitted and slope-1 lines. Right, tuned-MLP predicted
+         peak frequency against measured peak frequency.
+
+   Left: measured peak frequency against ``U / δ*``. The dashed line is
+   constant-Strouhal scaling (slope 1) through the median Strouhal number;
+   the solid line is the fitted slope. The horizontal bands are the discrete
+   1/3-octave frequencies. Right: frequency of the tuned MLP's predicted peak
+   against the measured peak; marker area counts setups, and dotted lines
+   are one 1/3-octave step either side of perfect agreement.
+
+* **No single Strouhal number describes the peaks.** The fitted slope
+  against ``U / δ*`` is about 0.5, with a 95% interval well below 1, and the
+  Strouhal number at the peak varies about as much as the peak frequency
+  itself. The chord is a worse length scale still (lower R²). This fits the
+  peaks coming from different noise mechanisms under different conditions,
+  for example turbulent trailing-edge noise, tonal shedding at low Reynolds
+  number and separated flow at high angle, each with its own scaling. The
+  dataset also gives only the *suction-side* displacement thickness. Some
+  mechanisms scale with other lengths, such as the pressure-side boundary
+  layer.
+* **The coarse frequency spacing limits this test.** Peaks are known only to
+  the nearest 1/3-octave step (about ±12%), and each geometry was tested at
+  only 3–4 velocities.
+* **The MLP puts its peak in the right place.** For 92% of the peaked
+  setups, its predicted spectrum peaks within one 1/3-octave step of the
+  measured peak. The linear model never does: its predicted spectra only
+  slope one way. So the MLP's remaining errors are mostly about the
+  *height* of the spectrum, not the *location* of its peak.
+
+Where along the spectrum the errors are
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: generated/residual_heatmap_B.png
+   :width: 100%
+   :alt: Heatmaps of residual for every setup (rows, grouped by chord) and
+         frequency (columns) for linear and tuned MLP, with measured peaks
+         marked by dots.
+
+   Residual (measured − predicted, averaged over seeds) for every
+   cross-validation setup and frequency. Red means the model predicts too
+   low, blue too high, and grey means that frequency was not measured.
+   Rows are grouped by chord and ordered by angle, then velocity; dots mark
+   measured peaks.
+
+.. csv-table:: Share of each setup's squared error in the peak window (the peak ± one 1/3-octave step), median over setups. If errors were spread evenly, the two columns would match
+   :file: generated/peak_error_share_B.csv
+   :header-rows: 1
+
+* **Linear has a systematic tilt.** For most chords it predicts too low at
+  low frequencies and too high at high frequencies, and misses peaks
+  broadly. A straight line in the inputs cannot follow the spectral shape.
+* **The MLP's residuals are much smaller and mostly unstructured.** For a
+  typical peaked setup, the peak window holds *less* of the MLP's error than
+  its share of the frequencies, so ordinary peaks are not where the MLP
+  fails.
+* **The exception is the strongly tonal setups** (peaks of 15 dB or more,
+  all at the smallest chord and high angle). There the peak window, 20% of
+  the frequencies, holds most of the MLP's squared error. These narrow spikes
+  are the clearest remaining failure. With only four such setups, and each
+  held out in turn, the model has almost no examples to learn their height
+  from.
 
 Runtime, memory and FLOPs
 -------------------------

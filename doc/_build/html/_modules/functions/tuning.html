@@ -132,6 +132,9 @@
 <span class="c1">#: GridSearchCV maximises its score, so RMSE is used negated.</span>
 <span class="n">SCORING</span> <span class="o">=</span> <span class="s2">"neg_root_mean_squared_error"</span>
 
+<span class="c1">#: File (in ``results/``) holding the tuned MLP's out-of-fold predictions.</span>
+<span class="n">OOF_FILENAME</span> <span class="o">=</span> <span class="s2">"tuning_oof_predictions.csv"</span>
+
 <span class="c1">#: Warn if a grid-edge value wins in more than this fraction of outer folds.</span>
 <span class="n">EDGE_WARNING_FRACTION</span> <span class="o">=</span> <span class="mf">0.5</span>
 
@@ -570,6 +573,56 @@
         <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
         <span class="n">fold_scores</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">fold_rows</span><span class="p">),</span>
         <span class="n">oof</span><span class="o">=</span><span class="n">concat_oof</span><span class="p">(</span><span class="n">oof_parts</span><span class="p">),</span>
+        <span class="n">coefficients</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"feature"</span><span class="p">,</span> <span class="s2">"effect_db_per_sd"</span><span class="p">]),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="tuned_result_from_saved">
+<a class="viewcode-back" href="../../api.html#functions.tuning.tuned_result_from_saved">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tuned_result_from_saved</span><span class="p">(</span>
+    <span class="n">oof</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">outer_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">atol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CVResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rebuild the tuned MLP's result from saved out-of-fold predictions.</span>
+
+<span class="sd">    Reads the rows of :data:`OOF_FILENAME` for one feature set. Each fold's</span>
+<span class="sd">    RMSE is recomputed from the saved predictions and checked against</span>
+<span class="sd">    ``tuning_outer_scores.csv``, so the two files cannot silently disagree.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        oof: Contents of :data:`OOF_FILENAME` (all feature sets).</span>
+<span class="sd">        outer_scores: Contents of ``tuning_outer_scores.csv``.</span>
+<span class="sd">        feature_set: Which feature set to rebuild.</span>
+<span class="sd">        atol: Largest allowed RMSE difference between the two files.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~functions.evaluate.CVResult` (model ``"mlp (tuned)"``).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the feature set is missing, or a fold's RMSE from the</span>
+<span class="sd">            saved predictions differs from the saved score.</span>
+<span class="sd">    """</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">oof</span><span class="p">[</span><span class="n">oof</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span> <span class="o">==</span> <span class="n">feature_set</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">"feature_set"</span><span class="p">)</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">outer_scores</span><span class="p">[</span><span class="n">outer_scores</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span> <span class="o">==</span> <span class="n">feature_set</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rows</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="n">scores</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No saved tuned-MLP results for feature set </span><span class="si">{</span><span class="n">feature_set</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">fold</span><span class="p">),</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">]):</span>
+        <span class="n">rmse</span> <span class="o">=</span> <span class="n">compute_metrics</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">"y_true"</span><span class="p">],</span> <span class="n">group</span><span class="p">[</span><span class="s2">"y_pred"</span><span class="p">])[</span><span class="s2">"rmse"</span><span class="p">]</span>
+        <span class="n">saved</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">scores</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">]</span> <span class="o">==</span> <span class="n">seed</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">fold</span><span class="p">),</span> <span class="s2">"rmse"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">saved</span><span class="o">.</span><span class="n">empty</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rmse</span> <span class="o">-</span> <span class="n">saved</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">atol</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Saved predictions for </span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2"> seed </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2"> fold </span><span class="si">{</span><span class="n">fold</span><span class="si">}</span><span class="s2"> do not match "</span>
+                <span class="s2">"tuning_outer_scores.csv; results are out of date"</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">CVResult</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">TUNED_LABEL</span><span class="p">,</span>
+        <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
+        <span class="n">fold_scores</span><span class="o">=</span><span class="n">scores</span><span class="p">,</span>
+        <span class="c1"># concat_oof restores the ordered band categories lost in the CSV.</span>
+        <span class="n">oof</span><span class="o">=</span><span class="n">concat_oof</span><span class="p">([</span><span class="n">rows</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)]),</span>
         <span class="n">coefficients</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"feature"</span><span class="p">,</span> <span class="s2">"effect_db_per_sd"</span><span class="p">]),</span>
     <span class="p">)</span></div>
 
