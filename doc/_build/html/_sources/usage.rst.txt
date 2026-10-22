@@ -123,6 +123,11 @@ Exploratory plots
 .. code-block:: console
 
     python src/explore_plots.py
+    python src/explore_plots.py --no-show   # only write the PNGs
+
+This saves the SPL histogram and the SPL-vs-feature scatter plots for
+feature sets A and B to ``doc/generated/`` (shown on :doc:`exploration`),
+then opens every exploratory figure, including the per-chord-length grid.
 
 Running the tests
 -----------------

@@ -65,6 +65,9 @@ Performance profiling
 Exploratory plots
 -----------------
 
+.. automodule:: functions.plot_spl_distribution
+   :members:
+
 .. automodule:: functions.plot_spl_vs_features
    :members:
 
