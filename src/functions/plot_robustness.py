@@ -25,6 +25,11 @@ MODEL_STYLE = {
     "mlp": (SERIES_COLOURS[1], "final MLP / B"),
 }
 
+#: Legend labels in the physics check: its MLP predictions come from the
+#: nested-CV MLPs (each outer fold's own tuned setting), not the frozen final
+#: model, so they are labelled differently from the shift tests.
+SPEED_CHECK_LABELS = {"linear": "linear / B", "mlp": "MLP (nested CV) / B"}
+
 #: Readable panel titles for the shift tests.
 SHIFT_TITLES = {
     "leave-one-chord-out": "Leave one chord out (held-out chord, m)",
@@ -83,7 +88,7 @@ def plot_shift_tests(table: pd.DataFrame, reference: dict[str, float]) -> Figure
 def plot_speed_order(levels: pd.DataFrame, groups: list[tuple[float, float]]) -> Figure:
     """Mean SPL against velocity for chosen (chord, angle) groups.
 
-    Measured mean SPL is drawn as black points; the MLP and linear
+    Measured mean SPL is drawn as black points; the nested-CV MLP and linear
     out-of-fold predictions as coloured lines. For the physics check, the
     predicted lines should rise with velocity like the measured points.
 
@@ -102,7 +107,8 @@ def plot_speed_order(levels: pd.DataFrame, groups: list[tuple[float, float]]) ->
         g = levels[(levels["chord_length_m"] == chord) & (levels["attack_angle_deg"] == angle)]
         g = g.sort_values("velocity_mps")
         for model, column in (("linear", "linear_spl"), ("mlp", "mlp_spl")):
-            colour, label = MODEL_STYLE[model]
+            colour, _ = MODEL_STYLE[model]
+            label = SPEED_CHECK_LABELS[model]
             ax.plot(g["velocity_mps"], g[column], color=colour, linewidth=2, marker="o",
                     markersize=4, label=label)
         ax.plot(g["velocity_mps"], g["measured_spl"], color=INK, linestyle="none", marker="o",
