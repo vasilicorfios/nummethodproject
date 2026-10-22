@@ -41,9 +41,9 @@
 airfoils taken in a wind tunnel. Five input features describe the test
 conditions and one target, the scaled sound pressure level, describes the
 measured noise.</p>
-<p>The Excel file is expected at <code class="docutils literal notranslate"><span class="pre">data/airfoil_self_noise.xlsx</span></code>. It is not
-committed to the repository and must be kept locally, as noted in the
-project README.</p>
+<p>The Excel file is expected at <code class="docutils literal notranslate"><span class="pre">data/airfoil_self_noise.xlsx</span></code>, where it is
+committed to the repository (it is small, about 75 kB), so a fresh clone can
+run every script.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">load_airfoil_data</span><span class="p">()</span>
