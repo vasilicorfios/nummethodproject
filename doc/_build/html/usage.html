@@ -175,6 +175,27 @@ peak lands within one 1/3-octave step of the measured one;</p></li>
 squared error that falls around its measured peak.</p></li>
 </ul>
 </section>
+<section id="robustness-shift-tests">
+<h2>Robustness shift tests<a class="headerlink" href="#robustness-shift-tests" title="Link to this heading">¶</a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_shift_tests.py      # about 1 minute</span>
+</pre></div>
+</div>
+<p>This holds out every setup with one chord (6 tests), then one velocity (4
+tests), trains the final MLP (random seeds 0, 1 and 2) and linear on the rest,
+and scores them on the held-out setups. Only cross-validation rows are used.
+It writes <code class="docutils literal notranslate"><span class="pre">results/shift_tests.csv</span></code> and, in <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code>, a rounded
+table and <code class="docutils literal notranslate"><span class="pre">shift_tests.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>.</p>
+</section>
+<section id="physics-check-and-acceptance-criteria">
+<h2>Physics check and acceptance criteria<a class="headerlink" href="#physics-check-and-acceptance-criteria" title="Link to this heading">¶</a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_physics_check.py    # about 5 seconds</span>
+</pre></div>
+</div>
+<p>This checks whether the out-of-fold predictions get louder with speed at a
+fixed chord and angle, like the measurements. It then prints the acceptance
+criteria table (<code class="docutils literal notranslate"><span class="pre">results/acceptance.csv</span></code>); criteria that need the hold-out
+show as pending. It needs the tuning results from <code class="docutils literal notranslate"><span class="pre">run_tuning.py</span></code>.</p>
+</section>
 <section id="profiling-runtime-memory-and-flops">
 <h2>Profiling runtime, memory and FLOPs<a class="headerlink" href="#profiling-runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_profile.py</span>
@@ -281,6 +302,8 @@ a missing data file raises <code class="docutils literal notranslate"><span clas
 <li class="toctree-l2"><a class="reference internal" href="#training-and-cross-validating-models">Training and cross-validating models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tuning-the-mlp-with-nested-cross-validation">Tuning the MLP with nested cross-validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#finding-the-worst-predicted-setups">Finding the worst-predicted setups</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#robustness-shift-tests">Robustness shift tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#physics-check-and-acceptance-criteria">Physics check and acceptance criteria</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#profiling-runtime-memory-and-flops">Profiling runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-tests">Running the tests</a></li>

@@ -1,0 +1,21 @@
+Shift test,Held out,Regime,Model,Setups / rows,RMSE (dB),Nested-CV RMSE (dB),MAE (dB),R²,Bias (dB)
+leave-one-chord-out,0.0254,extrapolation,linear / B,17 / 238,7.68,4.58,6.23,-0.54,0.36
+leave-one-chord-out,0.0254,extrapolation,final MLP / B,17 / 238,4.93 ± 0.18,2.36,4.06,0.37,1.01
+leave-one-chord-out,0.0508,interpolation,linear / B,15 / 196,4.03,4.58,3.4,0.49,-0.06
+leave-one-chord-out,0.0508,interpolation,final MLP / B,15 / 196,2.62 ± 0.04,2.36,1.94,0.78,-0.87
+leave-one-chord-out,0.1016,interpolation,linear / B,17 / 226,4.10,4.58,3.1,0.72,0.83
+leave-one-chord-out,0.1016,interpolation,final MLP / B,17 / 226,2.79 ± 0.10,2.36,2.07,0.87,1.1
+leave-one-chord-out,0.1524,interpolation,linear / B,16 / 240,4.39,4.58,3.74,0.63,-1.66
+leave-one-chord-out,0.1524,interpolation,final MLP / B,16 / 240,2.63 ± 0.11,2.36,1.92,0.87,-1.58
+leave-one-chord-out,0.2286,interpolation,linear / B,15 / 221,4.45,4.58,3.44,0.47,0.5
+leave-one-chord-out,0.2286,interpolation,final MLP / B,15 / 221,2.33 ± 0.03,2.36,1.7,0.86,1.02
+leave-one-chord-out,0.3048,extrapolation,linear / B,10 / 155,3.37,4.58,2.72,0.7,0.54
+leave-one-chord-out,0.3048,extrapolation,final MLP / B,10 / 155,2.52 ± 0.12,2.36,1.94,0.83,0.42
+leave-one-velocity-out,31.7,extrapolation,linear / B,16 / 223,4.29,4.58,3.4,0.59,0.63
+leave-one-velocity-out,31.7,extrapolation,final MLP / B,16 / 223,2.07 ± 0.06,2.36,1.56,0.9,0.66
+leave-one-velocity-out,39.6,interpolation,linear / B,30 / 436,4.76,4.58,3.72,0.55,-0.49
+leave-one-velocity-out,39.6,interpolation,final MLP / B,30 / 436,2.25 ± 0.05,2.36,1.63,0.9,-0.38
+leave-one-velocity-out,55.5,interpolation,linear / B,17 / 240,4.32,4.58,3.38,0.52,-0.02
+leave-one-velocity-out,55.5,interpolation,final MLP / B,17 / 240,1.76 ± 0.03,2.36,1.3,0.92,0.22
+leave-one-velocity-out,71.3,extrapolation,linear / B,27 / 377,4.61,4.58,3.53,0.56,0.3
+leave-one-velocity-out,71.3,extrapolation,final MLP / B,27 / 377,3.55 ± 0.09,2.36,2.59,0.74,0.4

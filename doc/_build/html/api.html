@@ -2099,6 +2099,549 @@ worst for the MLP).</p>
 </dd></dl>
 
 </section>
+<section id="module-functions.acceptance">
+<span id="robustness-physics-check-and-acceptance-criteria"></span><h2>Robustness, physics check and acceptance criteria<a class="headerlink" href="#module-functions.acceptance" title="Link to this heading">¶</a></h2>
+<p>Acceptance criteria for the final model, fixed BEFORE the hold-out evaluation.</p>
+<p>Why fix them in advance? If the pass marks were chosen after seeing the
+hold-out score, it would always be possible to pick ones the model passes.
+Writing them down first, and committing this file on its own, makes the
+final check honest: the git history shows the thresholds existed before the
+hold-out was used.</p>
+<p>All criteria concern the final MLP (<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_MLP</span></code></a>) on
+<a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_FEATURE_SET</span></code></a>, against the linear baseline on
+the same features. Some can be evaluated now from cross-validation results;
+the rest wait for the single final hold-out run.</p>
+<ul class="simple">
+<li><p><strong>C1 Beats the baseline.</strong></p>
+<ul>
+<li><p>C1a (now): the MLP has a lower RMSE than linear in at least
+<a class="reference internal" href="#functions.acceptance.C1_MIN_CV_FOLD_WINS" title="functions.acceptance.C1_MIN_CV_FOLD_WINS"><code class="xref py py-data docutils literal notranslate"><span class="pre">C1_MIN_CV_FOLD_WINS</span></code></a> of the 15 nested-CV outer folds
+(<code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>).</p></li>
+<li><p>C1b (hold-out): the MLP has a lower RMSE than linear on the hold-out.</p></li>
+</ul>
+</li>
+<li><p><strong>C2 Generalises.</strong> Hold-out RMSE ≤ nested-CV mean RMSE +
+<a class="reference internal" href="#functions.acceptance.C2_N_SD" title="functions.acceptance.C2_N_SD"><code class="xref py py-data docutils literal notranslate"><span class="pre">C2_N_SD</span></code></a> × the fold-to-fold SD (<code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>).
+The threshold is computed now; the check waits for the hold-out. A
+hold-out score far worse than the spread seen across CV folds would mean
+the CV results were optimistic.</p></li>
+<li><p><strong>C3 Useful accuracy.</strong> Hold-out MLP RMSE ≤ <a class="reference internal" href="#functions.acceptance.C3_MAX_RMSE_DB" title="functions.acceptance.C3_MAX_RMSE_DB"><code class="xref py py-data docutils literal notranslate"><span class="pre">C3_MAX_RMSE_DB</span></code></a> dB.
+3 dB is about a factor of two in acoustic power, a change a listener
+notices but which is small compared with the roughly 40 dB range of SPL
+in the data.</p></li>
+<li><p><strong>P1 Physics.</strong> The MLP predicts that faster flow is louder in at least
+<a class="reference internal" href="#functions.acceptance.P1_MIN_PAIR_FRACTION" title="functions.acceptance.P1_MIN_PAIR_FRACTION"><code class="xref py py-data docutils literal notranslate"><span class="pre">P1_MIN_PAIR_FRACTION</span></code></a> of speed pairs (same chord and angle),
+evaluated by <code class="docutils literal notranslate"><span class="pre">src/run_physics_check.py</span></code> on out-of-fold predictions.</p></li>
+</ul>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.acceptance</span><span class="w"> </span><span class="kn">import</span> <span class="n">acceptance_table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">acceptance_table</span><span class="p">(</span><span class="n">paired</span><span class="p">,</span> <span class="n">tuning_summary</span><span class="p">)</span>   
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.C1_MIN_CV_FOLD_WINS">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">C1_MIN_CV_FOLD_WINS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#functions.acceptance.C1_MIN_CV_FOLD_WINS" title="Link to this definition">¶</a></dt>
+<dd><p>the MLP must beat linear in at least this many of the 15 CV folds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>C1a</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.C2_N_SD">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">C2_N_SD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#functions.acceptance.C2_N_SD" title="Link to this definition">¶</a></dt>
+<dd><p>allowed hold-out RMSE = CV mean + this many fold-to-fold SDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>C2</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.C3_MAX_RMSE_DB">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">C3_MAX_RMSE_DB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></em><a class="headerlink" href="#functions.acceptance.C3_MAX_RMSE_DB" title="Link to this definition">¶</a></dt>
+<dd><p>largest acceptable hold-out MLP RMSE (dB).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>C3</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.P1_MIN_PAIR_FRACTION">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">P1_MIN_PAIR_FRACTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#functions.acceptance.P1_MIN_PAIR_FRACTION" title="Link to this definition">¶</a></dt>
+<dd><p>smallest acceptable fraction of speed pairs in the correct order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>P1</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.PASS">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">PASS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'PASS'</span></em><a class="headerlink" href="#functions.acceptance.PASS" title="Link to this definition">¶</a></dt>
+<dd><p>Result labels.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.acceptance.FAIL">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">FAIL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'FAIL'</span></em><a class="headerlink" href="#functions.acceptance.FAIL" title="Link to this definition">¶</a></dt>
+<dd><p>Result labels.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.acceptance.c2_threshold">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">c2_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="_modules/functions/acceptance.html#c2_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.acceptance.c2_threshold" title="Link to this definition">¶</a></dt>
+<dd><p>C2’s allowed hold-out RMSE: nested-CV mean + C2_N_SD × fold SD (dB).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>feature_set</strong> – Feature set of the final model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The threshold in dB.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.acceptance.acceptance_table">
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">acceptance_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paired</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_pair_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/acceptance.html#acceptance_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.acceptance.acceptance_table" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate every criterion that can be evaluated with the results given.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paired</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>.</p></li>
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>physics_pair_fraction</strong> – Fraction of speed pairs the MLP orders
+correctly (from the physics check), or <code class="docutils literal notranslate"><span class="pre">None</span></code> if not run yet.</p></li>
+<li><p><strong>holdout</strong> – Hold-out results <code class="docutils literal notranslate"><span class="pre">{&quot;mlp_rmse&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;linear_rmse&quot;:</span> <span class="pre">...}</span></code>
+in dB, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before the hold-out run.</p></li>
+<li><p><strong>feature_set</strong> – Feature set of the final model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per criterion with <code class="docutils literal notranslate"><span class="pre">criterion</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>,
+<code class="docutils literal notranslate"><span class="pre">threshold</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">result</span></code> (PASS, FAIL or pending).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.shift_tests">Robustness shift tests: do the models work on conditions they never saw?</p>
+<p>Cross-validation holds out <em>setups</em>, but every held-out setup still has
+neighbours in training with the same chord and the same velocity. A shift
+test is harder: it holds out <strong>every</strong> setup with one chord (or one
+velocity), so the model must predict a value of that input it was never
+trained on.</p>
+<ul class="simple">
+<li><p><strong>Leave-one-chord-out:</strong> for each of the 6 chords, train on the other 5,
+test on the held-out chord.</p></li>
+<li><p><strong>Leave-one-velocity-out:</strong> for each of the 4 velocities, train on the
+other 3, test on the held-out one.</p></li>
+</ul>
+<p>A held-out value between the training values is <strong>interpolation</strong>; the
+smallest or largest value is <strong>extrapolation</strong>, outside the training range,
+which is usually much harder.</p>
+<p>Models: the final MLP (<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_MLP</span></code></a>) and the linear
+baseline, both on <a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_FEATURE_SET</span></code></a>, built with
+<a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.build_model()</span></code></a> so all scaling stays inside the
+pipeline. Nothing is re-tuned. The MLP is repeated with
+<code class="docutils literal notranslate"><span class="pre">random_state</span></code> 0, 1 and 2 (<a class="reference internal" href="#functions.shift_tests.MLP_SEEDS" title="functions.shift_tests.MLP_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MLP_SEEDS</span></code></a>) to show the result is not
+down to one lucky weight initialisation; linear is deterministic, so it runs
+once.</p>
+<p>Only cross-validation rows are used: the test hold-out is dropped first.</p>
+<p><strong>Chord and angle are confounded.</strong> High angles of attack were only tested
+on the small chords, so leaving out the 0.0254 m chord also removes most of
+the high-angle setups. A chord shift result therefore partly reflects angle,
+too. An angle-extrapolation test was deliberately not run for the same
+reason: holding out the highest angles would mostly hold out the smallest
+chord.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.shift_tests</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_shift_tests</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="n">run_shift_tests</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>   
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.shift_tests.SHIFTS">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">SHIFTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'chord_length_m':</span> <span class="pre">'leave-one-chord-out',</span> <span class="pre">'velocity_mps':</span> <span class="pre">'leave-one-velocity-out'}</span></em><a class="headerlink" href="#functions.shift_tests.SHIFTS" title="Link to this definition">¶</a></dt>
+<dd><p>The two inputs that are held out one value at a time, and the test names.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.shift_tests.MLP_SEEDS">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">MLP_SEEDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2]</span></em><a class="headerlink" href="#functions.shift_tests.MLP_SEEDS" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">random_state</span></code> values for the repeated MLP runs.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.shift_tests.MLP_SEED_KEY">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">MLP_SEED_KEY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'regressor__regressor__random_state'</span></em><a class="headerlink" href="#functions.shift_tests.MLP_SEED_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>Grid key for the MLP’s random_state inside the scaling pipeline.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.shift_tests.SHIFT_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">SHIFT_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['shift',</span> <span class="pre">'held_out',</span> <span class="pre">'regime',</span> <span class="pre">'model',</span> <span class="pre">'n_runs',</span> <span class="pre">'n_setups',</span> <span class="pre">'n_rows',</span> <span class="pre">'rmse',</span> <span class="pre">'rmse_sd_seeds',</span> <span class="pre">'mae',</span> <span class="pre">'r2',</span> <span class="pre">'bias']</span></em><a class="headerlink" href="#functions.shift_tests.SHIFT_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Columns of the table returned by <a class="reference internal" href="#module-run_shift_tests" title="run_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_shift_tests()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.shift_tests.cv_rows">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">cv_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/shift_tests.html#cv_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.shift_tests.cv_rows" title="Link to this definition">¶</a></dt>
+<dd><p>The cross-validation rows, with <code class="docutils literal notranslate"><span class="pre">setup_id</span></code>; the test hold-out removed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Dataset with physics features.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The rows that are not in the test hold-out.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.shift_tests.shift_splits">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">shift_splits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/shift_tests.html#shift_splits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.shift_tests.shift_splits" title="Link to this definition">¶</a></dt>
+<dd><p>Yield one train/test split per value of <code class="docutils literal notranslate"><span class="pre">column</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cv</strong> – Cross-validation rows (see <a class="reference internal" href="#functions.shift_tests.cv_rows" title="functions.shift_tests.cv_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">cv_rows()</span></code></a>).</p></li>
+<li><p><strong>column</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;chord_length_m&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;velocity_mps&quot;</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(held_out_value,</span> <span class="pre">regime,</span> <span class="pre">train_rows,</span> <span class="pre">test_rows)</span></code>. <code class="docutils literal notranslate"><span class="pre">regime</span></code> is
+<code class="docutils literal notranslate"><span class="pre">&quot;extrapolation&quot;</span></code> for the smallest and largest values (outside the
+remaining training range) and <code class="docutils literal notranslate"><span class="pre">&quot;interpolation&quot;</span></code> otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.shift_tests.run_shift_tests">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">run_shift_tests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">data:</span> <span class="pre">pandas.DataFrame,</span> <span class="pre">feature_set:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'B',</span> <span class="pre">mlp_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'mlp_final',</span> <span class="pre">mlp_seeds:</span> <span class="pre">list[int]</span> <span class="pre">=</span> <span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">2],</span> <span class="pre">mlp_params:</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">progress:</span> <span class="pre">~collections.abc.Callable[[str],</span> <span class="pre">None]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">print&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/shift_tests.html#run_shift_tests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.shift_tests.run_shift_tests" title="Link to this definition">¶</a></dt>
+<dd><p>Run leave-one-chord-out and leave-one-velocity-out for MLP and linear.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Dataset with physics features.</p></li>
+<li><p><strong>feature_set</strong> – Feature set for both models.</p></li>
+<li><p><strong>mlp_name</strong> – Registry name of the MLP (default: the frozen final MLP).</p></li>
+<li><p><strong>mlp_seeds</strong> – <code class="docutils literal notranslate"><span class="pre">random_state</span></code> values for the repeated MLP runs; an
+empty list skips the MLP.</p></li>
+<li><p><strong>mlp_params</strong> – Extra fixed MLP parameters (only used by the tests, to
+make fits fast).</p></li>
+<li><p><strong>progress</strong> – Called with one line per held-out value; <code class="docutils literal notranslate"><span class="pre">None</span></code> for
+silence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per (shift, held-out value, model), columns
+<a class="reference internal" href="#functions.shift_tests.SHIFT_COLUMNS" title="functions.shift_tests.SHIFT_COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">SHIFT_COLUMNS</span></code></a>. For the MLP, metrics are means over seeds and
+<code class="docutils literal notranslate"><span class="pre">rmse_sd_seeds</span></code> is their spread; for linear <code class="docutils literal notranslate"><span class="pre">n_runs</span></code> is 1 and
+<code class="docutils literal notranslate"><span class="pre">rmse_sd_seeds</span></code> is NaN.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.shift_tests.in_distribution_reference">
+<span class="sig-prename descclassname"><span class="pre">functions.shift_tests.</span></span><span class="sig-name descname"><span class="pre">in_distribution_reference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/shift_tests.html#in_distribution_reference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.shift_tests.in_distribution_reference" title="Link to this definition">¶</a></dt>
+<dd><p>Nested-CV RMSE of each model, read from the saved tuning results.</p>
+<p>This is the accuracy on held-out <em>setups</em> whose chord and velocity were
+seen in training, so it is the baseline the shift results are compared
+with. It is read, not recomputed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>feature_set</strong> – Feature set of the comparison.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{&quot;mlp&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;linear&quot;:</span> <span class="pre">...}</span></code> mean RMSE over the 15 outer folds (dB).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.physics_checks">Physics check: at the same chord and angle, faster flow should be louder.</p>
+<p>Physics: for a fixed airfoil (chord) and angle of attack, a higher
+free-stream velocity produces more turbulent boundary-layer trailing-edge
+noise, so the overall noise level should rise with speed. The measured
+spectra in the BPM report (Brooks, Pope &amp; Marcolini, NASA RP-1218, 1989)
+show this. A model that has learned real physics, not just patterns in the
+training data, should predict the same ordering.</p>
+<p>Method (<a class="reference internal" href="#functions.physics_checks.group_levels" title="functions.physics_checks.group_levels"><code class="xref py py-func docutils literal notranslate"><span class="pre">group_levels()</span></code></a>, <a class="reference internal" href="#functions.physics_checks.speed_order_check" title="functions.physics_checks.speed_order_check"><code class="xref py py-func docutils literal notranslate"><span class="pre">speed_order_check()</span></code></a>):</p>
+<ol class="arabic simple">
+<li><p>Use the cross-validation rows only (the test hold-out is dropped first).</p></li>
+<li><p>Group setups by (chord, angle). Keep groups tested at 2 or more speeds.</p></li>
+<li><p>Within a group, keep only the frequency bands measured at <strong>every</strong> speed
+in that group, so like is compared with like (a band missing at one speed
+would otherwise shift that speed’s average).</p></li>
+<li><p>For each setup, average the SPL over those shared bands: measured, MLP
+and linear.</p></li>
+<li><p>A group is <strong>fully correct</strong> if the predicted averages rise with speed in
+the same order as the measured ones. Each <strong>pair</strong> of speeds is also
+checked separately (faster predicted louder than slower).</p></li>
+</ol>
+<p>Groups where the <em>measured</em> average does not rise with speed are listed and
+left out of the score, because the expected ordering does not hold there.</p>
+<p><strong>Why the predictions are honest.</strong> The predictions are out-of-fold: every
+setup was predicted by a model that never saw it during training. The MLP’s
+come from <code class="docutils literal notranslate"><span class="pre">results/tuning_oof_predictions.csv</span></code>, made by the nested-CV MLPs,
+where each outer fold used its own tuned setting (the final setting was the
+most common choice). The linear model’s come from
+<a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a> on the same folds. Both are
+averaged over the 3 CV seeds.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">levels</span> <span class="o">=</span> <span class="n">group_levels</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mlp_result</span><span class="p">,</span> <span class="n">linear_result</span><span class="p">)</span>   
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">speed_order_check</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>             
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.physics_checks.MIN_SPEEDS">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_checks.</span></span><span class="sig-name descname"><span class="pre">MIN_SPEEDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#functions.physics_checks.MIN_SPEEDS" title="Link to this definition">¶</a></dt>
+<dd><p>A group needs at least this many speeds to be checked.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.physics_checks.MODEL_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_checks.</span></span><span class="sig-name descname"><span class="pre">MODEL_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">'linear_spl',</span> <span class="pre">'mlp':</span> <span class="pre">'mlp_spl'}</span></em><a class="headerlink" href="#functions.physics_checks.MODEL_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Models compared, and the column holding each one’s mean SPL.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.physics_checks.group_levels">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_checks.</span></span><span class="sig-name descname"><span class="pre">group_levels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/physics_checks.html#group_levels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.physics_checks.group_levels" title="Link to this definition">¶</a></dt>
+<dd><p>Mean SPL per setup over the bands shared within its (chord, angle) group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Dataset with physics features.</p></li>
+<li><p><strong>mlp</strong> – Tuned-MLP out-of-fold result.</p></li>
+<li><p><strong>linear</strong> – Linear out-of-fold result on the same folds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per setup in a group with at least <a class="reference internal" href="#functions.physics_checks.MIN_SPEEDS" title="functions.physics_checks.MIN_SPEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MIN_SPEEDS</span></code></a> speeds,
+with <code class="docutils literal notranslate"><span class="pre">chord_length_m</span></code>, <code class="docutils literal notranslate"><span class="pre">attack_angle_deg</span></code>, <code class="docutils literal notranslate"><span class="pre">velocity_mps</span></code>,
+<code class="docutils literal notranslate"><span class="pre">setup_id</span></code>, <code class="docutils literal notranslate"><span class="pre">n_bands</span></code> (shared bands averaged over),
+<code class="docutils literal notranslate"><span class="pre">measured_spl</span></code>, <code class="docutils literal notranslate"><span class="pre">mlp_spl</span></code> and <code class="docutils literal notranslate"><span class="pre">linear_spl</span></code> (dB).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.physics_checks.speed_order_check">
+<span class="sig-prename descclassname"><span class="pre">functions.physics_checks.</span></span><span class="sig-name descname"><span class="pre">speed_order_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/physics_checks.html#speed_order_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.physics_checks.speed_order_check" title="Link to this definition">¶</a></dt>
+<dd><p>Check whether predictions rise with speed like the measurements do.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>levels</strong> – Output of <a class="reference internal" href="#functions.physics_checks.group_levels" title="functions.physics_checks.group_levels"><code class="xref py py-func docutils literal notranslate"><span class="pre">group_levels()</span></code></a> (or any table with the same
+columns).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(groups,</span> <span class="pre">summary)</span></code>. <code class="docutils literal notranslate"><span class="pre">groups</span></code> has one row per (chord, angle)
+group: <code class="docutils literal notranslate"><span class="pre">n_speeds</span></code>, <code class="docutils literal notranslate"><span class="pre">n_bands</span></code>, <code class="docutils literal notranslate"><span class="pre">measured_increasing</span></code> (False
+means the group is excluded from the score) and, for each model,
+<code class="docutils literal notranslate"><span class="pre">&lt;model&gt;_order_correct</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;model&gt;_pairs_correct</span></code> and
+<code class="docutils literal notranslate"><span class="pre">n_pairs</span></code>. <code class="docutils literal notranslate"><span class="pre">summary</span></code> has one row per model: groups and pairs
+scored, how many are correct, the percentages, and the number of
+excluded groups.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.plot_robustness">Figures for the robustness shift tests and the speed physics check.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#functions.plot_robustness.plot_shift_tests" title="functions.plot_robustness.plot_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_shift_tests()</span></code></a>: RMSE for each held-out chord and velocity,
+linear vs MLP, with each model’s in-distribution (nested-CV) RMSE dashed.</p></li>
+<li><p><a class="reference internal" href="#functions.plot_robustness.plot_speed_order" title="functions.plot_robustness.plot_speed_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_speed_order()</span></code></a>: mean SPL against free-stream velocity for a few
+(chord, angle) groups, measured vs predicted.</p></li>
+</ul>
+<p>Linear is always blue and the MLP orange, as in every other comparison.
+Save with <a class="reference internal" href="#functions.plot_tuning.save_png_pdf" title="functions.plot_tuning.save_png_pdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.plot_tuning.save_png_pdf()</span></code></a>.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_robustness.MODEL_STYLE">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">MODEL_STYLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">('#2a78d6',</span> <span class="pre">'linear</span> <span class="pre">/</span> <span class="pre">B'),</span> <span class="pre">'mlp':</span> <span class="pre">('#eb6834',</span> <span class="pre">'final</span> <span class="pre">MLP</span> <span class="pre">/</span> <span class="pre">B')}</span></em><a class="headerlink" href="#functions.plot_robustness.MODEL_STYLE" title="Link to this definition">¶</a></dt>
+<dd><p>Colour and legend label of each model.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_robustness.SPEED_CHECK_LABELS">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">SPEED_CHECK_LABELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">'linear</span> <span class="pre">/</span> <span class="pre">B',</span> <span class="pre">'mlp':</span> <span class="pre">'MLP</span> <span class="pre">(nested</span> <span class="pre">CV)</span> <span class="pre">/</span> <span class="pre">B'}</span></em><a class="headerlink" href="#functions.plot_robustness.SPEED_CHECK_LABELS" title="Link to this definition">¶</a></dt>
+<dd><p>its MLP predictions come from the
+nested-CV MLPs (each outer fold’s own tuned setting), not the frozen final
+model, so they are labelled differently from the shift tests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Legend labels in the physics check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_robustness.SHIFT_TITLES">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">SHIFT_TITLES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'leave-one-chord-out':</span> <span class="pre">'Leave</span> <span class="pre">one</span> <span class="pre">chord</span> <span class="pre">out</span> <span class="pre">(held-out</span> <span class="pre">chord,</span> <span class="pre">m)',</span> <span class="pre">'leave-one-velocity-out':</span> <span class="pre">'Leave</span> <span class="pre">one</span> <span class="pre">velocity</span> <span class="pre">out</span> <span class="pre">(held-out</span> <span class="pre">velocity,</span> <span class="pre">m/s)'}</span></em><a class="headerlink" href="#functions.plot_robustness.SHIFT_TITLES" title="Link to this definition">¶</a></dt>
+<dd><p>Readable panel titles for the shift tests.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_robustness.plot_shift_tests">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">plot_shift_tests</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_robustness.html#plot_shift_tests"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_robustness.plot_shift_tests" title="Link to this definition">¶</a></dt>
+<dd><p>Grouped bars of RMSE per held-out value, one panel per shift test.</p>
+<p>Error bars on the MLP bars are the SD over its random seeds. Dashed lines
+are each model’s nested-CV RMSE, i.e. its accuracy when the chord and
+velocity were seen in training. “extrap.” marks held-out values outside
+the training range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table</strong> – Output of <a class="reference internal" href="#functions.shift_tests.run_shift_tests" title="functions.shift_tests.run_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.shift_tests.run_shift_tests()</span></code></a>.</p></li>
+<li><p><strong>reference</strong> – Output of
+<a class="reference internal" href="#functions.shift_tests.in_distribution_reference" title="functions.shift_tests.in_distribution_reference"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.shift_tests.in_distribution_reference()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_robustness.plot_speed_order">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">plot_speed_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_robustness.html#plot_speed_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_robustness.plot_speed_order" title="Link to this definition">¶</a></dt>
+<dd><p>Mean SPL against velocity for chosen (chord, angle) groups.</p>
+<p>Measured mean SPL is drawn as black points; the nested-CV MLP and linear
+out-of-fold predictions as coloured lines. For the physics check, the
+predicted lines should rise with velocity like the measured points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>levels</strong> – Output of <a class="reference internal" href="#functions.physics_checks.group_levels" title="functions.physics_checks.group_levels"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_checks.group_levels()</span></code></a>.</p></li>
+<li><p><strong>groups</strong> – <code class="docutils literal notranslate"><span class="pre">(chord,</span> <span class="pre">angle)</span></code> pairs to draw, one panel each.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-run_shift_tests">Entry point for the robustness shift tests (leave one chord / velocity out).</p>
+<p>Trains the final MLP (3 random seeds) and the linear baseline, both on the
+final feature set, with every setup of one chord (or one velocity) held out
+in turn, and scores them on the held-out setups. Only cross-validation rows
+are used; the test hold-out is never touched:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_shift_tests</span><span class="o">.</span><span class="n">py</span>      <span class="c1"># about 1-2 minutes</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="#module-functions.shift_tests" title="functions.shift_tests"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.shift_tests</span></code></a> for the method and its caveats.</p>
+<p>Writes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">results/shift_tests.csv</span></code>: one row per (shift, held-out value, model),
+with RMSE, MAE, R², bias, setups and rows tested, and the nested-CV
+reference RMSE.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/shift_tests.csv</span></code>: a rounded copy for the docs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/shift_tests.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: the bar chart.</p></li>
+</ul>
+<dl class="py function">
+<dt class="sig sig-object py" id="run_shift_tests.write_doc_table">
+<span class="sig-prename descclassname"><span class="pre">run_shift_tests.</span></span><span class="sig-name descname"><span class="pre">write_doc_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_shift_tests.html#write_doc_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_shift_tests.write_doc_table" title="Link to this definition">¶</a></dt>
+<dd><p>Write a rounded shift-test table for the HTML results page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>table</strong> – Shift-test results with the <code class="docutils literal notranslate"><span class="pre">reference_rmse</span></code> column added.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_shift_tests.main">
+<span class="sig-prename descclassname"><span class="pre">run_shift_tests.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_shift_tests.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_shift_tests.main" title="Link to this definition">¶</a></dt>
+<dd><p>Run the shift tests, print and save the results and the figure.</p>
+</dd></dl>
+
+<p id="module-run_physics_check">Entry point for the “faster flow is louder” physics check and acceptance table.</p>
+<p>Checks whether the MLP’s and linear model’s out-of-fold predictions rise
+with free-stream velocity, at fixed chord and angle, as the measurements and
+the physics do (<a class="reference internal" href="#module-functions.physics_checks" title="functions.physics_checks"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.physics_checks</span></code></a>). Only cross-validation rows
+are used; the test hold-out is never touched. It then evaluates the
+acceptance criteria fixed in <a class="reference internal" href="#module-functions.acceptance" title="functions.acceptance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.acceptance</span></code></a>: those that need
+the hold-out are reported as pending:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_physics_check</span><span class="o">.</span><span class="n">py</span>    <span class="c1"># about 10 seconds</span>
+</pre></div>
+</div>
+<p>Needs <code class="docutils literal notranslate"><span class="pre">results/tuning_oof_predictions.csv</span></code> and the other tuning results
+from <code class="docutils literal notranslate"><span class="pre">src/run_tuning.py</span></code>.</p>
+<p>Writes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">results/physics_speed_order.csv</span></code>: one row per (chord, angle) group:
+speeds, shared bands, whether the measured data rises with speed, and each
+model’s order and pair results.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_levels.csv</span></code>: the mean SPL of every setup used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_summary.csv</span></code>: the scores per model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results/acceptance.csv</span></code>: the acceptance criteria table.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/physics_speed_order.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">acceptance.csv</span></code>: rounded copies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/physics_speed_order.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: example groups.</p></li>
+</ul>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_physics_check.N_EXAMPLES">
+<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">N_EXAMPLES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#run_physics_check.N_EXAMPLES" title="Link to this definition">¶</a></dt>
+<dd><p>Number of example groups in the figure.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_physics_check.example_groups">
+<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">example_groups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/run_physics_check.html#example_groups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_physics_check.example_groups" title="Link to this definition">¶</a></dt>
+<dd><p>Pick example (chord, angle) groups for the figure.</p>
+<p>Groups where the MLP gets the order wrong come first (they are the
+interesting cases); the rest are correctly ordered groups with the most
+speeds, each from a different chord.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>groups</strong> – The per-group table from
+<a class="reference internal" href="#functions.physics_checks.speed_order_check" title="functions.physics_checks.speed_order_check"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_checks.speed_order_check()</span></code></a>.</p></li>
+<li><p><strong>n</strong> – Number of groups to return.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Up to <code class="docutils literal notranslate"><span class="pre">n</span></code> <code class="docutils literal notranslate"><span class="pre">(chord,</span> <span class="pre">angle)</span></code> pairs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_physics_check.write_doc_tables">
+<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">write_doc_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceptance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_physics_check.html#write_doc_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_physics_check.write_doc_tables" title="Link to this definition">¶</a></dt>
+<dd><p>Write rounded physics-check and acceptance tables for the docs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary</strong> – Scores per model.</p></li>
+<li><p><strong>groups</strong> – Per-group results (for the list of excluded groups).</p></li>
+<li><p><strong>acceptance</strong> – The acceptance criteria table.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_physics_check.main">
+<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_physics_check.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_physics_check.main" title="Link to this definition">¶</a></dt>
+<dd><p>Run the speed-order check, then evaluate and print the acceptance table.</p>
+</dd></dl>
+
+</section>
 <section id="module-functions.profiling">
 <span id="performance-profiling"></span><h2>Performance profiling<a class="headerlink" href="#module-functions.profiling" title="Link to this heading">¶</a></h2>
 <p>Runtime, memory, profiler and FLOP analysis of model training and prediction.</p>
@@ -2695,6 +3238,7 @@ interactive inspection rather than the HTML page.</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_results">Results figures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.tuning">MLP tuning (nested cross-validation)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.error_analysis">Error analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.acceptance">Robustness, physics check and acceptance criteria</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_distribution">Exploratory plots</a></li>
 </ul>

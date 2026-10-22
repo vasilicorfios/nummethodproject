@@ -157,6 +157,31 @@ The same script also produces:
 * a **residual heatmap** (setups x frequencies), and the share of each setup's
   squared error that falls around its measured peak.
 
+Robustness shift tests
+----------------------
+
+.. code-block:: console
+
+    python src/run_shift_tests.py      # about 1 minute
+
+This holds out every setup with one chord (6 tests), then one velocity (4
+tests), trains the final MLP (random seeds 0, 1 and 2) and linear on the rest,
+and scores them on the held-out setups. Only cross-validation rows are used.
+It writes ``results/shift_tests.csv`` and, in ``doc/generated/``, a rounded
+table and ``shift_tests.png`` / ``.pdf``.
+
+Physics check and acceptance criteria
+-------------------------------------
+
+.. code-block:: console
+
+    python src/run_physics_check.py    # about 5 seconds
+
+This checks whether the out-of-fold predictions get louder with speed at a
+fixed chord and angle, like the measurements. It then prints the acceptance
+criteria table (``results/acceptance.csv``); criteria that need the hold-out
+show as pending. It needs the tuning results from ``run_tuning.py``.
+
 Profiling runtime, memory and FLOPs
 -----------------------------------
 

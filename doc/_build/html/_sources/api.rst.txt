@@ -77,6 +77,27 @@ Error analysis
 .. automodule:: run_error_analysis
    :members:
 
+Robustness, physics check and acceptance criteria
+-------------------------------------------------
+
+.. automodule:: functions.acceptance
+   :members:
+
+.. automodule:: functions.shift_tests
+   :members:
+
+.. automodule:: functions.physics_checks
+   :members:
+
+.. automodule:: functions.plot_robustness
+   :members:
+
+.. automodule:: run_shift_tests
+   :members:
+
+.. automodule:: run_physics_check
+   :members:
+
 Performance profiling
 ---------------------
 

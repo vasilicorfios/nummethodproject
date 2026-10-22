@@ -1,0 +1,6 @@
+Criterion,Description,Threshold,Value,Result
+C1a,MLP beats linear in nested-CV outer folds,>= 13 of 15 folds,15 of 15 folds,PASS
+C1b,MLP RMSE < linear RMSE on the hold-out,MLP < linear,,pending (hold-out)
+C2,Hold-out RMSE <= CV mean + 2 x fold SD,<= 2.819 dB,,pending (hold-out)
+C3,Hold-out MLP RMSE small enough to be useful,<= 3 dB,,pending (hold-out)
+P1,MLP predicts faster flow is louder (speed pairs),>= 90% of pairs,97.1%,PASS
