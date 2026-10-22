@@ -1,0 +1,4 @@
+Model,CV estimate,CV RMSE (dB),Hold-out RMSE (dB)
+linear,repeated grouped CV,4.582 ± 0.254,4.762
+runner-up MLP,inner CV (selection score),2.535 ± 0.121,2.434
+final MLP (selected),nested CV (outer folds),2.365 ± 0.227,2.63

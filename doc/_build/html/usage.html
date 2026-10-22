@@ -196,6 +196,20 @@ fixed chord and angle, like the measurements. It then prints the acceptance
 criteria table (<code class="docutils literal notranslate"><span class="pre">results/acceptance.csv</span></code>); criteria that need the hold-out
 show as pending. It needs the tuning results from <code class="docutils literal notranslate"><span class="pre">run_tuning.py</span></code>.</p>
 </section>
+<section id="final-hold-out-evaluation-run-once">
+<h2>Final hold-out evaluation (run once)<a class="headerlink" href="#final-hold-out-evaluation-run-once" title="Link to this heading">¶</a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_final.py            # about 10 seconds</span>
+</pre></div>
+</div>
+<p>This trains linear, the runner-up MLP and the final MLP once on all
+cross-validation rows, and evaluates them once on the test hold-out. It
+writes the metrics, breakdowns, per-setup results, the CV-vs-hold-out
+comparison and the final acceptance table to <code class="docutils literal notranslate"><span class="pre">results/</span></code>, and saves the
+trained models to <code class="docutils literal notranslate"><span class="pre">results/final_models/</span></code>. It refuses to run again if
+<code class="docutils literal notranslate"><span class="pre">results/holdout_metrics.csv</span></code> exists, unless <code class="docutils literal notranslate"><span class="pre">--force</span></code> is given; fixed
+seeds make a forced re-run reproduce the same numbers. The selected model is
+not changed based on these results.</p>
+</section>
 <section id="profiling-runtime-memory-and-flops">
 <h2>Profiling runtime, memory and FLOPs<a class="headerlink" href="#profiling-runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_profile.py</span>
@@ -304,6 +318,7 @@ a missing data file raises <code class="docutils literal notranslate"><span clas
 <li class="toctree-l2"><a class="reference internal" href="#finding-the-worst-predicted-setups">Finding the worst-predicted setups</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#robustness-shift-tests">Robustness shift tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#physics-check-and-acceptance-criteria">Physics check and acceptance criteria</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#final-hold-out-evaluation-run-once">Final hold-out evaluation (run once)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#profiling-runtime-memory-and-flops">Profiling runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-tests">Running the tests</a></li>

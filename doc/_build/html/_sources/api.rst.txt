@@ -98,6 +98,18 @@ Robustness, physics check and acceptance criteria
 .. automodule:: run_physics_check
    :members:
 
+Final hold-out evaluation
+-------------------------
+
+.. automodule:: functions.final
+   :members:
+
+.. automodule:: functions.plot_final
+   :members:
+
+.. automodule:: run_final
+   :members:
+
 Performance profiling
 ---------------------
 

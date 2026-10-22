@@ -81,8 +81,8 @@ Strouhal number and chord Reynolds number.</p>
 </section>
 <section id="overall-accuracy">
 <h2>Overall accuracy<a class="headerlink" href="#overall-accuracy" title="Link to this heading">¶</a></h2>
-<table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Validation metrics (mean ± std over all 15 folds)</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Validation metrics (mean ± std over all 15 folds)</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -116,7 +116,7 @@ Strouhal number and chord Reynolds number.</p>
 raises R² compared with set A. Both feature sets still leave around half of
 the SPL variance unexplained, which suggests the relationship is strongly
 non-linear and motivates the non-linear models planned next.</p>
-<figure class="align-default" id="id2">
+<figure class="align-default" id="id3">
 <a class="reference internal image-reference" href="_images/cv_predicted_vs_measured.png"><img alt="Scatter of out-of-fold predicted SPL against measured SPL for each feature set, with a dashed y = x line." src="_images/cv_predicted_vs_measured.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -126,7 +126,7 @@ predictions. The clouds are flatter than the line: the models
 over-predict quiet conditions and under-predict loud ones, pulling
 extremes towards the mean. The RMSE in each title is for this one seed,
 pooled over all its folds, so it differs slightly from the mean of
-per-fold scores in the table above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+per-fold scores in the table above.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -134,8 +134,8 @@ per-fold scores in the table above.</span><a class="headerlink" href="#id2" titl
 <h2>Where the errors are<a class="headerlink" href="#where-the-errors-are" title="Link to this heading">¶</a></h2>
 <p>RMSE (dB) of the OOF predictions for each subgroup, averaged over seeds.
 <em>Rows</em> is the number of cross-validation measurements in the group.</p>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Out-of-fold RMSE by chord, velocity, angle band and frequency band (dB)</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Out-of-fold RMSE by chord, velocity, angle band and frequency band (dB)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Grouped by</p></th>
 <th class="head"><p>Group</p></th>
@@ -261,11 +261,11 @@ per-fold scores in the table above.</span><a class="headerlink" href="#id2" titl
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id4">
+<figure class="align-default" id="id5">
 <a class="reference internal image-reference" href="_images/cv_rmse_breakdown.png"><img alt="Grouped bar charts of out-of-fold RMSE by chord, velocity, angle band and frequency band, one bar per model and feature set." src="_images/cv_rmse_breakdown.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">The same breakdown as the table, drawn as bars.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+<p><span class="caption-text">The same breakdown as the table, drawn as bars.</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>For the linear baseline, the largest errors are at the smallest chord, the
@@ -273,7 +273,7 @@ lowest frequency band and the highest angle band (above 15°, where the
 boundary layer is likely to be separated or near stall). Free-stream velocity
 has a much smaller effect on error. These are the regions where a straight
 line in the inputs fits the measured spectra worst.</p>
-<figure class="align-default" id="id5">
+<figure class="align-default" id="id6">
 <a class="reference internal image-reference" href="_images/cv_residual_by_frequency.png"><img alt="Line chart of mean out-of-fold residual against frequency on a log axis, one line per model and feature set." src="_images/cv_residual_by_frequency.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -281,10 +281,10 @@ line in the inputs fits the measured spectra worst.</p>
 CV seed. An unbiased model would follow the zero line. A curve that
 rises sharply at the highest frequencies means the model systematically
 under-predicts there: SPL does not change linearly with frequency, so a
-linear model cannot follow the spectrum’s shape.</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
+linear model cannot follow the spectrum’s shape.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id6">
+<figure class="align-default" id="id7">
 <a class="reference internal image-reference" href="_images/cv_example_spectra.png"><img alt="Three panels of SPL against frequency for the best, median and worst predicted setups, comparing measured spectra with predictions." src="_images/cv_example_spectra.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -292,7 +292,7 @@ linear model cannot follow the spectrum’s shape.</span><a class="headerlink" h
 setups, ranked by the first model’s per-setup RMSE. Each prediction comes
 from a model that never saw that setup. The linear models can only
 produce smooth, monotonic curves, so they miss the peaked spectra that
-appear at smaller chords and higher angles.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
+appear at smaller chords and higher angles.</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -303,8 +303,8 @@ that input</strong>, as mean ± std over all 15 fits (5 folds × 3 seeds). The v
 in brackets is the percentage of fits whose sign agrees with the mean.
 Because every input is expressed per standard deviation, effects can be
 compared directly even though the inputs have very different units.</p>
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">Linear coefficients (dB per input standard deviation) [sign agreement]</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Linear coefficients (dB per input standard deviation) [sign agreement]</span><a class="headerlink" href="#id8" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature</p></th>
 <th class="head"><p>linear / A</p></th>
@@ -346,13 +346,13 @@ compared directly even though the inputs have very different units.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id8">
+<figure class="align-default" id="id9">
 <a class="reference internal image-reference" href="_images/cv_coefficients.png"><img alt="Dot and whisker plot of each feature's coefficient with its spread across folds, for each feature set." src="_images/cv_coefficients.png" style="width: 85%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">The same coefficients, with whiskers of ± one standard deviation over
 the 15 fits. A whisker that crosses zero marks a coefficient whose sign
-is not reliably estimated.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+is not reliably estimated.</span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>On set A every coefficient keeps the same sign in every fit, so the
@@ -385,8 +385,8 @@ before the full run reported here.</p>
 </section>
 <section id="accuracy-and-comparison-with-linear">
 <h3>Accuracy and comparison with linear<a class="headerlink" href="#accuracy-and-comparison-with-linear" title="Link to this heading">¶</a></h3>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Tuned MLP outer-fold results and paired comparison with linear</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Tuned MLP outer-fold results and paired comparison with linear</span><a class="headerlink" href="#id10" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature set</p></th>
 <th class="head"><p>Outer folds</p></th>
@@ -435,38 +435,38 @@ MLP was better). The tuned MLP was better than linear in every outer fold on
 both feature sets, by roughly 2.2–2.3 dB. That is far larger than the spread
 of the differences. As with the linear model, feature set B gives a lower
 MLP RMSE than set A.</p>
-<figure class="align-default" id="id10">
+<figure class="align-default" id="id11">
 <a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_A.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set A." src="_images/tuning_pred_vs_measured_A.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Feature set A: out-of-fold predictions for one seed, linear (left) and
 tuned MLP (right). The MLP’s points lie much closer to the y = x line,
 including the quiet and loud extremes that the linear model pulls
-towards the mean.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+towards the mean.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id11">
+<figure class="align-default" id="id12">
 <a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_B.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set B." src="_images/tuning_pred_vs_measured_B.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Feature set B: the same comparison.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Feature set B: the same comparison.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
 <section id="where-the-mlp-still-struggles">
 <h3>Where the MLP still struggles<a class="headerlink" href="#where-the-mlp-still-struggles" title="Link to this heading">¶</a></h3>
-<figure class="align-default" id="id12">
+<figure class="align-default" id="id13">
 <a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_A.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set A." src="_images/tuning_rmse_breakdown_A.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Feature set A: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Feature set A: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id13">
+<figure class="align-default" id="id14">
 <a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_B.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set B." src="_images/tuning_rmse_breakdown_B.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Feature set B: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Feature set B: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>The MLP lowers the error in every subgroup, but the pattern is the same as
@@ -477,8 +477,8 @@ larger error than the other velocities, which was not the case for linear.</p>
 </section>
 <section id="which-settings-were-chosen">
 <h3>Which settings were chosen<a class="headerlink" href="#which-settings-were-chosen" title="Link to this heading">¶</a></h3>
-<table class="docutils align-default" id="id14">
-<caption><span class="caption-text">Settings chosen by the inner CV (settings that never won are omitted)</span><a class="headerlink" href="#id14" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">Settings chosen by the inner CV (settings that never won are omitted)</span><a class="headerlink" href="#id15" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature set</p></th>
 <th class="head"><p>Hidden layer sizes</p></th>
@@ -534,7 +534,7 @@ larger error than the other velocities, which was not the case for linear.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id15">
+<figure class="align-default" id="id16">
 <a class="reference internal image-reference" href="_images/tuning_inner_grid_heatmap.png"><img alt="Heatmaps of mean inner-CV RMSE over network size and alpha for feature sets A and B, with the best cell outlined." src="_images/tuning_inner_grid_heatmap.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -542,7 +542,7 @@ larger error than the other velocities, which was not the case for linear.</p>
 seeds; the outlined cell is the best. Alpha = 10 is clearly too strong a
 penalty for every network, and the best alphas are 0.1–1, so the alpha
 range now brackets the optimum. Larger networks do better, but the gain
-shrinks: on set B, (128, 128) and (64, 64) are almost tied at alpha 1.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+shrinks: on set B, (128, 128) and (64, 64) are almost tied at alpha 1.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p><strong>Edge-of-grid warning.</strong> The largest network, (128, 128), was chosen in 15 of
@@ -552,20 +552,20 @@ improvement from (64, 64) to (128, 128) is already very small.</p>
 </section>
 <section id="early-stopping">
 <h3>Early stopping<a class="headerlink" href="#early-stopping" title="Link to this heading">¶</a></h3>
-<figure class="align-default" id="id16">
+<figure class="align-default" id="id17">
 <a class="reference internal image-reference" href="_images/tuning_loss_curves_A.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set A." src="_images/tuning_loss_curves_A.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Feature set A: training loss (top) and early-stopping R² (bottom) per
 epoch for the selected model in three outer folds. The dashed line marks
-the best epoch; the final model keeps those weights.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+the best epoch; the final model keeps those weights.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id17">
+<figure class="align-default" id="id18">
 <a class="reference internal image-reference" href="_images/tuning_loss_curves_B.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set B." src="_images/tuning_loss_curves_B.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Feature set B: the same curves.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Feature set B: the same curves.</span><a class="headerlink" href="#id18" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>No fit, inner or refit, reached the <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> cap of 2000 epochs: early
@@ -598,8 +598,8 @@ computed. In each CV repeat a setup is predicted once, by a model that never
 saw it, and its RMSE is averaged over the 3 seeds. Setups are ranked by the
 tuned MLP’s RMSE, because the better model’s failures are the informative
 ones. The table and figure are for feature set B, the best combination.</p>
-<table class="docutils align-default" id="id18">
-<caption><span class="caption-text">The 10 setups with the highest tuned-MLP RMSE, feature set B (bias = mean of measured − predicted; positive means the model is too low)</span><a class="headerlink" href="#id18" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id19">
+<caption><span class="caption-text">The 10 setups with the highest tuned-MLP RMSE, feature set B (bias = mean of measured − predicted; positive means the model is too low)</span><a class="headerlink" href="#id19" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Rank</p></th>
 <th class="head"><p>Setup</p></th>
@@ -715,13 +715,13 @@ ones. The table and figure are for feature set B, the best combination.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id19">
+<figure class="align-default" id="id20">
 <a class="reference internal image-reference" href="_images/worst_setups_spectra_B.png"><img alt="Ten panels of SPL against frequency for the worst-predicted setups, comparing the measured spectrum with linear and tuned-MLP predictions." src="_images/worst_setups_spectra_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Measured spectra (black) and out-of-fold predictions (averaged over the 3
 seeds) for the 10 worst setups, worst first. Each panel has its own SPL
-axis.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
+axis.</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>What the worst setups have in common:</p>
@@ -756,7 +756,7 @@ is least trustworthy, and the main limit on its use near stall and at small
 chords.</p>
 <section id="error-map-over-the-test-conditions">
 <h3>Error map over the test conditions<a class="headerlink" href="#error-map-over-the-test-conditions" title="Link to this heading">¶</a></h3>
-<figure class="align-default" id="id20">
+<figure class="align-default" id="id21">
 <a class="reference internal image-reference" href="_images/error_map_B.png"><img alt="Panels for each free-stream velocity placing every setup by angle of attack and chord, coloured by its RMSE, for linear and tuned MLP." src="_images/error_map_B.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -764,7 +764,7 @@ chords.</p>
 velocity, angle across, chord up) and coloured by RMSE on one shared
 scale; top row linear, bottom row tuned MLP (feature set B). Numbers mark
 the 10 worst MLP setups. Hollow grey circles are held-out test setups,
-shown only to make gaps in the test matrix visible (they are not scored).</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
+shown only to make gaps in the test matrix visible (they are not scored).</span><a class="headerlink" href="#id21" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <p>The map shows that the tested conditions do not form a full grid: each chord
@@ -784,8 +784,8 @@ cross-validation setups only. A peak is the most prominent interior maximum
 of a spectrum that stands at least 5 dB above its neighbouring troughs; 64 of
 the 90 setups have one. The conclusions below were the same with 3 dB and
 8 dB thresholds.</p>
-<table class="docutils align-default" id="id21">
-<caption><span class="caption-text">Fit of log(peak frequency) against log(U / L). Constant Strouhal scaling would give slope 1 and a much smaller spread of St than of f</span><a class="headerlink" href="#id21" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id22">
+<caption><span class="caption-text">Fit of log(peak frequency) against log(U / L). Constant Strouhal scaling would give slope 1 and a much smaller spread of St than of f</span><a class="headerlink" href="#id22" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Length scale L</p></th>
 <th class="head"><p>Setups with a peak</p></th>
@@ -815,7 +815,7 @@ the 90 setups have one. The conclusions below were the same with 3 dB and
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id22">
+<figure class="align-default" id="id23">
 <a class="reference internal image-reference" href="_images/peak_scaling_B.png"><img alt="Left, measured peak frequency against U over displacement thickness on log axes with fitted and slope-1 lines. Right, tuned-MLP predicted peak frequency against measured peak frequency." src="_images/peak_scaling_B.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -824,7 +824,7 @@ constant-Strouhal scaling (slope 1) through the median Strouhal number;
 the solid line is the fitted slope. The horizontal bands are the discrete
 1/3-octave frequencies. Right: frequency of the tuned MLP’s predicted peak
 against the measured peak; marker area counts setups, and dotted lines
-are one 1/3-octave step either side of perfect agreement.</span><a class="headerlink" href="#id22" title="Link to this image">¶</a></p>
+are one 1/3-octave step either side of perfect agreement.</span><a class="headerlink" href="#id23" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <ul class="simple">
@@ -850,7 +850,7 @@ slope one way. So the MLP’s remaining errors are mostly about the
 </section>
 <section id="where-along-the-spectrum-the-errors-are">
 <h3>Where along the spectrum the errors are<a class="headerlink" href="#where-along-the-spectrum-the-errors-are" title="Link to this heading">¶</a></h3>
-<figure class="align-default" id="id23">
+<figure class="align-default" id="id24">
 <a class="reference internal image-reference" href="_images/residual_heatmap_B.png"><img alt="Heatmaps of residual for every setup (rows, grouped by chord) and frequency (columns) for linear and tuned MLP, with measured peaks marked by dots." src="_images/residual_heatmap_B.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -858,11 +858,11 @@ slope one way. So the MLP’s remaining errors are mostly about the
 cross-validation setup and frequency. Red means the model predicts too
 low, blue too high, and grey means that frequency was not measured.
 Rows are grouped by chord and ordered by angle, then velocity; dots mark
-measured peaks.</span><a class="headerlink" href="#id23" title="Link to this image">¶</a></p>
+measured peaks.</span><a class="headerlink" href="#id24" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id24">
-<caption><span class="caption-text">Share of each setup’s squared error in the peak window (the peak ± one 1/3-octave step), median over setups. If errors were spread evenly, the two columns would match</span><a class="headerlink" href="#id24" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id25">
+<caption><span class="caption-text">Share of each setup’s squared error in the peak window (the peak ± one 1/3-octave step), median over setups. If errors were spread evenly, the two columns would match</span><a class="headerlink" href="#id25" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Setups</p></th>
@@ -941,8 +941,8 @@ epoch (<a class="reference internal" href="api.html#functions.profiling.mlp_flop
 <p>The fit rate is the estimated FLOPs divided by the median fit time.</p>
 </li>
 </ul>
-<table class="docutils align-default" id="id25">
-<caption><span class="caption-text">Profile of one fit on all CV rows (FLOPs are estimates)</span><a class="headerlink" href="#id25" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id26">
+<caption><span class="caption-text">Profile of one fit on all CV rows (FLOPs are estimates)</span><a class="headerlink" href="#id26" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -1013,8 +1013,8 @@ epoch (<a class="reference internal" href="api.html#functions.profiling.mlp_flop
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id26">
-<caption><span class="caption-text">Cost ratios between models</span><a class="headerlink" href="#id26" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id27">
+<caption><span class="caption-text">Cost ratios between models</span><a class="headerlink" href="#id27" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Comparison</p></th>
 <th class="head"><p>Quantity</p></th>
@@ -1072,8 +1072,8 @@ epoch (<a class="reference internal" href="api.html#functions.profiling.mlp_flop
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id27">
-<caption><span class="caption-text">Machine and settings used for the timings</span><a class="headerlink" href="#id27" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id28">
+<caption><span class="caption-text">Machine and settings used for the timings</span><a class="headerlink" href="#id28" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Item</p></th>
 <th class="head"><p>Value</p></th>
@@ -1182,8 +1182,8 @@ re-tuned.</p></li>
 accuracy on unseen setups whose chord and velocity <em>were</em> seen in
 training. It is read from the saved tuning results, not recomputed.</p></li>
 </ul>
-<table class="docutils align-default" id="id28">
-<caption><span class="caption-text">Shift tests (MLP: mean ± SD over 3 seeds; bias = mean of measured − predicted)</span><a class="headerlink" href="#id28" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id29">
+<caption><span class="caption-text">Shift tests (MLP: mean ± SD over 3 seeds; bias = mean of measured − predicted)</span><a class="headerlink" href="#id29" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Shift test</p></th>
 <th class="head"><p>Held out</p></th>
@@ -1420,13 +1420,13 @@ training. It is read from the saved tuning results, not recomputed.</p></li>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id29">
+<figure class="align-default" id="id30">
 <a class="reference internal image-reference" href="_images/shift_tests.png"><img alt="Grouped bars of RMSE for each held-out chord and velocity, linear and final MLP, with dashed lines at each model's nested-CV RMSE." src="_images/shift_tests.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">RMSE on the held-out chord (left) or velocity (right). Error bars are the
 SD over the MLP’s 3 random seeds; “extrap.” marks values outside the
-training range.</span><a class="headerlink" href="#id29" title="Link to this image">¶</a></p>
+training range.</span><a class="headerlink" href="#id30" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <ul class="simple">
@@ -1474,8 +1474,8 @@ choice), and linear’s from the same folds. Both are averaged over the 3 CV
 seeds.</p></li>
 <li><p><strong>Data:</strong> cross-validation rows only.</p></li>
 </ul>
-<table class="docutils align-default" id="id30">
-<caption><span class="caption-text">Speed-order check (out-of-fold predictions)</span><a class="headerlink" href="#id30" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id31">
+<caption><span class="caption-text">Speed-order check (out-of-fold predictions)</span><a class="headerlink" href="#id31" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Groups fully in order</p></th>
@@ -1496,8 +1496,8 @@ seeds.</p></li>
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id31">
-<caption><span class="caption-text">Groups left out because the measured data is not louder at every higher speed</span><a class="headerlink" href="#id31" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id32">
+<caption><span class="caption-text">Groups left out because the measured data is not louder at every higher speed</span><a class="headerlink" href="#id32" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Chord (m)</p></th>
 <th class="head"><p>Angle (deg)</p></th>
@@ -1543,12 +1543,12 @@ seeds.</p></li>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id32">
+<figure class="align-default" id="id33">
 <a class="reference internal image-reference" href="_images/physics_speed_order.png"><img alt="Mean SPL against velocity for four chord and angle groups: measured points, MLP and linear lines." src="_images/physics_speed_order.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Mean SPL over the shared bands against velocity for four example groups:
-the two where the MLP’s order is wrong (left), then two typical ones.</span><a class="headerlink" href="#id32" title="Link to this image">¶</a></p>
+the two where the MLP’s order is wrong (left), then two typical ones.</span><a class="headerlink" href="#id33" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <ul class="simple">
@@ -1581,9 +1581,10 @@ the hold-out.</p></li>
 <li><p><strong>C3</strong> Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.</p></li>
 <li><p><strong>P1</strong> The MLP gets the speed order right in at least 90% of speed pairs.</p></li>
 </ul>
-<p>Criteria that need the hold-out stay <strong>pending</strong> until the single final run.</p>
-<table class="docutils align-default" id="id33">
-<caption><span class="caption-text">Acceptance criteria (fixed before the hold-out evaluation)</span><a class="headerlink" href="#id33" title="Link to this table">¶</a></caption>
+<p>The hold-out criteria (C1b, C2, C3) were evaluated in the single final run; see
+<a class="reference internal" href="#final-hold-out-evaluation">Final hold-out evaluation</a> below. All five criteria pass.</p>
+<table class="docutils align-default" id="id34">
+<caption><span class="caption-text">Acceptance criteria (fixed before the hold-out evaluation)</span><a class="headerlink" href="#id34" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Criterion</p></th>
 <th class="head"><p>Description</p></th>
@@ -1602,20 +1603,20 @@ the hold-out.</p></li>
 <tr class="row-odd"><td><p>C1b</p></td>
 <td><p>MLP RMSE &lt; linear RMSE on the hold-out</p></td>
 <td><p>MLP &lt; linear</p></td>
-<td></td>
-<td><p>pending (hold-out)</p></td>
+<td><p>MLP 2.630 vs linear 4.762 dB</p></td>
+<td><p>PASS</p></td>
 </tr>
 <tr class="row-even"><td><p>C2</p></td>
 <td><p>Hold-out RMSE &lt;= CV mean + 2 x fold SD</p></td>
 <td><p>&lt;= 2.819 dB</p></td>
-<td></td>
-<td><p>pending (hold-out)</p></td>
+<td><p>2.630 dB</p></td>
+<td><p>PASS</p></td>
 </tr>
 <tr class="row-odd"><td><p>C3</p></td>
 <td><p>Hold-out MLP RMSE small enough to be useful</p></td>
 <td><p>&lt;= 3 dB</p></td>
-<td></td>
-<td><p>pending (hold-out)</p></td>
+<td><p>2.630 dB</p></td>
+<td><p>PASS</p></td>
 </tr>
 <tr class="row-even"><td><p>P1</p></td>
 <td><p>MLP predicts faster flow is louder (speed pairs)</p></td>
@@ -1626,16 +1627,499 @@ the hold-out.</p></li>
 </tbody>
 </table>
 </section>
+<section id="final-hold-out-evaluation">
+<h2>Final hold-out evaluation<a class="headerlink" href="#final-hold-out-evaluation" title="Link to this heading">¶</a></h2>
+<p>The test hold-out (16 setups, 227 rows; about 15% of setups, chosen with
+<code class="docutils literal notranslate"><span class="pre">TEST_SEED</span> <span class="pre">=</span> <span class="pre">41</span></code> and stratified on chord) was used here for the first and
+only time. Until this run it played no part in training, tuning, model
+selection or any analysis.</p>
+<ul class="simple">
+<li><p><strong>Training:</strong> each model was trained once on all 1,276 cross-validation
+rows (90 setups), using the frozen settings in <code class="docutils literal notranslate"><span class="pre">functions.models</span></code>.</p></li>
+<li><p><strong>Prediction:</strong> each model predicted the hold-out rows once.</p></li>
+<li><p><strong>Model selection was already finished.</strong> The final MLP is the selected
+model, and the acceptance criteria apply to it. The runner-up is reported
+for comparison only.</p></li>
+<li><p><strong>Records:</strong> the code was committed before the run; the commit hash,
+library versions and model settings are in <code class="docutils literal notranslate"><span class="pre">results/holdout_run_info.txt</span></code>,
+and the trained models are saved in <code class="docutils literal notranslate"><span class="pre">results/final_models/</span></code>.</p></li>
+</ul>
+<table class="docutils align-default" id="id35">
+<caption><span class="caption-text">The hold-out setups</span><a class="headerlink" href="#id35" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setup</p></th>
+<th class="head"><p>Chord (m)</p></th>
+<th class="head"><p>Velocity (m/s)</p></th>
+<th class="head"><p>Angle (deg)</p></th>
+<th class="head"><p>Frequencies</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>0.0254</p></td>
+<td><p>31.7</p></td>
+<td><p>4.8</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p>13</p></td>
+<td><p>0.0254</p></td>
+<td><p>55.5</p></td>
+<td><p>17.4</p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p>16</p></td>
+<td><p>0.0254</p></td>
+<td><p>71.3</p></td>
+<td><p>9.5</p></td>
+<td><p>11</p></td>
+</tr>
+<tr class="row-odd"><td><p>21</p></td>
+<td><p>0.0508</p></td>
+<td><p>31.7</p></td>
+<td><p>8.4</p></td>
+<td><p>11</p></td>
+</tr>
+<tr class="row-even"><td><p>22</p></td>
+<td><p>0.0508</p></td>
+<td><p>31.7</p></td>
+<td><p>15.4</p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-odd"><td><p>37</p></td>
+<td><p>0.0508</p></td>
+<td><p>71.3</p></td>
+<td><p>19.7</p></td>
+<td><p>14</p></td>
+</tr>
+<tr class="row-even"><td><p>43</p></td>
+<td><p>0.1016</p></td>
+<td><p>39.6</p></td>
+<td><p>3.3</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p>45</p></td>
+<td><p>0.1016</p></td>
+<td><p>39.6</p></td>
+<td><p>8.9</p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p>50</p></td>
+<td><p>0.1016</p></td>
+<td><p>55.5</p></td>
+<td><p>6.7</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p>71</p></td>
+<td><p>0.1524</p></td>
+<td><p>71.3</p></td>
+<td><p>2.7</p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-even"><td><p>73</p></td>
+<td><p>0.1524</p></td>
+<td><p>71.3</p></td>
+<td><p>7.2</p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-odd"><td><p>86</p></td>
+<td><p>0.2286</p></td>
+<td><p>55.5</p></td>
+<td><p>2.0</p></td>
+<td><p>13</p></td>
+</tr>
+<tr class="row-even"><td><p>91</p></td>
+<td><p>0.2286</p></td>
+<td><p>71.3</p></td>
+<td><p>4.0</p></td>
+<td><p>17</p></td>
+</tr>
+<tr class="row-odd"><td><p>92</p></td>
+<td><p>0.2286</p></td>
+<td><p>71.3</p></td>
+<td><p>5.3</p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-even"><td><p>94</p></td>
+<td><p>0.3048</p></td>
+<td><p>31.7</p></td>
+<td><p>0.0</p></td>
+<td><p>18</p></td>
+</tr>
+<tr class="row-odd"><td><p>98</p></td>
+<td><p>0.3048</p></td>
+<td><p>39.6</p></td>
+<td><p>3.0</p></td>
+<td><p>15</p></td>
+</tr>
+</tbody>
+</table>
+<p>The hold-out covers all six chords, all four velocities and angles from 0° to
+19.7°.</p>
+<section id="id1">
+<h3>Results<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default" id="id36">
+<caption><span class="caption-text">Hold-out metrics (bias = mean of measured − predicted; negative means the model predicts too high)</span><a class="headerlink" href="#id36" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Hold-out RMSE (dB)</p></th>
+<th class="head"><p>MAE (dB)</p></th>
+<th class="head"><p>R²</p></th>
+<th class="head"><p>Bias (dB)</p></th>
+<th class="head"><p>Fit time (s)</p></th>
+<th class="head"><p>Predict time (ms)</p></th>
+<th class="head"><p>Epochs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>linear</p></td>
+<td><p>4.762</p></td>
+<td><p>3.645</p></td>
+<td><p>0.511</p></td>
+<td><p>-0.914</p></td>
+<td><p>0.006</p></td>
+<td><p>1.94</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>runner-up MLP</p></td>
+<td><p>2.434</p></td>
+<td><p>1.809</p></td>
+<td><p>0.872</p></td>
+<td><p>-0.546</p></td>
+<td><p>1.682</p></td>
+<td><p>2.45</p></td>
+<td><p>226</p></td>
+</tr>
+<tr class="row-even"><td><p>final MLP (selected)</p></td>
+<td><p>2.63</p></td>
+<td><p>2.028</p></td>
+<td><p>0.851</p></td>
+<td><p>-1.024</p></td>
+<td><p>2.166</p></td>
+<td><p>2.7</p></td>
+<td><p>177</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id37">
+<caption><span class="caption-text">Cross-validation estimate next to hold-out RMSE</span><a class="headerlink" href="#id37" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>CV estimate</p></th>
+<th class="head"><p>CV RMSE (dB)</p></th>
+<th class="head"><p>Hold-out RMSE (dB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>linear</p></td>
+<td><p>repeated grouped CV</p></td>
+<td><p>4.582 ± 0.254</p></td>
+<td><p>4.762</p></td>
+</tr>
+<tr class="row-odd"><td><p>runner-up MLP</p></td>
+<td><p>inner CV (selection score)</p></td>
+<td><p>2.535 ± 0.121</p></td>
+<td><p>2.434</p></td>
+</tr>
+<tr class="row-even"><td><p>final MLP (selected)</p></td>
+<td><p>nested CV (outer folds)</p></td>
+<td><p>2.365 ± 0.227</p></td>
+<td><p>2.63</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id38">
+<a class="reference internal image-reference" href="_images/holdout_vs_cv.png"><img alt="For each model, its cross-validation RMSE with a one-SD error bar and its hold-out RMSE as a point." src="_images/holdout_vs_cv.png" style="width: 85%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Hollow markers with bars: each model’s CV estimate ± fold SD. Filled
+markers: its hold-out RMSE.</span><a class="headerlink" href="#id38" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<table class="docutils align-default" id="id39">
+<caption><span class="caption-text">Paired per-setup comparison on the hold-out (negative difference = final MLP better)</span><a class="headerlink" href="#id39" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Comparison (per setup)</p></th>
+<th class="head"><p>Setups</p></th>
+<th class="head"><p>Mean ± SD of RMSE difference (dB)</p></th>
+<th class="head"><p>Setups final MLP better</p></th>
+<th class="head"><p>Setups other model better</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>final MLP - linear</p></td>
+<td><p>16</p></td>
+<td><p>-2.08 ± 1.44</p></td>
+<td><p>15</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>final MLP - runner-up MLP</p></td>
+<td><p>16</p></td>
+<td><p>0.27 ± 0.45</p></td>
+<td><p>4</p></td>
+<td><p>12</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id40">
+<caption><span class="caption-text">Acceptance criteria for the final MLP (thresholds fixed before this run)</span><a class="headerlink" href="#id40" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Criterion</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Threshold</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>C1a</p></td>
+<td><p>MLP beats linear in nested-CV outer folds</p></td>
+<td><p>&gt;= 13 of 15 folds</p></td>
+<td><p>15 of 15 folds</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>C1b</p></td>
+<td><p>MLP RMSE &lt; linear RMSE on the hold-out</p></td>
+<td><p>MLP &lt; linear</p></td>
+<td><p>MLP 2.630 vs linear 4.762 dB</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>C2</p></td>
+<td><p>Hold-out RMSE &lt;= CV mean + 2 x fold SD</p></td>
+<td><p>&lt;= 2.819 dB</p></td>
+<td><p>2.630 dB</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-odd"><td><p>C3</p></td>
+<td><p>Hold-out MLP RMSE small enough to be useful</p></td>
+<td><p>&lt;= 3 dB</p></td>
+<td><p>2.630 dB</p></td>
+<td><p>PASS</p></td>
+</tr>
+<tr class="row-even"><td><p>P1</p></td>
+<td><p>MLP predicts faster flow is louder (speed pairs)</p></td>
+<td><p>&gt;= 90% of pairs</p></td>
+<td><p>97.1%</p></td>
+<td><p>PASS</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>The final MLP passes every acceptance criterion.</strong> Its hold-out RMSE is
+2.63 dB (R² 0.85), below the 3.0 dB usefulness limit (C3). It is within
+the 2.82 dB generalisation limit (C2), about one fold-SD above its nested-CV
+estimate of 2.37 dB.</p></li>
+<li><p><strong>It beats linear clearly:</strong> 2.63 against 4.76 dB, and on 15 of the 16
+hold-out setups (by 2.1 ± 1.4 dB per setup). Linear’s hold-out RMSE is
+close to its CV estimate (4.58 ± 0.25 dB).</p></li>
+<li><p><strong>The runner-up did better than the final MLP on the hold-out</strong>: 2.43
+against 2.63 dB, with a lower RMSE on 12 of the 16 setups (by 0.27 ± 0.45 dB
+per setup). Cross-validation had ranked it slightly behind (inner-CV 2.54
+against 2.50 dB). This is reported, but <strong>the selected model does not
+change.</strong> Choosing a model because it did well on the hold-out would turn
+the hold-out into another round of model selection, and it would no longer
+be an honest test. With only 16 setups, the hold-out cannot settle such a
+small difference either way. The two MLPs are close, and the smaller one is
+a reasonable alternative.</p></li>
+<li><p><strong>The final MLP over-predicts on average</strong> (bias −1.0 dB). Its worst
+hold-out setups are small chords at high angles (19.7°, 17.4° and 15.4°),
+where it predicts too loud a spectrum. These are the same conditions the
+cross-validation error analysis identified as hardest.</p></li>
+</ul>
+<figure class="align-default" id="id41">
+<a class="reference internal image-reference" href="_images/holdout_pred_vs_measured.png"><img alt="Three scatter panels of predicted against measured SPL on the hold-out: linear, runner-up MLP and final MLP." src="_images/holdout_pred_vs_measured.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Predicted against measured SPL on the hold-out for linear, the runner-up
+and the final MLP (same axes).</span><a class="headerlink" href="#id41" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id42">
+<a class="reference internal image-reference" href="_images/holdout_spectra.png"><img alt="Sixteen panels of SPL against frequency, one per hold-out setup, with measured points and lines for the three models." src="_images/holdout_spectra.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Every hold-out setup: measured spectrum (black) and the predictions of
+linear (blue), the runner-up (green) and the final MLP (orange).</span><a class="headerlink" href="#id42" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id43">
+<a class="reference internal image-reference" href="_images/holdout_rmse_breakdown.png"><img alt="Grouped bars of hold-out RMSE by chord, velocity, angle band and frequency band for the three models." src="_images/holdout_rmse_breakdown.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Hold-out RMSE by chord, velocity, angle band and frequency band. With
+only 16 setups, each group holds just a few setups, so these bars are
+much noisier than the cross-validation breakdown.</span><a class="headerlink" href="#id43" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<table class="docutils align-default" id="id44">
+<caption><span class="caption-text">Hold-out RMSE by group (setups and rows per group)</span><a class="headerlink" href="#id44" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Grouped by</p></th>
+<th class="head"><p>Group</p></th>
+<th class="head"><p>Setups</p></th>
+<th class="head"><p>Rows</p></th>
+<th class="head"><p>linear RMSE (dB)</p></th>
+<th class="head"><p>runner-up MLP RMSE (dB)</p></th>
+<th class="head"><p>final MLP RMSE (dB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>chord_length_m</p></td>
+<td><p>0.0254</p></td>
+<td><p>3</p></td>
+<td><p>40</p></td>
+<td><p>7.52</p></td>
+<td><p>2.74</p></td>
+<td><p>3.36</p></td>
+</tr>
+<tr class="row-odd"><td><p>chord_length_m</p></td>
+<td><p>0.0508</p></td>
+<td><p>3</p></td>
+<td><p>41</p></td>
+<td><p>4.03</p></td>
+<td><p>3.8</p></td>
+<td><p>3.85</p></td>
+</tr>
+<tr class="row-even"><td><p>chord_length_m</p></td>
+<td><p>0.1016</p></td>
+<td><p>3</p></td>
+<td><p>37</p></td>
+<td><p>4.45</p></td>
+<td><p>2.08</p></td>
+<td><p>2.29</p></td>
+</tr>
+<tr class="row-odd"><td><p>chord_length_m</p></td>
+<td><p>0.1524</p></td>
+<td><p>2</p></td>
+<td><p>31</p></td>
+<td><p>4.32</p></td>
+<td><p>1.6</p></td>
+<td><p>1.65</p></td>
+</tr>
+<tr class="row-even"><td><p>chord_length_m</p></td>
+<td><p>0.2286</p></td>
+<td><p>3</p></td>
+<td><p>45</p></td>
+<td><p>3.34</p></td>
+<td><p>1.96</p></td>
+<td><p>1.77</p></td>
+</tr>
+<tr class="row-odd"><td><p>chord_length_m</p></td>
+<td><p>0.3048</p></td>
+<td><p>2</p></td>
+<td><p>33</p></td>
+<td><p>3.49</p></td>
+<td><p>1.1</p></td>
+<td><p>1.68</p></td>
+</tr>
+<tr class="row-even"><td><p>velocity_mps</p></td>
+<td><p>31.7</p></td>
+<td><p>4</p></td>
+<td><p>58</p></td>
+<td><p>4.71</p></td>
+<td><p>2.27</p></td>
+<td><p>2.51</p></td>
+</tr>
+<tr class="row-odd"><td><p>velocity_mps</p></td>
+<td><p>39.6</p></td>
+<td><p>3</p></td>
+<td><p>44</p></td>
+<td><p>3.99</p></td>
+<td><p>1.83</p></td>
+<td><p>2.0</p></td>
+</tr>
+<tr class="row-even"><td><p>velocity_mps</p></td>
+<td><p>55.5</p></td>
+<td><p>3</p></td>
+<td><p>37</p></td>
+<td><p>6.57</p></td>
+<td><p>2.81</p></td>
+<td><p>3.35</p></td>
+</tr>
+<tr class="row-odd"><td><p>velocity_mps</p></td>
+<td><p>71.3</p></td>
+<td><p>6</p></td>
+<td><p>88</p></td>
+<td><p>4.21</p></td>
+<td><p>2.62</p></td>
+<td><p>2.64</p></td>
+</tr>
+<tr class="row-even"><td><p>angle_band</p></td>
+<td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>18</p></td>
+<td><p>3.63</p></td>
+<td><p>1.31</p></td>
+<td><p>1.93</p></td>
+</tr>
+<tr class="row-odd"><td><p>angle_band</p></td>
+<td><p>0-5</p></td>
+<td><p>6</p></td>
+<td><p>86</p></td>
+<td><p>4.02</p></td>
+<td><p>1.4</p></td>
+<td><p>1.57</p></td>
+</tr>
+<tr class="row-even"><td><p>angle_band</p></td>
+<td><p>5-10</p></td>
+<td><p>6</p></td>
+<td><p>77</p></td>
+<td><p>4.75</p></td>
+<td><p>2.29</p></td>
+<td><p>2.47</p></td>
+</tr>
+<tr class="row-odd"><td><p>angle_band</p></td>
+<td><p>&gt;15</p></td>
+<td><p>3</p></td>
+<td><p>46</p></td>
+<td><p>6.23</p></td>
+<td><p>4.01</p></td>
+<td><p>4.23</p></td>
+</tr>
+<tr class="row-even"><td><p>frequency_band</p></td>
+<td><p>200-500 Hz</p></td>
+<td><p>13</p></td>
+<td><p>40</p></td>
+<td><p>7.61</p></td>
+<td><p>3.51</p></td>
+<td><p>3.86</p></td>
+</tr>
+<tr class="row-odd"><td><p>frequency_band</p></td>
+<td><p>630-1600 Hz</p></td>
+<td><p>16</p></td>
+<td><p>80</p></td>
+<td><p>4.14</p></td>
+<td><p>2.08</p></td>
+<td><p>2.36</p></td>
+</tr>
+<tr class="row-even"><td><p>frequency_band</p></td>
+<td><p>2-5 kHz</p></td>
+<td><p>16</p></td>
+<td><p>75</p></td>
+<td><p>3.38</p></td>
+<td><p>2.15</p></td>
+<td><p>2.32</p></td>
+</tr>
+<tr class="row-odd"><td><p>frequency_band</p></td>
+<td><p>6.3-20 kHz</p></td>
+<td><p>13</p></td>
+<td><p>32</p></td>
+<td><p>4.36</p></td>
+<td><p>2.24</p></td>
+<td><p>1.99</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
 <section id="what-these-results-cannot-show">
 <h2>What these results cannot show<a class="headerlink" href="#what-these-results-cannot-show" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>Performance on unseen data:</strong> these are cross-validation scores used
-for model comparison. The final estimate will come from the test hold-out,
-scored once on the chosen models.</p></li>
-<li><p><strong>Extrapolation:</strong> every chord, velocity and angle seen in validation was
-also tested in training (with other setups). The results say nothing about
-geometries or flow conditions outside the tested ranges, or about other
-airfoil shapes.</p></li>
+<li><p><strong>Precision of the hold-out score:</strong> the hold-out has only 16 setups, so
+its RMSE is a single, fairly noisy estimate. The cross-validation spread
+(about ±0.2 dB between folds) is a better guide to the uncertainty.</p></li>
+<li><p><strong>Extrapolation:</strong> the shift tests cover leaving out one chord or one
+velocity. They say nothing about geometries or flow conditions outside the
+tested ranges, or about other airfoil shapes.</p></li>
 <li><p><strong>Measurement noise:</strong> the irreducible scatter in the wind-tunnel data is
 not separated from model error, so the lowest achievable RMSE is unknown.</p></li>
 </ul>
@@ -1683,6 +2167,7 @@ not separated from model error, so the lowest achievable RMSE is unknown.</p></l
 <li class="toctree-l2"><a class="reference internal" href="#robustness-conditions-never-seen-in-training">Robustness: conditions never seen in training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#physics-check-is-faster-flow-louder">Physics check: is faster flow louder?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#acceptance-criteria">Acceptance criteria</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#final-hold-out-evaluation">Final hold-out evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-these-results-cannot-show">What these results cannot show</a></li>
 </ul>
 </li>

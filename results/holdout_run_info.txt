@@ -1,0 +1,13 @@
+Final hold-out evaluation
+Run at: 2026-10-22T20:50:18
+Git commit: 273738d404a1b154ebce027a9f3b6f55a72da7aa
+Python 3.10.5, scikit-learn 1.7.2, numpy 1.24.2, pandas 2.3.3
+Platform: Windows-10-10.0.19045-SP0; logical CPUs: 8
+Feature set: B; selected model: mlp_final
+Training rows (all CV rows): 1276 rows, 90 setups
+Hold-out rows: 227 rows, 16 setups
+
+Model settings (estimator inside the scaling pipeline):
+- linear: LinearRegression({'copy_X': True, 'fit_intercept': True, 'n_jobs': None, 'positive': False, 'tol': 1e-06})
+- mlp_runner_up: MLPRegressor({'activation': 'relu', 'alpha': 0.1, 'batch_size': 'auto', 'beta_1': 0.9, 'beta_2': 0.999, 'early_stopping': True, 'epsilon': 1e-08, 'hidden_layer_sizes': (64, 64), 'learning_rate': 'constant', 'learning_rate_init': 0.001, 'loss': 'squared_error', 'max_fun': 15000, 'max_iter': 2000, 'momentum': 0.9, 'n_iter_no_change': 20, 'nesterovs_momentum': True, 'power_t': 0.5, 'random_state': 0, 'shuffle': True, 'solver': 'adam', 'tol': 0.0001, 'validation_fraction': 0.1, 'verbose': False, 'warm_start': False})
+- mlp_final: MLPRegressor({'activation': 'relu', 'alpha': 1.0, 'batch_size': 'auto', 'beta_1': 0.9, 'beta_2': 0.999, 'early_stopping': True, 'epsilon': 1e-08, 'hidden_layer_sizes': (128, 128), 'learning_rate': 'constant', 'learning_rate_init': 0.001, 'loss': 'squared_error', 'max_fun': 15000, 'max_iter': 2000, 'momentum': 0.9, 'n_iter_no_change': 20, 'nesterovs_momentum': True, 'power_t': 0.5, 'random_state': 0, 'shuffle': True, 'solver': 'adam', 'tol': 0.0001, 'validation_fraction': 0.1, 'verbose': False, 'warm_start': False})

@@ -662,21 +662,123 @@ the results.
 * **C3** Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.
 * **P1** The MLP gets the speed order right in at least 90% of speed pairs.
 
-Criteria that need the hold-out stay **pending** until the single final run.
+The hold-out criteria (C1b, C2, C3) were evaluated in the single final run; see
+`Final hold-out evaluation`_ below. All five criteria pass.
 
 .. csv-table:: Acceptance criteria (fixed before the hold-out evaluation)
    :file: generated/acceptance.csv
    :header-rows: 1
 
+Final hold-out evaluation
+-------------------------
+
+The test hold-out (16 setups, 227 rows; about 15% of setups, chosen with
+``TEST_SEED = 41`` and stratified on chord) was used here for the first and
+only time. Until this run it played no part in training, tuning, model
+selection or any analysis.
+
+* **Training:** each model was trained once on all 1,276 cross-validation
+  rows (90 setups), using the frozen settings in ``functions.models``.
+* **Prediction:** each model predicted the hold-out rows once.
+* **Model selection was already finished.** The final MLP is the selected
+  model, and the acceptance criteria apply to it. The runner-up is reported
+  for comparison only.
+* **Records:** the code was committed before the run; the commit hash,
+  library versions and model settings are in ``results/holdout_run_info.txt``,
+  and the trained models are saved in ``results/final_models/``.
+
+.. csv-table:: The hold-out setups
+   :file: generated/holdout_setups.csv
+   :header-rows: 1
+
+The hold-out covers all six chords, all four velocities and angles from 0° to
+19.7°.
+
+Results
+~~~~~~~
+
+.. csv-table:: Hold-out metrics (bias = mean of measured − predicted; negative means the model predicts too high)
+   :file: generated/holdout_metrics.csv
+   :header-rows: 1
+
+.. csv-table:: Cross-validation estimate next to hold-out RMSE
+   :file: generated/holdout_vs_cv.csv
+   :header-rows: 1
+
+.. figure:: generated/holdout_vs_cv.png
+   :width: 85%
+   :alt: For each model, its cross-validation RMSE with a one-SD error bar and
+         its hold-out RMSE as a point.
+
+   Hollow markers with bars: each model's CV estimate ± fold SD. Filled
+   markers: its hold-out RMSE.
+
+.. csv-table:: Paired per-setup comparison on the hold-out (negative difference = final MLP better)
+   :file: generated/holdout_paired.csv
+   :header-rows: 1
+
+.. csv-table:: Acceptance criteria for the final MLP (thresholds fixed before this run)
+   :file: generated/acceptance.csv
+   :header-rows: 1
+
+* **The final MLP passes every acceptance criterion.** Its hold-out RMSE is
+  2.63 dB (R² 0.85), below the 3.0 dB usefulness limit (C3). It is within
+  the 2.82 dB generalisation limit (C2), about one fold-SD above its nested-CV
+  estimate of 2.37 dB.
+* **It beats linear clearly:** 2.63 against 4.76 dB, and on 15 of the 16
+  hold-out setups (by 2.1 ± 1.4 dB per setup). Linear's hold-out RMSE is
+  close to its CV estimate (4.58 ± 0.25 dB).
+* **The runner-up did better than the final MLP on the hold-out**: 2.43
+  against 2.63 dB, with a lower RMSE on 12 of the 16 setups (by 0.27 ± 0.45 dB
+  per setup). Cross-validation had ranked it slightly behind (inner-CV 2.54
+  against 2.50 dB). This is reported, but **the selected model does not
+  change.** Choosing a model because it did well on the hold-out would turn
+  the hold-out into another round of model selection, and it would no longer
+  be an honest test. With only 16 setups, the hold-out cannot settle such a
+  small difference either way. The two MLPs are close, and the smaller one is
+  a reasonable alternative.
+* **The final MLP over-predicts on average** (bias −1.0 dB). Its worst
+  hold-out setups are small chords at high angles (19.7°, 17.4° and 15.4°),
+  where it predicts too loud a spectrum. These are the same conditions the
+  cross-validation error analysis identified as hardest.
+
+.. figure:: generated/holdout_pred_vs_measured.png
+   :width: 100%
+   :alt: Three scatter panels of predicted against measured SPL on the
+         hold-out: linear, runner-up MLP and final MLP.
+
+   Predicted against measured SPL on the hold-out for linear, the runner-up
+   and the final MLP (same axes).
+
+.. figure:: generated/holdout_spectra.png
+   :width: 100%
+   :alt: Sixteen panels of SPL against frequency, one per hold-out setup,
+         with measured points and lines for the three models.
+
+   Every hold-out setup: measured spectrum (black) and the predictions of
+   linear (blue), the runner-up (green) and the final MLP (orange).
+
+.. figure:: generated/holdout_rmse_breakdown.png
+   :width: 100%
+   :alt: Grouped bars of hold-out RMSE by chord, velocity, angle band and
+         frequency band for the three models.
+
+   Hold-out RMSE by chord, velocity, angle band and frequency band. With
+   only 16 setups, each group holds just a few setups, so these bars are
+   much noisier than the cross-validation breakdown.
+
+.. csv-table:: Hold-out RMSE by group (setups and rows per group)
+   :file: generated/holdout_breakdown.csv
+   :header-rows: 1
+
 What these results cannot show
 ------------------------------
 
-* **Performance on unseen data:** these are cross-validation scores used
-  for model comparison. The final estimate will come from the test hold-out,
-  scored once on the chosen models.
-* **Extrapolation:** every chord, velocity and angle seen in validation was
-  also tested in training (with other setups). The results say nothing about
-  geometries or flow conditions outside the tested ranges, or about other
-  airfoil shapes.
+* **Precision of the hold-out score:** the hold-out has only 16 setups, so
+  its RMSE is a single, fairly noisy estimate. The cross-validation spread
+  (about ±0.2 dB between folds) is a better guide to the uncertainty.
+* **Extrapolation:** the shift tests cover leaving out one chord or one
+  velocity. They say nothing about geometries or flow conditions outside the
+  tested ranges, or about other airfoil shapes.
 * **Measurement noise:** the irreducible scatter in the wind-tunnel data is
   not separated from model error, so the lowest achievable RMSE is unknown.
