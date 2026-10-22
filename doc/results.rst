@@ -544,6 +544,130 @@ multi-threaded, not single-threaded. Timings on another machine, or with a
 different thread setting, will differ; the machine table above records the
 setup used.
 
+Robustness: conditions never seen in training
+---------------------------------------------
+
+Cross-validation holds out *setups*, but a held-out setup still has
+neighbours in training with the same chord and velocity. The shift tests are
+harder: they hold out **every** setup with one chord (or one velocity), so the
+model has to predict a value of that input it has never seen. A held-out
+value between the training values is **interpolation**. The smallest or
+largest value is **extrapolation**, outside the training range.
+
+* **Models:** the final MLP (``FINAL_MLP``, set B), run with random seeds 0,
+  1 and 2 and averaged, and the linear baseline on set B. Nothing was
+  re-tuned.
+* **Data:** cross-validation rows only; the test hold-out was not used.
+* **Reference:** the dashed lines are each model's nested-CV RMSE, i.e. its
+  accuracy on unseen setups whose chord and velocity *were* seen in
+  training. It is read from the saved tuning results, not recomputed.
+
+.. csv-table:: Shift tests (MLP: mean ± SD over 3 seeds; bias = mean of measured − predicted)
+   :file: generated/shift_tests.csv
+   :header-rows: 1
+
+.. figure:: generated/shift_tests.png
+   :width: 100%
+   :alt: Grouped bars of RMSE for each held-out chord and velocity, linear and
+         final MLP, with dashed lines at each model's nested-CV RMSE.
+
+   RMSE on the held-out chord (left) or velocity (right). Error bars are the
+   SD over the MLP's 3 random seeds; "extrap." marks values outside the
+   training range.
+
+* **The MLP beats linear in all 10 shift tests.**
+* **Interpolation costs the MLP little.** For held-out values inside the
+  training range, its RMSE is 1.8–2.8 dB, close to its nested-CV 2.36 dB.
+* **Extrapolation can hurt.** Holding out the smallest chord (0.0254 m)
+  roughly doubles the MLP's RMSE, to about 4.9 dB. For linear it rises to
+  about 7.7 dB, with R² below zero, i.e. worse than predicting the average.
+  Holding out the highest velocity (71.3 m/s) raises the MLP's RMSE to about
+  3.5 dB. The largest chord and the lowest velocity extrapolate well.
+* **The result is not luck.** The MLP's RMSE varies by at most about 0.2 dB
+  across the 3 seeds.
+* **Caveats.**
+
+  * Each shift test scores a different set of setups and trains on a
+    different amount of data from the nested-CV folds, so the comparison
+    with the dashed lines is approximate. Some interpolation results come
+    out slightly *below* the nested-CV RMSE for this reason.
+  * Chord and angle are confounded: high angles were only tested on small
+    chords, so leaving out the 0.0254 m chord also removes most of the
+    high-angle setups. Part of that chord's difficulty is really angle. An
+    angle-extrapolation test was deliberately not run for the same reason.
+
+Physics check: is faster flow louder?
+-------------------------------------
+
+At a fixed chord and angle, a higher free-stream velocity produces more
+turbulent trailing-edge noise, so the overall level should rise with speed.
+The measured spectra in the BPM report (NASA RP-1218) show this.
+
+* **Groups:** setups are grouped by (chord, angle), keeping groups tested at
+  2 or more speeds.
+* **Like with like:** within a group, each setup's SPL is averaged over the
+  frequency bands measured at **every** speed in that group.
+* **Scoring:** a group is "fully in order" if the predicted averages rise
+  with speed like the measured ones, and each pair of speeds is also checked
+  on its own.
+* **Predictions are out-of-fold:** each setup was predicted by a model that
+  never saw it. The MLP's predictions come from the nested-CV MLPs (each
+  outer fold's own tuned setting; the final setting was the most common
+  choice), and linear's from the same folds. Both are averaged over the 3 CV
+  seeds.
+* **Data:** cross-validation rows only.
+
+.. csv-table:: Speed-order check (out-of-fold predictions)
+   :file: generated/physics_speed_order.csv
+   :header-rows: 1
+
+.. csv-table:: Groups left out because the measured data is not louder at every higher speed
+   :file: generated/physics_speed_order_excluded.csv
+   :header-rows: 1
+
+.. figure:: generated/physics_speed_order.png
+   :width: 100%
+   :alt: Mean SPL against velocity for four chord and angle groups: measured
+         points, MLP and linear lines.
+
+   Mean SPL over the shared bands against velocity for four example groups:
+   the two where the MLP's order is wrong (left), then two typical ones.
+
+* **The MLP gets 97% of speed pairs right** (66 of 68), and the full order
+  right in 19 of 21 groups.
+* **Its two misses** are the 0.0254 m chord at 22.2°, the worst-predicted
+  conditions in the whole error analysis, where the measured level rises by
+  only about 0.2 dB, and one of three pairs at 0.1016 m and 6.7°.
+* **Linear scores 100%, but that says little about its accuracy.** A linear
+  model shifts SPL with speed by a fixed amount everywhere. Once it has
+  learned that faster is louder, it applies that in every group. Passing
+  this check is necessary for a physically sensible model, but not enough
+  on its own.
+* **The measured data itself breaks the rule in 7 of 28 groups**, mostly at
+  the smallest chord, where tonal peaks dominate. These groups are left out
+  of the score.
+
+Acceptance criteria
+-------------------
+
+The criteria below were fixed in ``src/functions/acceptance.py`` and committed
+on their own **before** the hold-out evaluation, and before the shift tests
+and physics check were run, so the pass marks cannot have been chosen to suit
+the results.
+
+* **C1** The MLP beats linear in at least 13 of the 15 nested-CV folds, and on
+  the hold-out.
+* **C2** Hold-out RMSE ≤ nested-CV mean + 2 × fold SD (2.365 + 2 × 0.227 =
+  2.819 dB, set B).
+* **C3** Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.
+* **P1** The MLP gets the speed order right in at least 90% of speed pairs.
+
+Criteria that need the hold-out stay **pending** until the single final run.
+
+.. csv-table:: Acceptance criteria (fixed before the hold-out evaluation)
+   :file: generated/acceptance.csv
+   :header-rows: 1
+
 What these results cannot show
 ------------------------------
 
