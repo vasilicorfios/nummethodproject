@@ -185,7 +185,11 @@ def write_figures(results: list[TuningResult], linear: list, seed: int) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Tune, compare, print and save results for every requested feature set."""
+    """Tune, compare, print and save results for every requested feature set.
+
+    Console output is plain ASCII (R2, +/-) because the Windows console
+    cannot always show R² or ±; the saved tables use the proper symbols.
+    """
     args = parse_args(argv)
     data = add_physics_features(load_airfoil_data())
     start = time.perf_counter()
@@ -221,10 +225,10 @@ def main(argv: list[str] | None = None) -> None:
             f"   SD across seeds {row['rmse_sd_seeds']:.3f}\n"
             f"  MAE  {row['mae_mean']:.3f} dB   SD over folds {row['mae_sd_folds']:.3f}"
             f"   SD across seeds {row['mae_sd_seeds']:.3f}\n"
-            f"  R²   {row['r2_mean']:.3f}      SD over folds {row['r2_sd_folds']:.3f}"
+            f"  R2   {row['r2_mean']:.3f}      SD over folds {row['r2_sd_folds']:.3f}"
             f"   SD across seeds {row['r2_sd_seeds']:.3f}\n"
             f"  vs linear (same folds): linear RMSE {row['linear_rmse_mean']:.3f} dB; "
-            f"MLP minus linear per fold {row['rmse_diff_mean']:+.3f} ± {row['rmse_diff_sd']:.3f} dB; "
+            f"MLP minus linear per fold {row['rmse_diff_mean']:+.3f} +/- {row['rmse_diff_sd']:.3f} dB; "
             f"MLP won {row['mlp_wins']} of {row['n_folds']} folds\n"
             f"  tuning time {row['tuning_time_total_s'] / 60:.1f} min"
         )

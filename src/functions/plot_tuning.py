@@ -110,8 +110,11 @@ def plot_loss_curves(result: TuningResult, keys: list[tuple[int, int]]) -> Figur
     Top row: training loss (half the mean squared error on the
     *standardised* target, plus the L2 penalty). Bottom row: R² on the
     random 10% of rows that ``MLPRegressor`` holds back for early stopping.
-    The dashed line marks the epoch with the best validation score; training
-    stops 20 epochs later when no further improvement appears.
+    The dashed line marks the epoch with the highest validation score.
+    Training stops once the score has failed to beat its best by more than
+    ``tol`` for 20 epochs in a row; because tiny gains below ``tol`` do not
+    count, the stop can come fewer than 20 epochs after the highest point.
+    The final model keeps the weights from the best-scoring epoch.
 
     Args:
         result: Output of :func:`functions.tuning.nested_cv`.
