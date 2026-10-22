@@ -164,19 +164,22 @@ Profiling runtime, memory and FLOPs
 
     python src/run_profile.py
 
-This trains each model on all cross-validation rows (not the test set) and
-reports:
+By default this profiles linear on feature sets A and B, the final MLP
+(``FINAL_MLP``) and the cheaper runner-up (``RUNNER_UP_MLP``), both on set B,
+in one session. It takes about 25 seconds. Each model is trained on all
+cross-validation rows (never the test set), and the script reports:
 
-* the median fit and predict time over 20 repeats;
+* the median and fastest fit and predict times over 5 repeats;
 * peak memory during a fit (traced with ``tracemalloc``);
-* an estimated FLOP count and the achieved FLOP rate;
-* a ``cProfile`` report of where the fit time goes.
+* the number of weights, epochs run, and the size of the weights and of the
+  pickled model;
+* estimated FLOPs (formulas, not measurements) and the achieved FLOP rate;
+* cost ratios: final MLP vs linear (B), and final vs runner-up;
+* the machine, library versions and thread settings used;
+* a ``cProfile`` report of each fit (``results/profile_<model>_<set>.txt``).
 
-For the linear baseline, the fit needs only about 10\ :sup:`5` FLOPs but
-takes about 3 ms. That is tens of MFLOP/s, a tiny fraction of the CPU's
-capability. The profile shows the time goes to scikit-learn and pandas input
-checks and scaling rather than the least-squares solve, so at this data size
-the cost is fixed overhead, not arithmetic.
+For a custom selection, use ``--models`` and ``--feature-sets``, e.g.
+``python src/run_profile.py --models linear --feature-sets B``.
 
 Exploratory plots
 -----------------

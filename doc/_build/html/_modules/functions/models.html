@@ -51,13 +51,21 @@
 <span class="sd">step changes the predictions, but it is applied anyway so every model runs</span>
 <span class="sd">through the same pipeline and the linear coefficients are comparable in size.</span>
 
-<span class="sd">Two models are registered:</span>
+<span class="sd">Registered models:</span>
 
 <span class="sd">* ``"linear"``: ordinary least squares, the baseline.</span>
 <span class="sd">* ``"mlp"``: a multi-layer perceptron (``MLPRegressor``) with early</span>
 <span class="sd">  stopping. The layer sizes and ``alpha`` set here are only defaults; the</span>
 <span class="sd">  values actually reported come from nested cross-validation in</span>
 <span class="sd">  :mod:`functions.tuning`.</span>
+<span class="sd">* ``"mlp_final"``: the MLP with the frozen final settings</span>
+<span class="sd">  :data:`FINAL_MLP`, chosen from the nested-CV results, for use on</span>
+<span class="sd">  :data:`FINAL_FEATURE_SET`.</span>
+<span class="sd">* ``"mlp_runner_up"``: the cheaper alternative :data:`RUNNER_UP_MLP`.</span>
+
+<span class="sd">Later scripts (profiling, shift tests, the final hold-out run) must use</span>
+<span class="sd">:data:`FINAL_MODEL_NAME`, :data:`FINAL_FEATURE_SET` and these constants</span>
+<span class="sd">rather than retyping the values.</span>
 
 <span class="sd">Tree-based models and SVR are planned; each is added as one</span>
 <span class="sd">:class:`ModelSpec` entry in :data:`MODELS` (trees do not need input</span>
@@ -103,13 +111,52 @@
 <span class="p">}</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_make_mlp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MLPRegressor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return a new MLP with :data:`MLP_DEFAULTS`.</span>
+<span class="c1">#: Feature set of the final model: the 5 raw inputs plus log-frequency,</span>
+<span class="c1">#: Strouhal and Reynolds numbers. The tuned MLP scored better on B than on A</span>
+<span class="c1">#: (outer RMSE 2.37 vs 2.56 dB over the same 15 folds).</span>
+<span class="n">FINAL_FEATURE_SET</span> <span class="o">=</span> <span class="s2">"B"</span>
+
+<span class="c1">#: Frozen final MLP settings, chosen from the nested-CV results on set B</span>
+<span class="c1">#: (cross-validation data only; the test hold-out was not used). This</span>
+<span class="c1">#: setting won 7 of the 15 outer folds, more than any other, and had the</span>
+<span class="c1">#: lowest mean inner-CV RMSE of all 35 settings (2.50 dB). Only these two</span>
+<span class="c1">#: values differ from :data:`MLP_DEFAULTS`; early stopping, ``max_iter``,</span>
+<span class="c1">#: ``random_state`` and ``validation_fraction`` stay the same.</span>
+<span class="n">FINAL_MLP</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="s2">"alpha"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+
+<span class="c1">#: A cheaper alternative to profile against the final model: about 4x</span>
+<span class="c1">#: fewer weights, with a mean inner-CV RMSE of 2.54 dB, about 0.04 dB worse.</span>
+<span class="c1">#: It differs from :data:`FINAL_MLP` in both network size and ``alpha``.</span>
+<span class="c1">#: (The same network with ``alpha=1.0`` scored 2.51 dB; ``alpha=0.1`` was</span>
+<span class="c1">#: chosen deliberately.)</span>
+<span class="n">RUNNER_UP_MLP</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="s2">"alpha"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">}</span>
+
+<span class="c1">#: Registry names of the frozen models.</span>
+<span class="n">FINAL_MODEL_NAME</span> <span class="o">=</span> <span class="s2">"mlp_final"</span>
+<span class="n">RUNNER_UP_MODEL_NAME</span> <span class="o">=</span> <span class="s2">"mlp_runner_up"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_mlp</span><span class="p">(</span><span class="o">**</span><span class="n">overrides</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MLPRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a new MLP with :data:`MLP_DEFAULTS`, optionally overridden.</span>
 
 <span class="sd">    Arguments are passed by keyword: ``MLPRegressor``'s first positional</span>
 <span class="sd">    parameter is ``loss``, not the layer sizes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        **overrides: Settings that replace the defaults, e.g.</span>
+<span class="sd">            ``**FINAL_MLP``.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">MLPRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">MLP_DEFAULTS</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">MLPRegressor</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="o">**</span><span class="n">MLP_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_final_mlp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MLPRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a new MLP with the frozen :data:`FINAL_MLP` settings."""</span>
+    <span class="k">return</span> <span class="n">_make_mlp</span><span class="p">(</span><span class="o">**</span><span class="n">FINAL_MLP</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_runner_up_mlp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MLPRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a new MLP with the :data:`RUNNER_UP_MLP` settings."""</span>
+    <span class="k">return</span> <span class="n">_make_mlp</span><span class="p">(</span><span class="o">**</span><span class="n">RUNNER_UP_MLP</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ModelSpec">
@@ -140,6 +187,9 @@
     <span class="c1"># Neural networks train by gradient descent, which needs inputs on</span>
     <span class="c1"># similar scales, so the inputs are standardised.</span>
     <span class="s2">"mlp"</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">_make_mlp</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1"># Frozen settings from tuning; built by name so no script retypes them.</span>
+    <span class="n">FINAL_MODEL_NAME</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">_make_final_mlp</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">_make_runner_up_mlp</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
 <span class="p">}</span>
 
 

@@ -180,19 +180,22 @@ squared error that falls around its measured peak.</p></li>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_profile.py</span>
 </pre></div>
 </div>
-<p>This trains each model on all cross-validation rows (not the test set) and
-reports:</p>
+<p>By default this profiles linear on feature sets A and B, the final MLP
+(<code class="docutils literal notranslate"><span class="pre">FINAL_MLP</span></code>) and the cheaper runner-up (<code class="docutils literal notranslate"><span class="pre">RUNNER_UP_MLP</span></code>), both on set B,
+in one session. It takes about 25 seconds. Each model is trained on all
+cross-validation rows (never the test set), and the script reports:</p>
 <ul class="simple">
-<li><p>the median fit and predict time over 20 repeats;</p></li>
+<li><p>the median and fastest fit and predict times over 5 repeats;</p></li>
 <li><p>peak memory during a fit (traced with <code class="docutils literal notranslate"><span class="pre">tracemalloc</span></code>);</p></li>
-<li><p>an estimated FLOP count and the achieved FLOP rate;</p></li>
-<li><p>a <code class="docutils literal notranslate"><span class="pre">cProfile</span></code> report of where the fit time goes.</p></li>
+<li><p>the number of weights, epochs run, and the size of the weights and of the
+pickled model;</p></li>
+<li><p>estimated FLOPs (formulas, not measurements) and the achieved FLOP rate;</p></li>
+<li><p>cost ratios: final MLP vs linear (B), and final vs runner-up;</p></li>
+<li><p>the machine, library versions and thread settings used;</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">cProfile</span></code> report of each fit (<code class="docutils literal notranslate"><span class="pre">results/profile_&lt;model&gt;_&lt;set&gt;.txt</span></code>).</p></li>
 </ul>
-<p>For the linear baseline, the fit needs only about 10<sup>5</sup> FLOPs but
-takes about 3 ms. That is tens of MFLOP/s, a tiny fraction of the CPU’s
-capability. The profile shows the time goes to scikit-learn and pandas input
-checks and scaling rather than the least-squares solve, so at this data size
-the cost is fixed overhead, not arithmetic.</p>
+<p>For a custom selection, use <code class="docutils literal notranslate"><span class="pre">--models</span></code> and <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code>, e.g.
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">src/run_profile.py</span> <span class="pre">--models</span> <span class="pre">linear</span> <span class="pre">--feature-sets</span> <span class="pre">B</span></code>.</p>
 </section>
 <section id="exploratory-plots">
 <h2>Exploratory plots<a class="headerlink" href="#exploratory-plots" title="Link to this heading">¶</a></h2>

@@ -33,22 +33,34 @@
   <h1>Source code for functions.profiling</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Runtime, memory, profiler and FLOP analysis of model training and prediction.</span>
 
-<span class="sd">:func:`profile_model` fits a model once on all cross-validation rows (the</span>
-<span class="sd">test hold-out is dropped first, exactly as in :mod:`functions.evaluate`) and</span>
+<span class="sd">:func:`profile_model` fits a model on all cross-validation rows (the test</span>
+<span class="sd">hold-out is dropped first, exactly as in :mod:`functions.evaluate`) and</span>
 <span class="sd">measures:</span>
 
-<span class="sd">* **Time:** median of repeated fit and predict calls, timed with</span>
-<span class="sd">  :func:`time.perf_counter`. Repeats smooth out timer noise on fits that</span>
-<span class="sd">  take only milliseconds.</span>
+<span class="sd">* **Time:** fit and predict are each repeated :data:`N_TIMING_REPEATS`</span>
+<span class="sd">  times and timed with :func:`time.perf_counter`; the median and the</span>
+<span class="sd">  minimum are reported. The median is the typical time; the minimum is the</span>
+<span class="sd">  least disturbed by other programs running on the computer.</span>
 <span class="sd">* **Peak memory:** with :mod:`tracemalloc`, which sees Python and NumPy</span>
 <span class="sd">  allocations. Memory allocated directly inside compiled BLAS/LAPACK code is</span>
 <span class="sd">  not seen, so the figure is a lower bound. Memory is measured in its own</span>
 <span class="sd">  fit because tracemalloc slows code down and would distort the timings.</span>
+<span class="sd">* **Model size:** the number of fitted weights, their size as 8-byte</span>
+<span class="sd">  numbers, and the size of the fitted model when saved with :mod:`pickle`.</span>
+<span class="sd">  For an MLP the pickled file is about 3x the weights alone, because</span>
+<span class="sd">  scikit-learn also saves the Adam optimiser's two running averages per</span>
+<span class="sd">  weight, which are only needed to continue training.</span>
+<span class="sd">* **Epochs:** for an MLP, ``n_iter_``, the number of passes over the data</span>
+<span class="sd">  before early stopping ended training.</span>
 <span class="sd">* **Profile:** a :mod:`cProfile` run of one fit, listing where the time goes.</span>
-<span class="sd">* **FLOPs:** an analytical estimate (:func:`linear_flop_estimate`) for</span>
-<span class="sd">  models that have one. Dividing it by the measured time gives the achieved</span>
-<span class="sd">  FLOP rate, which shows whether a fit is limited by arithmetic or by</span>
-<span class="sd">  Python and library overhead.</span>
+<span class="sd">* **FLOPs:** **estimates from formulas**, not measurements</span>
+<span class="sd">  (:func:`linear_flop_estimate`, :func:`mlp_flop_estimate`). Dividing them</span>
+<span class="sd">  by the measured time gives the achieved FLOP rate, which shows whether a</span>
+<span class="sd">  fit is limited by arithmetic or by Python and library overhead.</span>
+
+<span class="sd">:func:`machine_info` records the computer and library versions, including</span>
+<span class="sd">how many threads the maths libraries were allowed to use, so the timings can</span>
+<span class="sd">be reproduced.</span>
 
 <span class="sd">Example:</span>
 <span class="sd">    &gt;&gt;&gt; from functions.data_loader import load_airfoil_data</span>
@@ -58,24 +70,34 @@
 <span class="sd">    &gt;&gt;&gt; profile_model(data, "linear", "B").summary()   # doctest: +SKIP</span>
 <span class="sd">"""</span>
 
+<span class="c1"># Postponed annotations: the docs build mocks pandas.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">cProfile</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pstats</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tracemalloc</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sklearn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformedTargetRegressor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neural_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPRegressor</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">TARGET</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_feature_columns</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">CV_SEEDS</span><span class="p">,</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_model</span>
 
-<span class="c1">#: Number of timed fit/predict repeats; the median is reported.</span>
-<span class="n">N_TIMING_REPEATS</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="c1">#: Number of timed fit/predict repeats; the median and minimum are reported.</span>
+<span class="n">N_TIMING_REPEATS</span> <span class="o">=</span> <span class="mi">5</span>
 
 <span class="c1">#: Number of functions listed in the cProfile report.</span>
 <span class="n">N_PROFILE_LINES</span> <span class="o">=</span> <span class="mi">15</span>
@@ -113,11 +135,137 @@
 
 
 
-<span class="c1">#: Model name -&gt; FLOP estimate function ``(n, p) -&gt; dict``. Models without an</span>
-<span class="c1">#: entry are profiled without a FLOP estimate.</span>
-<span class="n">FLOP_ESTIMATES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"linear"</span><span class="p">:</span> <span class="n">linear_flop_estimate</span><span class="p">,</span>
-<span class="p">}</span>
+<div class="viewcode-block" id="mlp_weight_count">
+<a class="viewcode-back" href="../../api.html#functions.profiling.mlp_weight_count">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mlp_weight_count</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_layer_sizes</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Number of weights and biases in a fully connected MLP with one output.</span>
+
+<span class="sd">    Each layer has (inputs x outputs) weights plus one bias per output.</span>
+<span class="sd">    For example 8 inputs and hidden layers (128, 128) give</span>
+<span class="sd">    ``8*128 + 128*128 + 128*1`` weights and ``128 + 128 + 1`` biases.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n_inputs: Number of input features.</span>
+<span class="sd">        hidden_layer_sizes: Neurons in each hidden layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Total number of trainable parameters.</span>
+<span class="sd">    """</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">n_inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">hidden_layer_sizes</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sizes</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span></div>
+
+
+
+<div class="viewcode-block" id="mlp_flop_estimate">
+<a class="viewcode-back" href="../../api.html#functions.profiling.mlp_flop_estimate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mlp_flop_estimate</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_weights</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                      <span class="n">validation_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Estimate floating-point operations for training and using an MLP.</span>
+
+<span class="sd">    Rule of thumb: one forward pass costs about 2 FLOPs per weight per row</span>
+<span class="sd">    (a multiply and an add), and the backward pass (computing gradients)</span>
+<span class="sd">    about 4, so training costs about 6 per weight per row per epoch.</span>
+
+<span class="sd">    With early stopping, ``MLPRegressor`` holds back</span>
+<span class="sd">    ``ceil(validation_fraction * n)`` rows. Only the rest are trained on</span>
+<span class="sd">    (6 FLOPs per weight), but the held-back rows are scored with a forward</span>
+<span class="sd">    pass every epoch (2 FLOPs per weight)::</span>
+
+<span class="sd">        fit     = (6 * n_train + 2 * n_val) * n_weights * n_iter</span>
+<span class="sd">        predict = 2 * n * n_weights</span>
+
+<span class="sd">    This ignores the scalers, activation functions and the optimiser update</span>
+<span class="sd">    (all much smaller), so it is an estimate, not a measurement.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n: Rows passed to ``fit`` (and to ``predict``).</span>
+<span class="sd">        n_weights: Weights plus biases (:func:`mlp_weight_count`).</span>
+<span class="sd">        n_iter: Epochs run (``n_iter_`` of the fitted model).</span>
+<span class="sd">        validation_fraction: Share of rows held back for early stopping.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dict with ``fit_flops`` and ``predict_flops``.</span>
+<span class="sd">    """</span>
+    <span class="n">n_val</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">validation_fraction</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">n_train</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">n_val</span>
+    <span class="n">fit</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span> <span class="o">*</span> <span class="n">n_train</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_val</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_weights</span> <span class="o">*</span> <span class="n">n_iter</span>
+    <span class="n">predict</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">n_weights</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"fit_flops"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">fit</span><span class="p">),</span> <span class="s2">"predict_flops"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">predict</span><span class="p">)}</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_inner_estimator</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">TransformedTargetRegressor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The fitted estimator inside the scaling pipeline."""</span>
+    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">regressor_</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"regressor"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_model_details</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">TransformedTargetRegressor</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                   <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Weights, epochs and FLOP estimates of a fitted model.</span>
+
+<span class="sd">    Returns a dict with ``n_weights``, ``n_iter`` (``None`` for models that</span>
+<span class="sd">    do not train in epochs), ``fit_flops`` and ``predict_flops`` (``None``</span>
+<span class="sd">    when no formula exists for the model).</span>
+<span class="sd">    """</span>
+    <span class="n">estimator</span> <span class="o">=</span> <span class="n">_inner_estimator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLPRegressor</span><span class="p">):</span>
+        <span class="n">n_weights</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">estimator</span><span class="o">.</span><span class="n">coefs_</span><span class="p">)</span>
+                     <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">estimator</span><span class="o">.</span><span class="n">intercepts_</span><span class="p">))</span>
+        <span class="n">flops</span> <span class="o">=</span> <span class="n">mlp_flop_estimate</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n_weights</span><span class="p">,</span> <span class="n">estimator</span><span class="o">.</span><span class="n">n_iter_</span><span class="p">,</span> <span class="n">estimator</span><span class="o">.</span><span class="n">validation_fraction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"n_weights"</span><span class="p">:</span> <span class="n">n_weights</span><span class="p">,</span> <span class="s2">"n_iter"</span><span class="p">:</span> <span class="n">estimator</span><span class="o">.</span><span class="n">n_iter_</span><span class="p">,</span> <span class="o">**</span><span class="n">flops</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s2">"linear"</span><span class="p">:</span>
+        <span class="c1"># p coefficients plus one intercept.</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"n_weights"</span><span class="p">:</span> <span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"n_iter"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">linear_flop_estimate</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"n_weights"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"n_iter"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"fit_flops"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"predict_flops"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="machine_info">
+<a class="viewcode-back" href="../../api.html#functions.profiling.machine_info">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">machine_info</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Describe the computer, software and thread settings used for timing.</span>
+
+<span class="sd">    Thread counts matter: NumPy's maths library (BLAS) may spread a matrix</span>
+<span class="sd">    product over several CPU cores, which changes timings. The values come</span>
+<span class="sd">    from :mod:`threadpoolctl` (installed with scikit-learn) and the</span>
+<span class="sd">    ``OMP_NUM_THREADS`` / ``OPENBLAS_NUM_THREADS`` / ``MKL_NUM_THREADS``</span>
+<span class="sd">    environment variables ("unset" means the library chose for itself).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dict of text values: ``cpu``, ``logical_cpus``, ``platform``,</span>
+<span class="sd">        ``python``, ``numpy``, ``scikit_learn``, the three thread environment</span>
+<span class="sd">        variables, and ``blas`` (library name and threads in use).</span>
+<span class="sd">    """</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"cpu"</span><span class="p">:</span> <span class="n">_cpu_name</span><span class="p">(),</span>
+        <span class="s2">"logical_cpus"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()),</span>
+        <span class="s2">"platform"</span><span class="p">:</span> <span class="n">platform</span><span class="o">.</span><span class="n">platform</span><span class="p">(),</span>
+        <span class="s2">"python"</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">"numpy"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span>
+        <span class="s2">"scikit_learn"</span><span class="p">:</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"OMP_NUM_THREADS"</span><span class="p">,</span> <span class="s2">"OPENBLAS_NUM_THREADS"</span><span class="p">,</span> <span class="s2">"MKL_NUM_THREADS"</span><span class="p">):</span>
+        <span class="n">info</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">"unset"</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">threadpoolctl</span><span class="w"> </span><span class="kn">import</span> <span class="n">threadpool_info</span>
+        <span class="n">pools</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'internal_api'</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'num_threads'</span><span class="p">)</span><span class="si">}</span><span class="s2"> threads)"</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">threadpool_info</span><span class="p">()]</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">"blas"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pools</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"none detected"</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># threadpoolctl missing: report rather than fail</span>
+        <span class="n">info</span><span class="p">[</span><span class="s2">"blas"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"unknown (threadpoolctl not installed)"</span>
+    <span class="k">return</span> <span class="n">info</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cpu_name</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Human-readable CPU name, falling back to :func:`platform.processor`."""</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">"win32"</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">winreg</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">winreg</span><span class="o">.</span><span class="n">OpenKey</span><span class="p">(</span><span class="n">winreg</span><span class="o">.</span><span class="n">HKEY_LOCAL_MACHINE</span><span class="p">,</span>
+                                 <span class="sa">r</span><span class="s2">"HARDWARE\DESCRIPTION\System\CentralProcessor\0"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">winreg</span><span class="o">.</span><span class="n">QueryValueEx</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"ProcessorNameString"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">platform</span><span class="o">.</span><span class="n">processor</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">"unknown"</span>
 
 
 <div class="viewcode-block" id="ProfileResult">
@@ -131,11 +279,16 @@
 <span class="sd">        feature_set: Name of the feature set.</span>
 <span class="sd">        n_rows: Training rows (all cross-validation rows, no test rows).</span>
 <span class="sd">        n_features: Number of input features.</span>
+<span class="sd">        n_weights: Fitted weights plus biases (``None`` if unknown).</span>
+<span class="sd">        n_iter: Epochs run before early stopping (``None`` for non-MLPs).</span>
 <span class="sd">        fit_time_s: Median fit time over the timing repeats.</span>
+<span class="sd">        fit_time_min_s: Fastest fit time over the repeats.</span>
 <span class="sd">        predict_time_s: Median time to predict all ``n_rows`` rows.</span>
+<span class="sd">        predict_time_min_s: Fastest predict time over the repeats.</span>
 <span class="sd">        input_bytes: Size of the training input matrix as float64.</span>
 <span class="sd">        peak_fit_bytes: Peak memory traced by tracemalloc during one fit.</span>
-<span class="sd">        fit_flops: Estimated fit FLOPs, or ``None`` if no estimate exists.</span>
+<span class="sd">        model_bytes: Size of the fitted model when pickled.</span>
+<span class="sd">        fit_flops: Estimated fit FLOPs, or ``None`` if no formula exists.</span>
 <span class="sd">        predict_flops: Estimated predict FLOPs, or ``None``.</span>
 <span class="sd">        profile_text: The cProfile report of one fit, sorted by cumulative</span>
 <span class="sd">            time.</span>
@@ -145,10 +298,15 @@
     <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">n_features</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_weights</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">fit_time_s</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">fit_time_min_s</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">predict_time_s</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">predict_time_min_s</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">peak_fit_bytes</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">model_bytes</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">fit_flops</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">predict_flops</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">profile_text</span><span class="p">:</span> <span class="nb">str</span>
@@ -160,11 +318,14 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A dict of every attribute except ``profile_text``, plus</span>
-<span class="sd">            ``fit_mflops_per_s`` and ``predict_mflops_per_s`` (achieved rate,</span>
-<span class="sd">            estimated FLOPs / measured time, in millions per second; ``None``</span>
-<span class="sd">            without a FLOP estimate).</span>
+<span class="sd">            ``weight_bytes`` (weights stored as 8-byte floats; ``None`` if</span>
+<span class="sd">            unknown), and</span>
+<span class="sd">            ``fit_mflops_per_s`` and ``predict_mflops_per_s`` (achieved rate:</span>
+<span class="sd">            estimated FLOPs / median measured time, in millions per second;</span>
+<span class="sd">            ``None`` without a FLOP estimate).</span>
 <span class="sd">        """</span>
         <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"profile_text"</span><span class="p">}</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">"weight_bytes"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_weights</span>
         <span class="k">for</span> <span class="n">stage</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"fit"</span><span class="p">,</span> <span class="s2">"predict"</span><span class="p">]:</span>
             <span class="n">flops</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">stage</span><span class="si">}</span><span class="s2">_flops"</span><span class="p">]</span>
             <span class="n">row</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">stage</span><span class="si">}</span><span class="s2">_mflops_per_s"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
@@ -183,20 +344,19 @@
     <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">n_repeats</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">N_TIMING_REPEATS</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProfileResult</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Measure time, peak memory and the call profile of one model.</span>
+<span class="w">    </span><span class="sd">"""Measure time, peak memory, size and the call profile of one model.</span>
 
 <span class="sd">    The model is trained on all cross-validation rows for the first seed in</span>
 <span class="sd">    :data:`~functions.make_folds.CV_SEEDS` (the test hold-out is the same for</span>
-<span class="sd">    every seed and is dropped). This is the largest training set used during</span>
-<span class="sd">    model selection, so it gives an upper bound on per-fold costs.</span>
+<span class="sd">    every seed and is dropped first). This is the largest training set used</span>
+<span class="sd">    during model selection, so it gives an upper bound on per-fold costs.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data: Dataset with every column the feature set needs (see</span>
 <span class="sd">            :func:`functions.evaluate.cross_validate`).</span>
 <span class="sd">        model_name: Key of :data:`functions.models.MODELS`.</span>
 <span class="sd">        feature_set: Key of :data:`functions.feature_sets.FEATURE_SETS`.</span>
-<span class="sd">        n_repeats: Number of timed fit and predict calls; the median is</span>
-<span class="sd">            reported. Lower it for slow models.</span>
+<span class="sd">        n_repeats: Number of timed fit and predict calls.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A :class:`ProfileResult`.</span>
@@ -206,11 +366,13 @@
 <span class="sd">    """</span>
     <span class="n">columns</span> <span class="o">=</span> <span class="n">get_feature_columns</span><span class="p">(</span><span class="n">feature_set</span><span class="p">)</span>
     <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cv_seed</span><span class="o">=</span><span class="n">CV_SEEDS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># Drop the test hold-out before anything else: it is never profiled on.</span>
     <span class="n">cv</span> <span class="o">=</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
     <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">cv</span><span class="p">[</span><span class="n">columns</span><span class="p">],</span> <span class="n">cv</span><span class="p">[</span><span class="n">TARGET</span><span class="p">]</span>
 
     <span class="n">fit_times</span><span class="p">,</span> <span class="n">predict_times</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_repeats</span><span class="p">):</span>
+        <span class="c1"># A fresh model each time, so every repeat does the full training.</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
@@ -226,28 +388,33 @@
     <span class="n">tracemalloc</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 
     <span class="n">profiler</span> <span class="o">=</span> <span class="n">cProfile</span><span class="o">.</span><span class="n">Profile</span><span class="p">()</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+    <span class="n">profiled</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
     <span class="n">profiler</span><span class="o">.</span><span class="n">enable</span><span class="p">()</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">profiled</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="n">profiler</span><span class="o">.</span><span class="n">disable</span><span class="p">()</span>
     <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
     <span class="n">pstats</span><span class="o">.</span><span class="n">Stats</span><span class="p">(</span><span class="n">profiler</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">buffer</span><span class="p">)</span><span class="o">.</span><span class="n">sort_stats</span><span class="p">(</span><span class="s2">"cumulative"</span><span class="p">)</span><span class="o">.</span><span class="n">print_stats</span><span class="p">(</span><span class="n">N_PROFILE_LINES</span><span class="p">)</span>
 
     <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">FLOP_ESTIMATES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
-    <span class="n">flops</span> <span class="o">=</span> <span class="n">estimate</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">if</span> <span class="n">estimate</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"fit_flops"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"predict_flops"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+    <span class="n">details</span> <span class="o">=</span> <span class="n">_model_details</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ProfileResult</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
         <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
         <span class="n">n_rows</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
         <span class="n">n_features</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">n_weights</span><span class="o">=</span><span class="n">details</span><span class="p">[</span><span class="s2">"n_weights"</span><span class="p">],</span>
+        <span class="n">n_iter</span><span class="o">=</span><span class="n">details</span><span class="p">[</span><span class="s2">"n_iter"</span><span class="p">],</span>
         <span class="n">fit_time_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">fit_times</span><span class="p">)),</span>
+        <span class="n">fit_time_min_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">fit_times</span><span class="p">)),</span>
         <span class="n">predict_time_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">predict_times</span><span class="p">)),</span>
+        <span class="n">predict_time_min_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">predict_times</span><span class="p">)),</span>
         <span class="n">input_bytes</span><span class="o">=</span><span class="n">n</span> <span class="o">*</span> <span class="n">p</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span>
         <span class="n">peak_fit_bytes</span><span class="o">=</span><span class="n">peak</span><span class="p">,</span>
-        <span class="n">fit_flops</span><span class="o">=</span><span class="n">flops</span><span class="p">[</span><span class="s2">"fit_flops"</span><span class="p">],</span>
-        <span class="n">predict_flops</span><span class="o">=</span><span class="n">flops</span><span class="p">[</span><span class="s2">"predict_flops"</span><span class="p">],</span>
+        <span class="c1"># Size of the saved model, including the scalers in the pipeline.</span>
+        <span class="n">model_bytes</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">model</span><span class="p">)),</span>
+        <span class="n">fit_flops</span><span class="o">=</span><span class="n">details</span><span class="p">[</span><span class="s2">"fit_flops"</span><span class="p">],</span>
+        <span class="n">predict_flops</span><span class="o">=</span><span class="n">details</span><span class="p">[</span><span class="s2">"predict_flops"</span><span class="p">],</span>
         <span class="n">profile_text</span><span class="o">=</span><span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
     <span class="p">)</span></div>
 

@@ -1,0 +1,13 @@
+Comparison,Quantity,Ratio
+mlp_final (B) / linear (B),Fit time (median),464.9×
+mlp_final (B) / linear (B),Predict time (median),2.4×
+mlp_final (B) / linear (B),Peak fit memory,7.3×
+mlp_final (B) / linear (B),Model size (pickled),241.2×
+mlp_final (B) / linear (B),Fit FLOPs (estimate),91164.5×
+mlp_final (B) / linear (B),Weights,1977.0×
+mlp_final (B) / mlp_runner_up (B),Fit time (median),0.9×
+mlp_final (B) / mlp_runner_up (B),Predict time (median),1.2×
+mlp_final (B) / mlp_runner_up (B),Peak fit memory,2.2×
+mlp_final (B) / mlp_runner_up (B),Model size (pickled),3.4×
+mlp_final (B) / mlp_runner_up (B),Fit FLOPs (estimate),2.9×
+mlp_final (B) / mlp_runner_up (B),Weights,3.7×

@@ -331,14 +331,21 @@ with the training mean and standard deviation and never influence them.</p>
 (output scale and loss magnitude). For the linear baseline neither scaling
 step changes the predictions, but it is applied anyway so every model runs
 through the same pipeline and the linear coefficients are comparable in size.</p>
-<p>Two models are registered:</p>
+<p>Registered models:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;linear&quot;</span></code>: ordinary least squares, the baseline.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;mlp&quot;</span></code>: a multi-layer perceptron (<code class="docutils literal notranslate"><span class="pre">MLPRegressor</span></code>) with early
 stopping. The layer sizes and <code class="docutils literal notranslate"><span class="pre">alpha</span></code> set here are only defaults; the
 values actually reported come from nested cross-validation in
 <a class="reference internal" href="#module-functions.tuning" title="functions.tuning"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.tuning</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;mlp_final&quot;</span></code>: the MLP with the frozen final settings
+<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">FINAL_MLP</span></code></a>, chosen from the nested-CV results, for use on
+<a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">FINAL_FEATURE_SET</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;mlp_runner_up&quot;</span></code>: the cheaper alternative <a class="reference internal" href="#functions.models.RUNNER_UP_MLP" title="functions.models.RUNNER_UP_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">RUNNER_UP_MLP</span></code></a>.</p></li>
 </ul>
+<p>Later scripts (profiling, shift tests, the final hold-out run) must use
+<a class="reference internal" href="#functions.models.FINAL_MODEL_NAME" title="functions.models.FINAL_MODEL_NAME"><code class="xref py py-data docutils literal notranslate"><span class="pre">FINAL_MODEL_NAME</span></code></a>, <a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">FINAL_FEATURE_SET</span></code></a> and these constants
+rather than retyping the values.</p>
 <p>Tree-based models and SVR are planned; each is added as one
 <a class="reference internal" href="#functions.models.ModelSpec" title="functions.models.ModelSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelSpec</span></code></a> entry in <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MODELS</span></code></a> (trees do not need input
 scaling, so they would use <code class="docutils literal notranslate"><span class="pre">scale_inputs=False</span></code>).</p>
@@ -353,6 +360,51 @@ scaling, so they would use <code class="docutils literal notranslate"><span clas
 <span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">MLP_DEFAULTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'alpha':</span> <span class="pre">0.001,</span> <span class="pre">'early_stopping':</span> <span class="pre">True,</span> <span class="pre">'hidden_layer_sizes':</span> <span class="pre">(64,</span> <span class="pre">64),</span> <span class="pre">'max_iter':</span> <span class="pre">2000,</span> <span class="pre">'n_iter_no_change':</span> <span class="pre">20,</span> <span class="pre">'random_state':</span> <span class="pre">0,</span> <span class="pre">'tol':</span> <span class="pre">0.0001,</span> <span class="pre">'validation_fraction':</span> <span class="pre">0.1}</span></em><a class="headerlink" href="#functions.models.MLP_DEFAULTS" title="Link to this definition">¶</a></dt>
 <dd><p>Default MLP settings. Hidden layer sizes and <code class="docutils literal notranslate"><span class="pre">alpha</span></code> are tuned by
 <a class="reference internal" href="#module-functions.tuning" title="functions.tuning"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.tuning</span></code></a>; the rest are fixed for every fit.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.models.FINAL_FEATURE_SET">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">FINAL_FEATURE_SET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'B'</span></em><a class="headerlink" href="#functions.models.FINAL_FEATURE_SET" title="Link to this definition">¶</a></dt>
+<dd><p>the 5 raw inputs plus log-frequency,
+Strouhal and Reynolds numbers. The tuned MLP scored better on B than on A
+(outer RMSE 2.37 vs 2.56 dB over the same 15 folds).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Feature set of the final model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.models.FINAL_MLP">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">FINAL_MLP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'alpha':</span> <span class="pre">1.0,</span> <span class="pre">'hidden_layer_sizes':</span> <span class="pre">(128,</span> <span class="pre">128)}</span></em><a class="headerlink" href="#functions.models.FINAL_MLP" title="Link to this definition">¶</a></dt>
+<dd><p>Frozen final MLP settings, chosen from the nested-CV results on set B
+(cross-validation data only; the test hold-out was not used). This
+setting won 7 of the 15 outer folds, more than any other, and had the
+lowest mean inner-CV RMSE of all 35 settings (2.50 dB). Only these two
+values differ from <a class="reference internal" href="#functions.models.MLP_DEFAULTS" title="functions.models.MLP_DEFAULTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">MLP_DEFAULTS</span></code></a>; early stopping, <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>,
+<code class="docutils literal notranslate"><span class="pre">random_state</span></code> and <code class="docutils literal notranslate"><span class="pre">validation_fraction</span></code> stay the same.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.models.RUNNER_UP_MLP">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">RUNNER_UP_MLP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'alpha':</span> <span class="pre">0.1,</span> <span class="pre">'hidden_layer_sizes':</span> <span class="pre">(64,</span> <span class="pre">64)}</span></em><a class="headerlink" href="#functions.models.RUNNER_UP_MLP" title="Link to this definition">¶</a></dt>
+<dd><p>about 4x
+fewer weights, with a mean inner-CV RMSE of 2.54 dB, about 0.04 dB worse.
+It differs from <a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">FINAL_MLP</span></code></a> in both network size and <code class="docutils literal notranslate"><span class="pre">alpha</span></code>.
+(The same network with <code class="docutils literal notranslate"><span class="pre">alpha=1.0</span></code> scored 2.51 dB; <code class="docutils literal notranslate"><span class="pre">alpha=0.1</span></code> was
+chosen deliberately.)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A cheaper alternative to profile against the final model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.models.FINAL_MODEL_NAME">
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">FINAL_MODEL_NAME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mlp_final'</span></em><a class="headerlink" href="#functions.models.FINAL_MODEL_NAME" title="Link to this definition">¶</a></dt>
+<dd><p>Registry names of the frozen models.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -385,7 +437,7 @@ MLP), unnecessary for trees.</p></li>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="functions.models.MODELS">
-<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">MODELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">ModelSpec(make=&lt;class</span> <span class="pre">'sklearn.linear_model._base.LinearRegression'&gt;,</span> <span class="pre">scale_inputs=True),</span> <span class="pre">'mlp':</span> <span class="pre">ModelSpec(make=&lt;function</span> <span class="pre">_make_mlp&gt;,</span> <span class="pre">scale_inputs=True)}</span></em><a class="headerlink" href="#functions.models.MODELS" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">functions.models.</span></span><span class="sig-name descname"><span class="pre">MODELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">ModelSpec(make=&lt;class</span> <span class="pre">'sklearn.linear_model._base.LinearRegression'&gt;,</span> <span class="pre">scale_inputs=True),</span> <span class="pre">'mlp':</span> <span class="pre">ModelSpec(make=&lt;function</span> <span class="pre">_make_mlp&gt;,</span> <span class="pre">scale_inputs=True),</span> <span class="pre">'mlp_final':</span> <span class="pre">ModelSpec(make=&lt;function</span> <span class="pre">_make_final_mlp&gt;,</span> <span class="pre">scale_inputs=True),</span> <span class="pre">'mlp_runner_up':</span> <span class="pre">ModelSpec(make=&lt;function</span> <span class="pre">_make_runner_up_mlp&gt;,</span> <span class="pre">scale_inputs=True)}</span></em><a class="headerlink" href="#functions.models.MODELS" title="Link to this definition">¶</a></dt>
 <dd><p>Model name -&gt; <a class="reference internal" href="#functions.models.ModelSpec" title="functions.models.ModelSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelSpec</span></code></a>. Add planned models (tree-based, SVR)
 here; anything with randomness must be given a fixed <code class="docutils literal notranslate"><span class="pre">random_state</span></code> so
 results are reproducible.</p>
@@ -2050,23 +2102,34 @@ worst for the MLP).</p>
 <section id="module-functions.profiling">
 <span id="performance-profiling"></span><h2>Performance profiling<a class="headerlink" href="#module-functions.profiling" title="Link to this heading">¶</a></h2>
 <p>Runtime, memory, profiler and FLOP analysis of model training and prediction.</p>
-<p><a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">profile_model()</span></code></a> fits a model once on all cross-validation rows (the
-test hold-out is dropped first, exactly as in <a class="reference internal" href="#module-functions.evaluate" title="functions.evaluate"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.evaluate</span></code></a>) and
+<p><a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">profile_model()</span></code></a> fits a model on all cross-validation rows (the test
+hold-out is dropped first, exactly as in <a class="reference internal" href="#module-functions.evaluate" title="functions.evaluate"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.evaluate</span></code></a>) and
 measures:</p>
 <ul class="simple">
-<li><p><strong>Time:</strong> median of repeated fit and predict calls, timed with
-<code class="xref py py-func docutils literal notranslate"><span class="pre">time.perf_counter()</span></code>. Repeats smooth out timer noise on fits that
-take only milliseconds.</p></li>
+<li><p><strong>Time:</strong> fit and predict are each repeated <a class="reference internal" href="#functions.profiling.N_TIMING_REPEATS" title="functions.profiling.N_TIMING_REPEATS"><code class="xref py py-data docutils literal notranslate"><span class="pre">N_TIMING_REPEATS</span></code></a>
+times and timed with <code class="xref py py-func docutils literal notranslate"><span class="pre">time.perf_counter()</span></code>; the median and the
+minimum are reported. The median is the typical time; the minimum is the
+least disturbed by other programs running on the computer.</p></li>
 <li><p><strong>Peak memory:</strong> with <code class="xref py py-mod docutils literal notranslate"><span class="pre">tracemalloc</span></code>, which sees Python and NumPy
 allocations. Memory allocated directly inside compiled BLAS/LAPACK code is
 not seen, so the figure is a lower bound. Memory is measured in its own
 fit because tracemalloc slows code down and would distort the timings.</p></li>
+<li><p><strong>Model size:</strong> the number of fitted weights, their size as 8-byte
+numbers, and the size of the fitted model when saved with <code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code>.
+For an MLP the pickled file is about 3x the weights alone, because
+scikit-learn also saves the Adam optimiser’s two running averages per
+weight, which are only needed to continue training.</p></li>
+<li><p><strong>Epochs:</strong> for an MLP, <code class="docutils literal notranslate"><span class="pre">n_iter_</span></code>, the number of passes over the data
+before early stopping ended training.</p></li>
 <li><p><strong>Profile:</strong> a <code class="xref py py-mod docutils literal notranslate"><span class="pre">cProfile</span></code> run of one fit, listing where the time goes.</p></li>
-<li><p><strong>FLOPs:</strong> an analytical estimate (<a class="reference internal" href="#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_flop_estimate()</span></code></a>) for
-models that have one. Dividing it by the measured time gives the achieved
-FLOP rate, which shows whether a fit is limited by arithmetic or by
-Python and library overhead.</p></li>
+<li><p><strong>FLOPs:</strong> <strong>estimates from formulas</strong>, not measurements
+(<a class="reference internal" href="#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_flop_estimate()</span></code></a>, <a class="reference internal" href="#functions.profiling.mlp_flop_estimate" title="functions.profiling.mlp_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">mlp_flop_estimate()</span></code></a>). Dividing them
+by the measured time gives the achieved FLOP rate, which shows whether a
+fit is limited by arithmetic or by Python and library overhead.</p></li>
 </ul>
+<p><a class="reference internal" href="#functions.profiling.machine_info" title="functions.profiling.machine_info"><code class="xref py py-func docutils literal notranslate"><span class="pre">machine_info()</span></code></a> records the computer and library versions, including
+how many threads the maths libraries were allowed to use, so the timings can
+be reproduced.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
@@ -2077,8 +2140,8 @@ Python and library overhead.</p></li>
 </div>
 <dl class="py data">
 <dt class="sig sig-object py" id="functions.profiling.N_TIMING_REPEATS">
-<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">N_TIMING_REPEATS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#functions.profiling.N_TIMING_REPEATS" title="Link to this definition">¶</a></dt>
-<dd><p>Number of timed fit/predict repeats; the median is reported.</p>
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">N_TIMING_REPEATS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#functions.profiling.N_TIMING_REPEATS" title="Link to this definition">¶</a></dt>
+<dd><p>Number of timed fit/predict repeats; the median and minimum are reported.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -2117,16 +2180,82 @@ exact operation counts.</p>
 </dl>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.profiling.FLOP_ESTIMATES">
-<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">FLOP_ESTIMATES</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">&lt;function</span> <span class="pre">linear_flop_estimate&gt;}</span></em><a class="headerlink" href="#functions.profiling.FLOP_ESTIMATES" title="Link to this definition">¶</a></dt>
-<dd><p>Model name -&gt; FLOP estimate function <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">p)</span> <span class="pre">-&gt;</span> <span class="pre">dict</span></code>. Models without an
-entry are profiled without a FLOP estimate.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.profiling.mlp_weight_count">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">mlp_weight_count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_layer_sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/functions/profiling.html#mlp_weight_count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.mlp_weight_count" title="Link to this definition">¶</a></dt>
+<dd><p>Number of weights and biases in a fully connected MLP with one output.</p>
+<p>Each layer has (inputs x outputs) weights plus one bias per output.
+For example 8 inputs and hidden layers (128, 128) give
+<code class="docutils literal notranslate"><span class="pre">8*128</span> <span class="pre">+</span> <span class="pre">128*128</span> <span class="pre">+</span> <span class="pre">128*1</span></code> weights and <code class="docutils literal notranslate"><span class="pre">128</span> <span class="pre">+</span> <span class="pre">128</span> <span class="pre">+</span> <span class="pre">1</span></code> biases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_inputs</strong> – Number of input features.</p></li>
+<li><p><strong>hidden_layer_sizes</strong> – Neurons in each hidden layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Total number of trainable parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.profiling.mlp_flop_estimate">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">mlp_flop_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/profiling.html#mlp_flop_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.mlp_flop_estimate" title="Link to this definition">¶</a></dt>
+<dd><p>Estimate floating-point operations for training and using an MLP.</p>
+<p>Rule of thumb: one forward pass costs about 2 FLOPs per weight per row
+(a multiply and an add), and the backward pass (computing gradients)
+about 4, so training costs about 6 per weight per row per epoch.</p>
+<p>With early stopping, <code class="docutils literal notranslate"><span class="pre">MLPRegressor</span></code> holds back
+<code class="docutils literal notranslate"><span class="pre">ceil(validation_fraction</span> <span class="pre">*</span> <span class="pre">n)</span></code> rows. Only the rest are trained on
+(6 FLOPs per weight), but the held-back rows are scored with a forward
+pass every epoch (2 FLOPs per weight):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fit</span>     <span class="o">=</span> <span class="p">(</span><span class="mi">6</span> <span class="o">*</span> <span class="n">n_train</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_val</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_weights</span> <span class="o">*</span> <span class="n">n_iter</span>
+<span class="n">predict</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">n_weights</span>
+</pre></div>
+</div>
+<p>This ignores the scalers, activation functions and the optimiser update
+(all much smaller), so it is an estimate, not a measurement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> – Rows passed to <code class="docutils literal notranslate"><span class="pre">fit</span></code> (and to <code class="docutils literal notranslate"><span class="pre">predict</span></code>).</p></li>
+<li><p><strong>n_weights</strong> – Weights plus biases (<a class="reference internal" href="#functions.profiling.mlp_weight_count" title="functions.profiling.mlp_weight_count"><code class="xref py py-func docutils literal notranslate"><span class="pre">mlp_weight_count()</span></code></a>).</p></li>
+<li><p><strong>n_iter</strong> – Epochs run (<code class="docutils literal notranslate"><span class="pre">n_iter_</span></code> of the fitted model).</p></li>
+<li><p><strong>validation_fraction</strong> – Share of rows held back for early stopping.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">fit_flops</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_flops</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.profiling.machine_info">
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">machine_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/profiling.html#machine_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.machine_info" title="Link to this definition">¶</a></dt>
+<dd><p>Describe the computer, software and thread settings used for timing.</p>
+<p>Thread counts matter: NumPy’s maths library (BLAS) may spread a matrix
+product over several CPU cores, which changes timings. The values come
+from <code class="xref py py-mod docutils literal notranslate"><span class="pre">threadpoolctl</span></code> (installed with scikit-learn) and the
+<code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> / <code class="docutils literal notranslate"><span class="pre">OPENBLAS_NUM_THREADS</span></code> / <code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS</span></code>
+environment variables (“unset” means the library chose for itself).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">cpu</span></code>, <code class="docutils literal notranslate"><span class="pre">logical_cpus</span></code>, <code class="docutils literal notranslate"><span class="pre">platform</span></code>,
+<code class="docutils literal notranslate"><span class="pre">python</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="docutils literal notranslate"><span class="pre">scikit_learn</span></code>, the three thread environment
+variables, and <code class="docutils literal notranslate"><span class="pre">blas</span></code> (library name and threads in use).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict of text values</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="functions.profiling.ProfileResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">ProfileResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_fit_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/profiling.html#ProfileResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.ProfileResult" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">ProfileResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_time_min_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_time_min_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_fit_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_flops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/profiling.html#ProfileResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.ProfileResult" title="Link to this definition">¶</a></dt>
 <dd><p>Output of <a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">profile_model()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables<span class="colon">:</span></dt>
@@ -2135,11 +2264,16 @@ entry are profiled without a FLOP estimate.</p>
 <li><p><strong>feature_set</strong> (<em>str</em>) – Name of the feature set.</p></li>
 <li><p><strong>n_rows</strong> (<em>int</em>) – Training rows (all cross-validation rows, no test rows).</p></li>
 <li><p><strong>n_features</strong> (<em>int</em>) – Number of input features.</p></li>
+<li><p><strong>n_weights</strong> (<em>int</em><em> | </em><em>None</em>) – Fitted weights plus biases (<code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown).</p></li>
+<li><p><strong>n_iter</strong> (<em>int</em><em> | </em><em>None</em>) – Epochs run before early stopping (<code class="docutils literal notranslate"><span class="pre">None</span></code> for non-MLPs).</p></li>
 <li><p><strong>fit_time_s</strong> (<em>float</em>) – Median fit time over the timing repeats.</p></li>
+<li><p><strong>fit_time_min_s</strong> (<em>float</em>) – Fastest fit time over the repeats.</p></li>
 <li><p><strong>predict_time_s</strong> (<em>float</em>) – Median time to predict all <code class="docutils literal notranslate"><span class="pre">n_rows</span></code> rows.</p></li>
+<li><p><strong>predict_time_min_s</strong> (<em>float</em>) – Fastest predict time over the repeats.</p></li>
 <li><p><strong>input_bytes</strong> (<em>int</em>) – Size of the training input matrix as float64.</p></li>
 <li><p><strong>peak_fit_bytes</strong> (<em>int</em>) – Peak memory traced by tracemalloc during one fit.</p></li>
-<li><p><strong>fit_flops</strong> (<em>float</em><em> | </em><em>None</em>) – Estimated fit FLOPs, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no estimate exists.</p></li>
+<li><p><strong>model_bytes</strong> (<em>int</em>) – Size of the fitted model when pickled.</p></li>
+<li><p><strong>fit_flops</strong> (<em>float</em><em> | </em><em>None</em>) – Estimated fit FLOPs, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no formula exists.</p></li>
 <li><p><strong>predict_flops</strong> (<em>float</em><em> | </em><em>None</em>) – Estimated predict FLOPs, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 <li><p><strong>profile_text</strong> (<em>str</em>) – The cProfile report of one fit, sorted by cumulative
 time.</p></li>
@@ -2167,13 +2301,33 @@ time.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.n_weights">
+<span class="sig-name descname"><span class="pre">n_weights</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.n_weights" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.n_iter">
+<span class="sig-name descname"><span class="pre">n_iter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.n_iter" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="functions.profiling.ProfileResult.fit_time_s">
 <span class="sig-name descname"><span class="pre">fit_time_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.fit_time_s" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.fit_time_min_s">
+<span class="sig-name descname"><span class="pre">fit_time_min_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.fit_time_min_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="functions.profiling.ProfileResult.predict_time_s">
 <span class="sig-name descname"><span class="pre">predict_time_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.predict_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.predict_time_min_s">
+<span class="sig-name descname"><span class="pre">predict_time_min_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.predict_time_min_s" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -2184,6 +2338,11 @@ time.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="functions.profiling.ProfileResult.peak_fit_bytes">
 <span class="sig-name descname"><span class="pre">peak_fit_bytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.peak_fit_bytes" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functions.profiling.ProfileResult.model_bytes">
+<span class="sig-name descname"><span class="pre">model_bytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#functions.profiling.ProfileResult.model_bytes" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -2208,9 +2367,11 @@ time.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A dict of every attribute except <code class="docutils literal notranslate"><span class="pre">profile_text</span></code>, plus
-<code class="docutils literal notranslate"><span class="pre">fit_mflops_per_s</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_mflops_per_s</span></code> (achieved rate,
-estimated FLOPs / measured time, in millions per second; <code class="docutils literal notranslate"><span class="pre">None</span></code>
-without a FLOP estimate).</p>
+<code class="docutils literal notranslate"><span class="pre">weight_bytes</span></code> (weights stored as 8-byte floats; <code class="docutils literal notranslate"><span class="pre">None</span></code> if
+unknown), and
+<code class="docutils literal notranslate"><span class="pre">fit_mflops_per_s</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_mflops_per_s</span></code> (achieved rate:
+estimated FLOPs / median measured time, in millions per second;
+<code class="docutils literal notranslate"><span class="pre">None</span></code> without a FLOP estimate).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2219,12 +2380,12 @@ without a FLOP estimate).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.profiling.profile_model">
-<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">profile_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_repeats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.profiling.ProfileResult" title="functions.profiling.ProfileResult"><span class="pre">ProfileResult</span></a></span></span><a class="reference internal" href="_modules/functions/profiling.html#profile_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.profile_model" title="Link to this definition">¶</a></dt>
-<dd><p>Measure time, peak memory and the call profile of one model.</p>
+<span class="sig-prename descclassname"><span class="pre">functions.profiling.</span></span><span class="sig-name descname"><span class="pre">profile_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_repeats</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.profiling.ProfileResult" title="functions.profiling.ProfileResult"><span class="pre">ProfileResult</span></a></span></span><a class="reference internal" href="_modules/functions/profiling.html#profile_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.profiling.profile_model" title="Link to this definition">¶</a></dt>
+<dd><p>Measure time, peak memory, size and the call profile of one model.</p>
 <p>The model is trained on all cross-validation rows for the first seed in
 <a class="reference internal" href="#functions.make_folds.CV_SEEDS" title="functions.make_folds.CV_SEEDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CV_SEEDS</span></code></a> (the test hold-out is the same for
-every seed and is dropped). This is the largest training set used during
-model selection, so it gives an upper bound on per-fold costs.</p>
+every seed and is dropped first). This is the largest training set used
+during model selection, so it gives an upper bound on per-fold costs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2232,8 +2393,7 @@ model selection, so it gives an upper bound on per-fold costs.</p>
 <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>).</p></li>
 <li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
 <li><p><strong>feature_set</strong> – Key of <a class="reference internal" href="#functions.feature_sets.FEATURE_SETS" title="functions.feature_sets.FEATURE_SETS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.feature_sets.FEATURE_SETS</span></code></a>.</p></li>
-<li><p><strong>n_repeats</strong> – Number of timed fit and predict calls; the median is
-reported. Lower it for slow models.</p></li>
+<li><p><strong>n_repeats</strong> – Number of timed fit and predict calls.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2245,50 +2405,117 @@ reported. Lower it for slow models.</p></li>
 </dl>
 </dd></dl>
 
-<p id="module-run_profile">Entry point that profiles runtime, memory and FLOPs of models.</p>
-<p>Each requested model/feature-set pair is trained on all cross-validation
-rows (never the test hold-out) by <a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.profile_model()</span></code></a>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span>
-<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">models</span> <span class="n">linear</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">B</span>
+<p id="module-run_profile">Entry point that profiles runtime, memory, size and FLOPs of the models.</p>
+<p>By default it profiles the models compared in the report, all in one
+session on the same machine so the numbers are comparable:</p>
+<ul class="simple">
+<li><p>linear on feature sets A and B (the baseline);</p></li>
+<li><p>the final MLP (<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_MLP</span></code></a>) on
+<a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_FEATURE_SET</span></code></a>;</p></li>
+<li><p>the cheaper runner-up MLP (<a class="reference internal" href="#functions.models.RUNNER_UP_MLP" title="functions.models.RUNNER_UP_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.RUNNER_UP_MLP</span></code></a>) on the
+same feature set.</p></li>
+</ul>
+<p>Every model is trained on all cross-validation rows, never the test
+hold-out (<a class="reference internal" href="#functions.profiling.profile_model" title="functions.profiling.profile_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.profile_model()</span></code></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span>                                   <span class="c1"># the four above, ~1 min</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_profile</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">models</span> <span class="n">linear</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">B</span>  <span class="c1"># a custom selection</span>
 </pre></div>
 </div>
 <p>Writes to <code class="docutils literal notranslate"><span class="pre">results/</span></code>:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">profile_summary.csv</span></code>: time, peak memory, estimated FLOPs and achieved
-FLOP rate per model/feature set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profile_summary.csv</span></code>: one row per model/feature set: median and
+minimum fit and predict times, peak memory, model size, weights, epochs,
+estimated FLOPs and achieved FLOP rate.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profile_comparison.csv</span></code>: final MLP vs linear (B) and vs the runner-up,
+as ratios.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profile_machine.csv</span></code>: CPU, operating system, library versions and
+thread settings used.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">profile_&lt;model&gt;_&lt;feature</span> <span class="pre">set&gt;.txt</span></code>: the cProfile report of one fit.</p></li>
 </ul>
-<p>A rounded copy of the summary is written to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML
-results page.</p>
+<p>Rounded copies of the summary, comparison and machine tables are written to
+<code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> for the HTML results page.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_profile.PROFILE_PLAN">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">PROFILE_PLAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[('linear',</span> <span class="pre">'A'),</span> <span class="pre">('linear',</span> <span class="pre">'B'),</span> <span class="pre">('mlp_final',</span> <span class="pre">'B'),</span> <span class="pre">('mlp_runner_up',</span> <span class="pre">'B')]</span></em><a class="headerlink" href="#run_profile.PROFILE_PLAN" title="Link to this definition">¶</a></dt>
+<dd><p>(model, feature set) pairs profiled by default.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="run_profile.COMPARED">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">COMPARED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'fit_flops':</span> <span class="pre">'Fit</span> <span class="pre">FLOPs</span> <span class="pre">(estimate)',</span> <span class="pre">'fit_time_s':</span> <span class="pre">'Fit</span> <span class="pre">time</span> <span class="pre">(median)',</span> <span class="pre">'model_bytes':</span> <span class="pre">'Model</span> <span class="pre">size</span> <span class="pre">(pickled)',</span> <span class="pre">'n_weights':</span> <span class="pre">'Weights',</span> <span class="pre">'peak_fit_bytes':</span> <span class="pre">'Peak</span> <span class="pre">fit</span> <span class="pre">memory',</span> <span class="pre">'predict_time_s':</span> <span class="pre">'Predict</span> <span class="pre">time</span> <span class="pre">(median)'}</span></em><a class="headerlink" href="#run_profile.COMPARED" title="Link to this definition">¶</a></dt>
+<dd><p>Quantities compared between models in <a class="reference internal" href="#run_profile.compare" title="run_profile.compare"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare()</span></code></a>.</p>
+</dd></dl>
+
 <dl class="py function">
-<dt class="sig sig-object py" id="run_profile.write_doc_table">
-<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">write_doc_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#write_doc_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.write_doc_table" title="Link to this definition">¶</a></dt>
-<dd><p>Write the profile summary as a rounded table for the HTML documentation.</p>
-<p>Times are converted to ms and memory to kB so the table reads at a glance
-on <code class="docutils literal notranslate"><span class="pre">doc/results.rst</span></code>.</p>
+<dt class="sig sig-object py" id="run_profile.parse_args">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_profile.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.parse_args" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the optional <code class="docutils literal notranslate"><span class="pre">--models</span></code> and <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code> options.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>summary</strong> – One row per model/feature set from
-<a class="reference internal" href="#functions.profiling.ProfileResult.summary" title="functions.profiling.ProfileResult.summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">functions.profiling.ProfileResult.summary()</span></code></a>.</p>
+<dd class="field-odd"><p><strong>argv</strong> – Arguments to parse; <code class="docutils literal notranslate"><span class="pre">None</span></code> reads the command line.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">models</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_sets</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code> when not
+given, meaning <a class="reference internal" href="#run_profile.PROFILE_PLAN" title="run_profile.PROFILE_PLAN"><code class="xref py py-data docutils literal notranslate"><span class="pre">PROFILE_PLAN</span></code></a> is used).</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="run_profile.parse_args">
-<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_profile.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.parse_args" title="Link to this definition">¶</a></dt>
-<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">--models</span></code> and <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code> command-line options.</p>
+<dt class="sig sig-object py" id="run_profile.profile_plan">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">profile_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/run_profile.html#profile_plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.profile_plan" title="Link to this definition">¶</a></dt>
+<dd><p>The (model, feature set) pairs to profile.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">models</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_sets</span></code> lists.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Output of <a class="reference internal" href="#run_profile.parse_args" title="run_profile.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_args()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#run_profile.PROFILE_PLAN" title="run_profile.PROFILE_PLAN"><code class="xref py py-data docutils literal notranslate"><span class="pre">PROFILE_PLAN</span></code></a> if no options were given, otherwise every
+combination of the given models and feature sets (missing options
+default to <code class="docutils literal notranslate"><span class="pre">linear</span></code> and both feature sets).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_profile.compare">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">compare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">denominator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/run_profile.html#compare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.compare" title="Link to this definition">¶</a></dt>
+<dd><p>Ratios of costs between two profiled models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary</strong> – The profile summary table.</p></li>
+<li><p><strong>numerator</strong> – <code class="docutils literal notranslate"><span class="pre">(model,</span> <span class="pre">feature</span> <span class="pre">set)</span></code> on top of the ratio.</p></li>
+<li><p><strong>denominator</strong> – <code class="docutils literal notranslate"><span class="pre">(model,</span> <span class="pre">feature</span> <span class="pre">set)</span></code> underneath.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per quantity in <a class="reference internal" href="#run_profile.COMPARED" title="run_profile.COMPARED"><code class="xref py py-data docutils literal notranslate"><span class="pre">COMPARED</span></code></a> with <code class="docutils literal notranslate"><span class="pre">comparison</span></code>,
+<code class="docutils literal notranslate"><span class="pre">quantity</span></code> and <code class="docutils literal notranslate"><span class="pre">ratio</span></code> (e.g. 40 means 40 times larger).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_profile.write_doc_tables">
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">write_doc_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comparison</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#write_doc_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.write_doc_tables" title="Link to this definition">¶</a></dt>
+<dd><p>Write rounded profile tables, with units in the headers, for the docs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary</strong> – One row per model/feature set from
+<a class="reference internal" href="#functions.profiling.ProfileResult.summary" title="functions.profiling.ProfileResult.summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">functions.profiling.ProfileResult.summary()</span></code></a>.</p></li>
+<li><p><strong>comparison</strong> – Output of <a class="reference internal" href="#run_profile.compare" title="run_profile.compare"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare()</span></code></a> (possibly several, joined).</p></li>
+<li><p><strong>machine</strong> – Output of <a class="reference internal" href="#functions.profiling.machine_info" title="functions.profiling.machine_info"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.machine_info()</span></code></a>.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="run_profile.main">
-<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.main" title="Link to this definition">¶</a></dt>
-<dd><p>Profile every model/feature-set pair, print and save the results.</p>
+<span class="sig-prename descclassname"><span class="pre">run_profile.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_profile.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_profile.main" title="Link to this definition">¶</a></dt>
+<dd><p>Profile the requested models, print a comparison and save the results.</p>
 </dd></dl>
 
 </section>
