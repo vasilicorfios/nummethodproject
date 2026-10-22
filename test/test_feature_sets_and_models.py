@@ -118,3 +118,28 @@ def test_coefficient_effects_none_without_coefficients(linear_data):
         transformer=StandardScaler(),
     ).fit(X, y)
     assert coefficient_effects(tree, X.columns.tolist()) is None
+
+
+def test_final_and_runner_up_mlp_settings():
+    """The frozen models have the chosen sizes and alphas; everything else is the default."""
+    from functions.models import (
+        FINAL_FEATURE_SET,
+        FINAL_MLP,
+        FINAL_MODEL_NAME,
+        RUNNER_UP_MLP,
+        RUNNER_UP_MODEL_NAME,
+    )
+    assert FINAL_FEATURE_SET == "B"
+    assert FINAL_MLP == {"hidden_layer_sizes": (128, 128), "alpha": 1.0}
+    assert RUNNER_UP_MLP == {"hidden_layer_sizes": (64, 64), "alpha": 0.1}
+    for name, settings in ((FINAL_MODEL_NAME, FINAL_MLP), (RUNNER_UP_MODEL_NAME, RUNNER_UP_MLP)):
+        model = build_model(name)
+        mlp = model.regressor.named_steps["regressor"]
+        assert mlp.hidden_layer_sizes == settings["hidden_layer_sizes"]
+        assert mlp.alpha == settings["alpha"]
+        assert mlp.early_stopping is True
+        assert mlp.n_iter_no_change == 20
+        assert mlp.max_iter == 2000
+        assert mlp.random_state == 0
+        assert mlp.validation_fraction == 0.1
+        assert "scaler" in model.regressor.named_steps

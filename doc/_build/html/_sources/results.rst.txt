@@ -450,22 +450,99 @@ Where along the spectrum the errors are
 Runtime, memory and FLOPs
 -------------------------
 
-Each model is fitted once on all cross-validation rows. Times are the median
-of 20 repeats, and peak memory is traced with ``tracemalloc`` (a lower
-bound, since it cannot see memory allocated inside compiled LAPACK code). The
-FLOP count comes from :func:`functions.profiling.linear_flop_estimate`, and
-the fit rate is the estimated FLOPs divided by the measured fit time.
+The final model is frozen from the nested-CV results (CV data only; the test
+hold-out was not used): **(128, 128), alpha = 1.0, on feature set B**. It won
+7 of the 15 outer folds and had the lowest mean inner-CV RMSE (2.50 dB). A
+cheaper **runner-up**, (64, 64) with alpha = 0.1 (2.54 dB, about 4× fewer
+weights), is profiled alongside it. The settings live in
+``functions.models.FINAL_MLP`` and ``RUNNER_UP_MLP``.
 
-.. csv-table:: Profile of one fit on all CV rows
+How it was measured
+~~~~~~~~~~~~~~~~~~~
+
+* **Training data:** each model is trained on all 1,276 cross-validation
+  rows, never the test hold-out.
+* **Time:** fit and predict are each repeated 5 times; the table gives the
+  median and the fastest (min) run.
+* **Memory:** peak memory during a fit is traced with ``tracemalloc``. This is
+  a lower bound, since it cannot see memory allocated inside compiled maths
+  libraries.
+* **Session:** all four models were profiled in the same session on the
+  same machine (below).
+* **FLOPs are estimates from formulas, not measurements:**
+
+  * linear: ``2np² + 11p³`` for the SVD least-squares solve plus scaling
+    (:func:`functions.profiling.linear_flop_estimate`);
+  * MLP: about 6 FLOPs per weight per training row per epoch (2 forward,
+    about 4 backward), plus 2 per weight for the early-stopping rows each
+    epoch (:func:`functions.profiling.mlp_flop_estimate`).
+
+  The fit rate is the estimated FLOPs divided by the median fit time.
+
+.. csv-table:: Profile of one fit on all CV rows (FLOPs are estimates)
    :file: generated/profile_summary.csv
    :header-rows: 1
 
-The linear fit needs only about 10\ :sup:`5` floating-point operations, yet
-it runs at tens of MFLOP/s, a tiny fraction of the CPU's capability. The
-``cProfile`` reports (``results/profile_<model>_<set>.txt``) show the time
-goes to scikit-learn and pandas input validation and scaling, not the
-least-squares solve. At this data size the cost is fixed overhead, not
-arithmetic.
+.. csv-table:: Cost ratios between models
+   :file: generated/profile_comparison.csv
+   :header-rows: 1
+
+.. csv-table:: Machine and settings used for the timings
+   :file: generated/profile_machine.csv
+   :header-rows: 1
+
+What the numbers show
+~~~~~~~~~~~~~~~~~~~~~
+
+* **Training cost is the price of the MLP's accuracy.** Training the final
+  MLP takes about 1.4 s, roughly 400 times longer than the linear fit. It
+  has about 2,000 times as many weights and needs about 90,000 times as many
+  (estimated) FLOPs. Even so, 1.4 s is small in absolute terms; the cost
+  only matters when training is repeated thousands of times, as in nested
+  cross-validation.
+* **Prediction is cheap for both.** The final MLP predicts all 1,276 rows in
+  about 3 ms (a few microseconds per row), only about 3 times slower than
+  linear. Fixed overhead, not arithmetic, dominates prediction at this size.
+* **Memory is not a constraint.** Peak training memory is about 2 MB. The
+  final MLP's 17,793 weights take 142 kB. The pickled file is about 3 times
+  larger (438 kB), because scikit-learn also saves the Adam optimiser's two
+  running averages per weight, which are only needed to continue training.
+* **The bigger network costs no clear extra time.** The final MLP has 3.7×
+  the runner-up's weights and needs 2.9× the estimated FLOPs. Yet across
+  three profiling runs its fit time was 0.9–1.2× the runner-up's, a
+  difference within run-to-run noise. Two reasons: early stopping ended it
+  sooner (177 vs 226 epochs), and larger matrix products use the CPU more
+  efficiently (about 15 GFLOP/s, against 5–6 GFLOP/s for the runner-up).
+  The noise comes from multi-threaded maths on small matrices and the
+  laptop's changing clock speed, which is why the table also gives the
+  fastest of the 5 repeats.
+* **Linear is limited by overhead, not arithmetic.** Its fit needs only
+  about 10\ :sup:`5` FLOPs but takes about 3 ms (tens of MFLOP/s). The
+  cProfile reports show the time goes to scikit-learn and pandas input
+  checks and scaling, not the least-squares solve.
+
+Where the final MLP spends its training time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From ``results/profile_mlp_final_B.txt``: 177 epochs × 6 mini-batches (about
+200 rows each) = 1,062 back-propagation steps. These take about three
+quarters of the training time. Within that, about a third of the total goes
+on matrix multiplications and about a fifth on the ReLU derivative, a simple
+element-by-element step. The Adam weight updates take about 12% and the
+early-stopping checks about 9%.
+
+The ReLU step does very little arithmetic per number, yet takes over half as
+long as the matrix multiplications. That shows the training is limited
+mainly by moving data through memory and per-call overhead on small
+mini-batches, not by arithmetic. The achieved 15 GFLOP/s is roughly 10–15%
+of this processor's theoretical double-precision peak at base clock (4 cores
+× 16 FLOPs per cycle × 1.8 GHz ≈ 115 GFLOP/s).
+
+**Threads.** ``OMP_NUM_THREADS`` and the other thread variables were unset,
+so OpenBLAS used 8 threads. The MLP's matrix products were therefore
+multi-threaded, not single-threaded. Timings on another machine, or with a
+different thread setting, will differ; the machine table above records the
+setup used.
 
 What these results cannot show
 ------------------------------

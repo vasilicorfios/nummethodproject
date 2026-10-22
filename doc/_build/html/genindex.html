@@ -97,10 +97,14 @@
 </li>
       <li><a href="api.html#functions.data_loader.COLUMN_RENAME">COLUMN_RENAME (in module functions.data_loader)</a>
 </li>
-      <li><a href="api.html#functions.evaluate.compute_metrics">compute_metrics() (in module functions.evaluate)</a>
+      <li><a href="api.html#run_profile.compare">compare() (in module run_profile)</a>
+</li>
+      <li><a href="api.html#run_profile.COMPARED">COMPARED (in module run_profile)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.evaluate.compute_metrics">compute_metrics() (in module functions.evaluate)</a>
+</li>
       <li><a href="api.html#functions.evaluate.concat_oof">concat_oof() (in module functions.evaluate)</a>
 </li>
       <li><a href="api.html#functions.evaluate.cross_validate">cross_validate() (in module functions.evaluate)</a>
@@ -162,11 +166,17 @@
 </li>
       <li><a href="api.html#functions.data_loader.FEATURES">FEATURES (in module functions.data_loader)</a>
 </li>
+      <li><a href="api.html#functions.models.FINAL_FEATURE_SET">FINAL_FEATURE_SET (in module functions.models)</a>
+</li>
+      <li><a href="api.html#functions.models.FINAL_MLP">FINAL_MLP (in module functions.models)</a>
+</li>
+      <li><a href="api.html#functions.models.FINAL_MODEL_NAME">FINAL_MODEL_NAME (in module functions.models)</a>
+</li>
       <li><a href="api.html#functions.profiling.ProfileResult.fit_flops">fit_flops (functions.profiling.ProfileResult attribute)</a>
 </li>
-      <li><a href="api.html#functions.profiling.ProfileResult.fit_time_s">fit_time_s (functions.profiling.ProfileResult attribute)</a>
+      <li><a href="api.html#functions.profiling.ProfileResult.fit_time_min_s">fit_time_min_s (functions.profiling.ProfileResult attribute)</a>
 </li>
-      <li><a href="api.html#functions.profiling.FLOP_ESTIMATES">FLOP_ESTIMATES (in module functions.profiling)</a>
+      <li><a href="api.html#functions.profiling.ProfileResult.fit_time_s">fit_time_s (functions.profiling.ProfileResult attribute)</a>
 </li>
       <li><a href="api.html#functions.evaluate.CVResult.fold_scores">fold_scores (functions.evaluate.CVResult attribute)</a>
 </li>
@@ -204,6 +214,8 @@
         <li><a href="api.html#module-functions.feature_sets">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     functions.make_folds
 
@@ -211,8 +223,6 @@
         <li><a href="api.html#module-functions.make_folds">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     functions.models
 
@@ -348,6 +358,8 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.profiling.machine_info">machine_info() (in module functions.profiling)</a>
+</li>
       <li><a href="api.html#explore_plots.main">main() (in module explore_plots)</a>
 
       <ul>
@@ -366,12 +378,18 @@
 </li>
       <li><a href="api.html#functions.models.MLP_DEFAULTS">MLP_DEFAULTS (in module functions.models)</a>
 </li>
+      <li><a href="api.html#functions.profiling.mlp_flop_estimate">mlp_flop_estimate() (in module functions.profiling)</a>
+</li>
+      <li><a href="api.html#functions.profiling.mlp_weight_count">mlp_weight_count() (in module functions.profiling)</a>
+</li>
       <li><a href="api.html#functions.evaluate.CVResult.model">model (functions.evaluate.CVResult attribute)</a>
 
       <ul>
         <li><a href="api.html#functions.profiling.ProfileResult.model">(functions.profiling.ProfileResult attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api.html#functions.profiling.ProfileResult.model_bytes">model_bytes (functions.profiling.ProfileResult attribute)</a>
+</li>
       <li><a href="api.html#functions.tuning.MODEL_NAME">MODEL_NAME (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.models.MODELS">MODELS (in module functions.models)</a>
@@ -439,6 +457,8 @@
 </li>
       <li><a href="api.html#functions.tuning.N_INNER_SPLITS">N_INNER_SPLITS (in module functions.tuning)</a>
 </li>
+      <li><a href="api.html#functions.profiling.ProfileResult.n_iter">n_iter (functions.profiling.ProfileResult attribute)</a>
+</li>
       <li><a href="api.html#run_tuning.N_LOSS_CURVE_FOLDS">N_LOSS_CURVE_FOLDS (in module run_tuning)</a>
 </li>
   </ul></td>
@@ -448,6 +468,8 @@
       <li><a href="api.html#functions.profiling.ProfileResult.n_rows">n_rows (functions.profiling.ProfileResult attribute)</a>
 </li>
       <li><a href="api.html#functions.profiling.N_TIMING_REPEATS">N_TIMING_REPEATS (in module functions.profiling)</a>
+</li>
+      <li><a href="api.html#functions.profiling.ProfileResult.n_weights">n_weights (functions.profiling.ProfileResult attribute)</a>
 </li>
       <li><a href="api.html#run_error_analysis.N_WORST">N_WORST (in module run_error_analysis)</a>
 </li>
@@ -517,10 +539,10 @@
 </li>
       <li><a href="api.html#functions.plot_error_analysis.plot_error_map">plot_error_map() (in module functions.plot_error_analysis)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.plot_results.plot_example_spectra">plot_example_spectra() (in module functions.plot_results)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.plot_tuning.plot_inner_grid_heatmap">plot_inner_grid_heatmap() (in module functions.plot_tuning)</a>
 </li>
       <li><a href="api.html#functions.plot_tuning.plot_loss_curves">plot_loss_curves() (in module functions.plot_tuning)</a>
@@ -547,9 +569,15 @@
 </li>
       <li><a href="api.html#functions.profiling.ProfileResult.predict_flops">predict_flops (functions.profiling.ProfileResult attribute)</a>
 </li>
+      <li><a href="api.html#functions.profiling.ProfileResult.predict_time_min_s">predict_time_min_s (functions.profiling.ProfileResult attribute)</a>
+</li>
       <li><a href="api.html#functions.profiling.ProfileResult.predict_time_s">predict_time_s (functions.profiling.ProfileResult attribute)</a>
 </li>
       <li><a href="api.html#functions.profiling.profile_model">profile_model() (in module functions.profiling)</a>
+</li>
+      <li><a href="api.html#run_profile.PROFILE_PLAN">PROFILE_PLAN (in module run_profile)</a>
+</li>
+      <li><a href="api.html#run_profile.profile_plan">profile_plan() (in module run_profile)</a>
 </li>
       <li><a href="api.html#functions.profiling.ProfileResult.profile_text">profile_text (functions.profiling.ProfileResult attribute)</a>
 </li>
@@ -603,6 +631,8 @@
         <li><a href="api.html#module-run_tuning">module</a>
 </li>
       </ul></li>
+      <li><a href="api.html#functions.models.RUNNER_UP_MLP">RUNNER_UP_MLP (in module functions.models)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -678,14 +708,12 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#run_error_analysis.write_doc_table">write_doc_table() (in module run_error_analysis)</a>
-
-      <ul>
-        <li><a href="api.html#run_profile.write_doc_table">(in module run_profile)</a>
 </li>
-      </ul></li>
       <li><a href="api.html#run_cv.write_doc_tables">write_doc_tables() (in module run_cv)</a>
 
       <ul>
+        <li><a href="api.html#run_profile.write_doc_tables">(in module run_profile)</a>
+</li>
         <li><a href="api.html#run_tuning.write_doc_tables">(in module run_tuning)</a>
 </li>
       </ul></li>

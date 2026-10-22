@@ -1,0 +1,13 @@
+comparison,quantity,ratio
+mlp_final (B) / linear (B),Fit time (median),464.91507743870267
+mlp_final (B) / linear (B),Predict time (median),2.391344667026146
+mlp_final (B) / linear (B),Peak fit memory,7.296903460837887
+mlp_final (B) / linear (B),Model size (pickled),241.15418502202644
+mlp_final (B) / linear (B),Fit FLOPs (estimate),91164.50422211057
+mlp_final (B) / linear (B),Weights,1977.0
+mlp_final (B) / mlp_runner_up (B),Fit time (median),0.8783919439252948
+mlp_final (B) / mlp_runner_up (B),Predict time (median),1.2053129732202985
+mlp_final (B) / mlp_runner_up (B),Peak fit memory,2.211921226303473
+mlp_final (B) / mlp_runner_up (B),Model size (pickled),3.4352771371644626
+mlp_final (B) / mlp_runner_up (B),Fit FLOPs (estimate),2.9025673117510546
+mlp_final (B) / mlp_runner_up (B),Weights,3.7061028952301602

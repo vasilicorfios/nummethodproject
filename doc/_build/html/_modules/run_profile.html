@@ -31,22 +31,36 @@
           <div class="body" role="main">
             
   <h1>Source code for run_profile</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Entry point that profiles runtime, memory and FLOPs of models.</span>
+<span></span><span class="sd">"""Entry point that profiles runtime, memory, size and FLOPs of the models.</span>
 
-<span class="sd">Each requested model/feature-set pair is trained on all cross-validation</span>
-<span class="sd">rows (never the test hold-out) by :func:`functions.profiling.profile_model`::</span>
+<span class="sd">By default it profiles the models compared in the report, all in one</span>
+<span class="sd">session on the same machine so the numbers are comparable:</span>
 
-<span class="sd">    python src/run_profile.py</span>
-<span class="sd">    python src/run_profile.py --models linear --feature-sets B</span>
+<span class="sd">* linear on feature sets A and B (the baseline);</span>
+<span class="sd">* the final MLP (:data:`functions.models.FINAL_MLP`) on</span>
+<span class="sd">  :data:`functions.models.FINAL_FEATURE_SET`;</span>
+<span class="sd">* the cheaper runner-up MLP (:data:`functions.models.RUNNER_UP_MLP`) on the</span>
+<span class="sd">  same feature set.</span>
+
+<span class="sd">Every model is trained on all cross-validation rows, never the test</span>
+<span class="sd">hold-out (:func:`functions.profiling.profile_model`)::</span>
+
+<span class="sd">    python src/run_profile.py                                   # the four above, ~1 min</span>
+<span class="sd">    python src/run_profile.py --models linear --feature-sets B  # a custom selection</span>
 
 <span class="sd">Writes to ``results/``:</span>
 
-<span class="sd">* ``profile_summary.csv``: time, peak memory, estimated FLOPs and achieved</span>
-<span class="sd">  FLOP rate per model/feature set.</span>
+<span class="sd">* ``profile_summary.csv``: one row per model/feature set: median and</span>
+<span class="sd">  minimum fit and predict times, peak memory, model size, weights, epochs,</span>
+<span class="sd">  estimated FLOPs and achieved FLOP rate.</span>
+<span class="sd">* ``profile_comparison.csv``: final MLP vs linear (B) and vs the runner-up,</span>
+<span class="sd">  as ratios.</span>
+<span class="sd">* ``profile_machine.csv``: CPU, operating system, library versions and</span>
+<span class="sd">  thread settings used.</span>
 <span class="sd">* ``profile_&lt;model&gt;_&lt;feature set&gt;.txt``: the cProfile report of one fit.</span>
 
-<span class="sd">A rounded copy of the summary is written to ``doc/generated/`` for the HTML</span>
-<span class="sd">results page.</span>
+<span class="sd">Rounded copies of the summary, comparison and machine tables are written to</span>
+<span class="sd">``doc/generated/`` for the HTML results page.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -55,81 +69,181 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">FEATURE_SETS</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MODELS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">,</span> <span class="n">FINAL_MODEL_NAME</span><span class="p">,</span> <span class="n">MODELS</span><span class="p">,</span> <span class="n">RUNNER_UP_MODEL_NAME</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.profiling</span><span class="w"> </span><span class="kn">import</span> <span class="n">profile_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.profiling</span><span class="w"> </span><span class="kn">import</span> <span class="n">machine_info</span><span class="p">,</span> <span class="n">profile_model</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">run_cv</span><span class="w"> </span><span class="kn">import</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="n">RESULTS_DIR</span>
 
+<span class="c1">#: (model, feature set) pairs profiled by default.</span>
+<span class="n">PROFILE_PLAN</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">FINAL_MODEL_NAME</span><span class="p">,</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">,</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">),</span>
+<span class="p">]</span>
 
-<div class="viewcode-block" id="write_doc_table">
-<a class="viewcode-back" href="../api.html#run_profile.write_doc_table">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">write_doc_table</span><span class="p">(</span><span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Write the profile summary as a rounded table for the HTML documentation.</span>
-
-<span class="sd">    Times are converted to ms and memory to kB so the table reads at a glance</span>
-<span class="sd">    on ``doc/results.rst``.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        summary: One row per model/feature set from</span>
-<span class="sd">            :meth:`functions.profiling.ProfileResult.summary`.</span>
-<span class="sd">    """</span>
-    <span class="n">DOC_TABLES_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-        <span class="s2">"Model"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
-        <span class="s2">"Feature set"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">],</span>
-        <span class="s2">"Rows x features"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"n_rows"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" x "</span> <span class="o">+</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"n_features"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
-        <span class="s2">"Fit time (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
-        <span class="s2">"Predict time (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
-        <span class="s2">"Input size (kB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"input_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-        <span class="s2">"Peak fit memory (kB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"peak_fit_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-        <span class="s2">"Fit FLOPs (est.)"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"fit_flops"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s2">"</span><span class="si">{:.2e}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">),</span>
-        <span class="s2">"Fit rate (MFLOP/s)"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"fit_mflops_per_s"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"profile_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
-
+<span class="c1">#: Quantities compared between models in :func:`compare`.</span>
+<span class="n">COMPARED</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"fit_time_s"</span><span class="p">:</span> <span class="s2">"Fit time (median)"</span><span class="p">,</span>
+    <span class="s2">"predict_time_s"</span><span class="p">:</span> <span class="s2">"Predict time (median)"</span><span class="p">,</span>
+    <span class="s2">"peak_fit_bytes"</span><span class="p">:</span> <span class="s2">"Peak fit memory"</span><span class="p">,</span>
+    <span class="s2">"model_bytes"</span><span class="p">:</span> <span class="s2">"Model size (pickled)"</span><span class="p">,</span>
+    <span class="s2">"fit_flops"</span><span class="p">:</span> <span class="s2">"Fit FLOPs (estimate)"</span><span class="p">,</span>
+    <span class="s2">"n_weights"</span><span class="p">:</span> <span class="s2">"Weights"</span><span class="p">,</span>
+<span class="p">}</span>
 
 
 <div class="viewcode-block" id="parse_args">
 <a class="viewcode-back" href="../api.html#run_profile.parse_args">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Parse the ``--models`` and ``--feature-sets`` command-line options.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Parse the optional ``--models`` and ``--feature-sets`` options.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        argv: Arguments to parse; ``None`` reads the command line.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Namespace with ``models`` and ``feature_sets`` lists.</span>
+<span class="sd">        Namespace with ``models`` and ``feature_sets`` (``None`` when not</span>
+<span class="sd">        given, meaning :data:`PROFILE_PLAN` is used).</span>
 <span class="sd">    """</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--models"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">],</span> <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">MODELS</span><span class="p">))</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">"--feature-sets"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">],</span> <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">FEATURE_SETS</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span></div>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--models"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">MODELS</span><span class="p">),</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">"models to profile (default: the report's four combinations)"</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--feature-sets"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">FEATURE_SETS</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="profile_plan">
+<a class="viewcode-back" href="../api.html#run_profile.profile_plan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">profile_plan</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""The (model, feature set) pairs to profile.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        args: Output of :func:`parse_args`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :data:`PROFILE_PLAN` if no options were given, otherwise every</span>
+<span class="sd">        combination of the given models and feature sets (missing options</span>
+<span class="sd">        default to ``linear`` and both feature sets).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">models</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">feature_sets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">PROFILE_PLAN</span><span class="p">)</span>
+    <span class="n">models</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">models</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">"linear"</span><span class="p">]</span>
+    <span class="n">feature_sets</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">feature_sets</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">m</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">models</span> <span class="k">for</span> <span class="n">fs</span> <span class="ow">in</span> <span class="n">feature_sets</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="compare">
+<a class="viewcode-back" href="../api.html#run_profile.compare">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">numerator</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+            <span class="n">denominator</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Ratios of costs between two profiled models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        summary: The profile summary table.</span>
+<span class="sd">        numerator: ``(model, feature set)`` on top of the ratio.</span>
+<span class="sd">        denominator: ``(model, feature set)`` underneath.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per quantity in :data:`COMPARED` with ``comparison``,</span>
+<span class="sd">        ``quantity`` and ``ratio`` (e.g. 40 means 40 times larger).</span>
+<span class="sd">    """</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">"model"</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">])</span>
+    <span class="n">top</span><span class="p">,</span> <span class="n">bottom</span> <span class="o">=</span> <span class="n">rows</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">numerator</span><span class="p">],</span> <span class="n">rows</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">denominator</span><span class="p">]</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">numerator</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">numerator</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">) / </span><span class="si">{</span><span class="n">denominator</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">denominator</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+        <span class="p">{</span><span class="s2">"comparison"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s2">"quantity"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"ratio"</span><span class="p">:</span> <span class="n">top</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="n">bottom</span><span class="p">[</span><span class="n">col</span><span class="p">]}</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">COMPARED</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="write_doc_tables">
+<a class="viewcode-back" href="../api.html#run_profile.write_doc_tables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_doc_tables</span><span class="p">(</span><span class="n">summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">comparison</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                     <span class="n">machine</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write rounded profile tables, with units in the headers, for the docs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        summary: One row per model/feature set from</span>
+<span class="sd">            :meth:`functions.profiling.ProfileResult.summary`.</span>
+<span class="sd">        comparison: Output of :func:`compare` (possibly several, joined).</span>
+<span class="sd">        machine: Output of :func:`functions.profiling.machine_info`.</span>
+<span class="sd">    """</span>
+    <span class="n">DOC_TABLES_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">optional</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">fmt</span><span class="p">):</span>
+        <span class="c1"># Blank cells (not "nan") for quantities a model does not have.</span>
+        <span class="k">return</span> <span class="n">series</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="s2">""</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="n">fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Model"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+        <span class="s2">"Feature set"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">],</span>
+        <span class="s2">"Weights"</span><span class="p">:</span> <span class="n">optional</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"n_weights"</span><span class="p">],</span> <span class="s2">"</span><span class="si">{:,.0f}</span><span class="s2">"</span><span class="p">),</span>
+        <span class="s2">"Epochs"</span><span class="p">:</span> <span class="n">optional</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"n_iter"</span><span class="p">],</span> <span class="s2">"</span><span class="si">{:.0f}</span><span class="s2">"</span><span class="p">),</span>
+        <span class="s2">"Fit time, median (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"Fit time, min (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_min_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"Predict time, median (ms)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Peak fit memory (MB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"peak_fit_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e6</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Weights (kB)"</span><span class="p">:</span> <span class="n">optional</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"weight_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">,</span> <span class="s2">"</span><span class="si">{:,.2f}</span><span class="s2">"</span><span class="p">),</span>
+        <span class="s2">"Pickled model (kB)"</span><span class="p">:</span> <span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"model_bytes"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"Fit FLOPs, estimate (MFLOP)"</span><span class="p">:</span> <span class="n">optional</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_flops"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1e6</span><span class="p">,</span> <span class="s2">"</span><span class="si">{:,.1f}</span><span class="s2">"</span><span class="p">),</span>
+        <span class="s2">"Fit rate (MFLOP/s)"</span><span class="p">:</span> <span class="n">optional</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"fit_mflops_per_s"</span><span class="p">],</span> <span class="s2">"</span><span class="si">{:,.0f}</span><span class="s2">"</span><span class="p">),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"profile_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">comparison</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">ratio</span><span class="o">=</span><span class="n">comparison</span><span class="p">[</span><span class="s2">"ratio"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s2">"</span><span class="si">{:.1f}</span><span class="s2">×"</span><span class="o">.</span><span class="n">format</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"comparison"</span><span class="p">:</span> <span class="s2">"Comparison"</span><span class="p">,</span> <span class="s2">"quantity"</span><span class="p">:</span> <span class="s2">"Quantity"</span><span class="p">,</span> <span class="s2">"ratio"</span><span class="p">:</span> <span class="s2">"Ratio"</span><span class="p">,</span>
+        <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"profile_comparison.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"Item"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">machine</span><span class="p">),</span> <span class="s2">"Value"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">machine</span><span class="o">.</span><span class="n">values</span><span class="p">())})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="s2">"profile_machine.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../api.html#run_profile.main">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Profile every model/feature-set pair, print and save the results."""</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Profile the requested models, print a comparison and save the results."""</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
     <span class="n">RESULTS_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">machine</span> <span class="o">=</span> <span class="n">machine_info</span><span class="p">()</span>
 
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">model_name</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">feature_set</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">feature_sets</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">profile_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
-            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
-            <span class="n">profile_path</span> <span class="o">=</span> <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"profile_</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">.txt"</span>
-            <span class="n">profile_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">profile_text</span><span class="p">)</span>
-
+    <span class="k">for</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">feature_set</span> <span class="ow">in</span> <span class="n">profile_plan</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Profiling </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> on set </span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2"> ..."</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">profile_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+        <span class="n">profile_path</span> <span class="o">=</span> <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"profile_</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">.txt"</span>
+        <span class="n">profile_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">profile_text</span><span class="p">)</span>
     <span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">option_context</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="s2">"display.float_format"</span><span class="p">,</span> <span class="s2">"</span><span class="si">{:.4g}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Profile of one fit on all CV rows (times are medians of repeats)"</span><span class="p">)</span>
+
+    <span class="c1"># Compare the final MLP with linear on the same features, and with the</span>
+    <span class="c1"># cheaper runner-up, whenever all three were profiled.</span>
+    <span class="n">final</span> <span class="o">=</span> <span class="p">(</span><span class="n">FINAL_MODEL_NAME</span><span class="p">,</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">final</span><span class="p">,</span> <span class="p">(</span><span class="s2">"linear"</span><span class="p">,</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)),</span> <span class="p">(</span><span class="n">final</span><span class="p">,</span> <span class="p">(</span><span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">,</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">))]</span>
+    <span class="n">present</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]))</span>
+    <span class="n">comparisons</span> <span class="o">=</span> <span class="p">[</span><span class="n">compare</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">pairs</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">present</span> <span class="ow">and</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">present</span><span class="p">]</span>
+    <span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">comparisons</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">comparisons</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">option_context</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="s2">"display.float_format"</span><span class="p">,</span> <span class="s2">"</span><span class="si">{:.4g}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Profile of one fit on all CV rows "</span>
+              <span class="s2">"(times: median and min of repeats; FLOPs are estimates)"</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">comparison</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Comparison (ratios; e.g. 40 = 40 times larger)"</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">comparison</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Machine: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">machine</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
 
     <span class="n">summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"profile_summary.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">write_doc_table</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+    <span class="n">comparison</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"profile_comparison.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"item"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">machine</span><span class="p">),</span> <span class="s2">"value"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">machine</span><span class="o">.</span><span class="n">values</span><span class="p">())})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"profile_machine.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">write_doc_tables</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">comparison</span><span class="p">,</span> <span class="n">machine</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Summary and cProfile reports written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation table written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation tables written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 

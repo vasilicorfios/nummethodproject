@@ -1,0 +1,23 @@
+         419638 function calls (418929 primitive calls) in 1.865 seconds
+
+   Ordered by: cumulative time
+   List reduced from 516 to 15 due to restriction <15>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      5/1    0.000    0.000    1.865    1.865 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\base.py:1348(wrapper)
+        1    0.000    0.000    1.864    1.864 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\compose\_target.py:220(fit)
+        1    0.000    0.000    1.861    1.861 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\pipeline.py:604(fit)
+        1    0.000    0.000    1.855    1.855 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:826(fit)
+        1    0.000    0.000    1.855    1.855 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:458(_fit)
+        1    0.024    0.024    1.854    1.854 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:606(_fit_stochastic)
+     1356    0.033    0.000    1.350    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:297(_backprop)
+    11526    0.602    0.000    0.652    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\utils\extmath.py:153(safe_sparse_dot)
+     4068    0.086    0.000    0.406    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:222(_compute_loss_grad)
+     1356    0.063    0.000    0.331    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:160(_forward_pass)
+     2712    0.291    0.000    0.291    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_base.py:142(inplace_relu_derivative)
+      226    0.001    0.000    0.196    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:795(_update_no_improvement_count)
+     1356    0.021    0.000    0.196    0.000 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_stochastic_optimizers.py:28(update_params)
+      226    0.001    0.000    0.194    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:1754(_score)
+      226    0.002    0.000    0.193    0.001 C:\Users\vasbr\AppData\Local\Programs\Python\Python310\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:859(_score_with_function)
+
+
