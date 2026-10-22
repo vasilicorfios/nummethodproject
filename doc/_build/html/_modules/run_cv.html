@@ -43,8 +43,9 @@
 
 <span class="sd">Results are printed and written as CSV files to ``results/``:</span>
 
-<span class="sd">* ``cv_summary.csv``: one row per model/feature set (OOF RMSE, MAE, R² as</span>
-<span class="sd">  mean and std over seeds; mean fit and predict time per fold).</span>
+<span class="sd">* ``cv_summary.csv``: one row per model/feature set (validation RMSE, MAE,</span>
+<span class="sd">  R² as mean and std over all 15 folds, 5 folds x 3 seeds; mean fit and</span>
+<span class="sd">  predict time per fold).</span>
 <span class="sd">* ``cv_fold_scores.csv``: scores and timings for every seed and fold.</span>
 <span class="sd">* ``cv_rmse_breakdown.csv``: OOF RMSE by chord, velocity, angle band and</span>
 <span class="sd">  frequency band.</span>
@@ -195,7 +196,7 @@
     <span class="n">breakdown</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">breakdowns</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">option_context</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="s2">"display.float_format"</span><span class="p">,</span> <span class="s2">"</span><span class="si">{:.4f}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">"Out-of-fold metrics (mean and std over CV seeds; times are mean per fold)"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Validation metrics (mean and std over all folds of all seeds; times are mean per fold)"</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Out-of-fold RMSE breakdown (dB)"</span><span class="p">)</span>
         <span class="c1"># One column per model/feature set so they can be compared side by side.</span>

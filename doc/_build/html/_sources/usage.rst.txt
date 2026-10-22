@@ -70,8 +70,10 @@ training folds only.
     python src/run_cv.py                                   # linear on A and B
     python src/run_cv.py --models linear --feature-sets B
 
-The script reports out-of-fold RMSE (the main metric), MAE and R², averaged
-over the three CV seeds, along with the mean fit and predict time per fold.
+The script reports validation RMSE (the main metric), MAE and R² as mean ±
+standard deviation over all 15 folds (5 folds x 3 seeds), so the spread
+shows how much the score changes from one batch of unseen setups to the
+next. It also reports the mean fit and predict time per fold.
 It also breaks the out-of-fold RMSE down by chord, velocity, angle band
 (0, 0-5, 5-10, 10-15, >15 deg) and frequency band. Results are saved as CSV
 files in ``results/``. The test hold-out is not used.
@@ -150,7 +152,7 @@ The tests check:
   row is predicted exactly once per seed, and scalers are fitted on training
   rows only.
 * **A regression check:** the linear baseline's recorded RMSE on set A
-  (4.897 dB), so an unintended change to the pipeline is caught.
+  (mean per-fold RMSE 4.894 dB), so an unintended change to the pipeline is caught.
 * **Input handling:** the data are within their physical ranges with no
   missing values; unknown model or feature-set names raise ``KeyError``, and
   a missing data file raises ``FileNotFoundError``.

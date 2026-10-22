@@ -99,16 +99,20 @@ def test_fold_scores_shape_and_timing(linear_a):
 
 def test_baseline_result_regression(linear_a):
     """The linear baseline reproduces its recorded RMSE (detects unintended changes)."""
-    assert summarise(linear_a)["rmse"] == pytest.approx(4.897, abs=1e-3)
+    assert summarise(linear_a)["rmse"] == pytest.approx(4.894, abs=1e-3)
 
 
 def test_summarise_matches_manual_calculation(linear_a):
-    """Headline RMSE is the mean over seeds of pooled OOF RMSE."""
-    per_seed = [
+    """Headline RMSE is the mean ± sample SD of all 15 per-fold RMSEs."""
+    per_fold = [
         np.sqrt(np.mean((g["y_true"] - g["y_pred"]) ** 2))
-        for _, g in linear_a.oof.groupby("seed")
+        for _, g in linear_a.oof.groupby(["seed", "fold"])
     ]
-    assert summarise(linear_a)["rmse"] == pytest.approx(np.mean(per_seed))
+    assert len(per_fold) == len(CV_SEEDS) * N_FOLDS
+    summary = summarise(linear_a)
+    assert summary["n_folds"] == len(per_fold)
+    assert summary["rmse"] == pytest.approx(np.mean(per_fold))
+    assert summary["rmse_std"] == pytest.approx(np.std(per_fold, ddof=1))
 
 
 def _hand_made_result() -> CVResult:

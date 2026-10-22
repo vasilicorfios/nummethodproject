@@ -625,17 +625,24 @@ linear models, per-fold coefficients.</p>
 <dt class="sig sig-object py" id="functions.evaluate.summarise">
 <span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">summarise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#summarise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.summarise" title="Link to this definition">¶</a></dt>
 <dd><p>Summarise a CV run as one row of headline numbers.</p>
-<p>The headline metrics are computed on each seed’s pooled OOF predictions
-(every CV row predicted once), then averaged over seeds; the <code class="docutils literal notranslate"><span class="pre">_std</span></code>
-entries are the spread over seeds. Timings are averaged over all folds.</p>
+<p>Each metric is the mean and sample standard deviation of the per-fold
+validation scores over all folds of all seeds (15 for 5 folds x 3
+seeds). Each fold scores a model on a batch of setups it never saw, so
+the standard deviation answers “how much does the score change from one
+batch of unseen setups to the next?”. This is wider than the spread of
+seed-level averages, which would only show how much the random fold
+shuffle matters. Timings are also averaged over all folds.</p>
+<p>The mean of per-fold RMSEs is slightly different from the RMSE of all
+pooled OOF predictions, because the square root is taken per fold.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>result</strong> – Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">feature_set</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_std</span></code>,
-<code class="docutils literal notranslate"><span class="pre">mae</span></code>, <code class="docutils literal notranslate"><span class="pre">mae_std</span></code>, <code class="docutils literal notranslate"><span class="pre">r2</span></code>, <code class="docutils literal notranslate"><span class="pre">r2_std</span></code>, <code class="docutils literal notranslate"><span class="pre">fit_time_s</span></code> and
-<code class="docutils literal notranslate"><span class="pre">predict_time_s</span></code> (mean seconds per fold).</p>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">feature_set</span></code>, <code class="docutils literal notranslate"><span class="pre">n_folds</span></code> (number of fold
+scores averaged), <code class="docutils literal notranslate"><span class="pre">rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_std</span></code>, <code class="docutils literal notranslate"><span class="pre">mae</span></code>, <code class="docutils literal notranslate"><span class="pre">mae_std</span></code>,
+<code class="docutils literal notranslate"><span class="pre">r2</span></code>, <code class="docutils literal notranslate"><span class="pre">r2_std</span></code>, <code class="docutils literal notranslate"><span class="pre">fit_time_s</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_time_s</span></code> (mean
+seconds per fold).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -691,8 +698,9 @@ B:</p>
 </div>
 <p>Results are printed and written as CSV files to <code class="docutils literal notranslate"><span class="pre">results/</span></code>:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">cv_summary.csv</span></code>: one row per model/feature set (OOF RMSE, MAE, R² as
-mean and std over seeds; mean fit and predict time per fold).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cv_summary.csv</span></code>: one row per model/feature set (validation RMSE, MAE,
+R² as mean and std over all 15 folds, 5 folds x 3 seeds; mean fit and
+predict time per fold).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cv_fold_scores.csv</span></code>: scores and timings for every seed and fold.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cv_rmse_breakdown.csv</span></code>: OOF RMSE by chord, velocity, angle band and
 frequency band.</p></li>

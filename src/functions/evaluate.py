@@ -240,26 +240,35 @@ def cross_validate(
 def summarise(result: CVResult) -> dict[str, float]:
     """Summarise a CV run as one row of headline numbers.
 
-    The headline metrics are computed on each seed's pooled OOF predictions
-    (every CV row predicted once), then averaged over seeds; the ``_std``
-    entries are the spread over seeds. Timings are averaged over all folds.
+    Each metric is the mean and sample standard deviation of the per-fold
+    validation scores over all folds of all seeds (15 for 5 folds x 3
+    seeds). Each fold scores a model on a batch of setups it never saw, so
+    the standard deviation answers "how much does the score change from one
+    batch of unseen setups to the next?". This is wider than the spread of
+    seed-level averages, which would only show how much the random fold
+    shuffle matters. Timings are also averaged over all folds.
+
+    The mean of per-fold RMSEs is slightly different from the RMSE of all
+    pooled OOF predictions, because the square root is taken per fold.
 
     Args:
         result: Output of :func:`cross_validate`.
 
     Returns:
-        A dict with ``model``, ``feature_set``, ``rmse``, ``rmse_std``,
-        ``mae``, ``mae_std``, ``r2``, ``r2_std``, ``fit_time_s`` and
-        ``predict_time_s`` (mean seconds per fold).
+        A dict with ``model``, ``feature_set``, ``n_folds`` (number of fold
+        scores averaged), ``rmse``, ``rmse_std``, ``mae``, ``mae_std``,
+        ``r2``, ``r2_std``, ``fit_time_s`` and ``predict_time_s`` (mean
+        seconds per fold).
     """
-    per_seed = pd.DataFrame([
-        compute_metrics(group["y_true"], group["y_pred"])
-        for _, group in result.oof.groupby("seed")
-    ])
-    summary = {"model": result.model, "feature_set": result.feature_set}
+    folds = result.fold_scores
+    summary = {
+        "model": result.model,
+        "feature_set": result.feature_set,
+        "n_folds": len(folds),
+    }
     for metric in ["rmse", "mae", "r2"]:
-        summary[metric] = per_seed[metric].mean()
-        summary[f"{metric}_std"] = per_seed[metric].std(ddof=1)
+        summary[metric] = folds[metric].mean()
+        summary[f"{metric}_std"] = folds[metric].std(ddof=1)
     summary["fit_time_s"] = result.fold_scores["fit_time_s"].mean()
     summary["predict_time_s"] = result.fold_scores["predict_time_s"].mean()
     return summary

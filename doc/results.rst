@@ -25,8 +25,10 @@ How the results were obtained
   model that did not see it during training (an out-of-fold, or OOF,
   prediction).
 * **Metrics:** RMSE (the main metric), MAE and R² are computed on each
-  seed's pooled OOF predictions. Each table entry is the mean ± standard
-  deviation over the three seeds.
+  validation fold separately. Each summary entry is the mean ± sample
+  standard deviation over all 15 folds (5 folds × 3 seeds). Every fold
+  scores a model on a batch of setups it never saw, so the ± shows how much
+  the score changes from one batch of unseen setups to the next.
 * **Timings:** ``time.perf_counter`` around each fold's fit and predict,
   averaged over all 15 folds.
 
@@ -43,7 +45,7 @@ Strouhal number and chord Reynolds number.
 Overall accuracy
 ----------------
 
-.. csv-table:: Out-of-fold metrics (mean ± std over CV seeds)
+.. csv-table:: Validation metrics (mean ± std over all 15 folds)
    :file: generated/cv_summary.csv
    :header-rows: 1
 
@@ -62,7 +64,8 @@ non-linear and motivates the non-linear models planned next.
    predictions. The clouds are flatter than the line: the models
    over-predict quiet conditions and under-predict loud ones, pulling
    extremes towards the mean. The RMSE in each title is for this one seed,
-   so it differs slightly from the mean over seeds in the table above.
+   pooled over all its folds, so it differs slightly from the mean of
+   per-fold scores in the table above.
 
 Where the errors are
 --------------------

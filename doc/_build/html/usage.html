@@ -96,8 +96,10 @@ training folds only.</p>
 <span class="go">python src/run_cv.py --models linear --feature-sets B</span>
 </pre></div>
 </div>
-<p>The script reports out-of-fold RMSE (the main metric), MAE and R², averaged
-over the three CV seeds, along with the mean fit and predict time per fold.
+<p>The script reports validation RMSE (the main metric), MAE and R² as mean ±
+standard deviation over all 15 folds (5 folds x 3 seeds), so the spread
+shows how much the score changes from one batch of unseen setups to the
+next. It also reports the mean fit and predict time per fold.
 It also breaks the out-of-fold RMSE down by chord, velocity, angle band
 (0, 0-5, 5-10, 10-15, &gt;15 deg) and frequency band. Results are saved as CSV
 files in <code class="docutils literal notranslate"><span class="pre">results/</span></code>. The test hold-out is not used.</p>
@@ -167,7 +169,7 @@ the same for every CV seed and is never trained on or predicted, every CV
 row is predicted exactly once per seed, and scalers are fitted on training
 rows only.</p></li>
 <li><p><strong>A regression check:</strong> the linear baseline’s recorded RMSE on set A
-(4.897 dB), so an unintended change to the pipeline is caught.</p></li>
+(mean per-fold RMSE 4.894 dB), so an unintended change to the pipeline is caught.</p></li>
 <li><p><strong>Input handling:</strong> the data are within their physical ranges with no
 missing values; unknown model or feature-set names raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>, and
 a missing data file raises <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code>.</p></li>

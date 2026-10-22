@@ -57,8 +57,10 @@ It is repeated with seeds 42, 43 and 44.</p></li>
 model that did not see it during training (an out-of-fold, or OOF,
 prediction).</p></li>
 <li><p><strong>Metrics:</strong> RMSE (the main metric), MAE and R² are computed on each
-seed’s pooled OOF predictions. Each table entry is the mean ± standard
-deviation over the three seeds.</p></li>
+validation fold separately. Each summary entry is the mean ± sample
+standard deviation over all 15 folds (5 folds × 3 seeds). Every fold
+scores a model on a batch of setups it never saw, so the ± shows how much
+the score changes from one batch of unseen setups to the next.</p></li>
 <li><p><strong>Timings:</strong> <code class="docutils literal notranslate"><span class="pre">time.perf_counter</span></code> around each fold’s fit and predict,
 averaged over all 15 folds.</p></li>
 </ul>
@@ -76,7 +78,7 @@ Strouhal number and chord Reynolds number.</p>
 <section id="overall-accuracy">
 <h2>Overall accuracy<a class="headerlink" href="#overall-accuracy" title="Link to this heading">¶</a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Out-of-fold metrics (mean ± std over CV seeds)</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<caption><span class="caption-text">Validation metrics (mean ± std over all 15 folds)</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -90,19 +92,19 @@ Strouhal number and chord Reynolds number.</p>
 <tbody>
 <tr class="row-even"><td><p>linear</p></td>
 <td><p>A</p></td>
-<td><p>4.897 ± 0.020</p></td>
-<td><p>3.813 ± 0.023</p></td>
-<td><p>0.497 ± 0.004</p></td>
-<td><p>6.86</p></td>
-<td><p>2.76</p></td>
+<td><p>4.894 ± 0.235</p></td>
+<td><p>3.815 ± 0.218</p></td>
+<td><p>0.485 ± 0.078</p></td>
+<td><p>4.08</p></td>
+<td><p>1.63</p></td>
 </tr>
 <tr class="row-odd"><td><p>linear</p></td>
 <td><p>B</p></td>
-<td><p>4.586 ± 0.007</p></td>
-<td><p>3.572 ± 0.007</p></td>
-<td><p>0.559 ± 0.001</p></td>
-<td><p>7.01</p></td>
-<td><p>2.78</p></td>
+<td><p>4.582 ± 0.254</p></td>
+<td><p>3.574 ± 0.221</p></td>
+<td><p>0.548 ± 0.072</p></td>
+<td><p>3.8</p></td>
+<td><p>1.42</p></td>
 </tr>
 </tbody>
 </table>
@@ -119,7 +121,8 @@ cross-validation row appears once. Points on the dashed line are perfect
 predictions. The clouds are flatter than the line: the models
 over-predict quiet conditions and under-predict loud ones, pulling
 extremes towards the mean. The RMSE in each title is for this one seed,
-so it differs slightly from the mean over seeds in the table above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+pooled over all its folds, so it differs slightly from the mean of
+per-fold scores in the table above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>

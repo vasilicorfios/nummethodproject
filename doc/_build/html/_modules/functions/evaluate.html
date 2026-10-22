@@ -290,26 +290,35 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">summarise</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Summarise a CV run as one row of headline numbers.</span>
 
-<span class="sd">    The headline metrics are computed on each seed's pooled OOF predictions</span>
-<span class="sd">    (every CV row predicted once), then averaged over seeds; the ``_std``</span>
-<span class="sd">    entries are the spread over seeds. Timings are averaged over all folds.</span>
+<span class="sd">    Each metric is the mean and sample standard deviation of the per-fold</span>
+<span class="sd">    validation scores over all folds of all seeds (15 for 5 folds x 3</span>
+<span class="sd">    seeds). Each fold scores a model on a batch of setups it never saw, so</span>
+<span class="sd">    the standard deviation answers "how much does the score change from one</span>
+<span class="sd">    batch of unseen setups to the next?". This is wider than the spread of</span>
+<span class="sd">    seed-level averages, which would only show how much the random fold</span>
+<span class="sd">    shuffle matters. Timings are also averaged over all folds.</span>
+
+<span class="sd">    The mean of per-fold RMSEs is slightly different from the RMSE of all</span>
+<span class="sd">    pooled OOF predictions, because the square root is taken per fold.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        result: Output of :func:`cross_validate`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A dict with ``model``, ``feature_set``, ``rmse``, ``rmse_std``,</span>
-<span class="sd">        ``mae``, ``mae_std``, ``r2``, ``r2_std``, ``fit_time_s`` and</span>
-<span class="sd">        ``predict_time_s`` (mean seconds per fold).</span>
+<span class="sd">        A dict with ``model``, ``feature_set``, ``n_folds`` (number of fold</span>
+<span class="sd">        scores averaged), ``rmse``, ``rmse_std``, ``mae``, ``mae_std``,</span>
+<span class="sd">        ``r2``, ``r2_std``, ``fit_time_s`` and ``predict_time_s`` (mean</span>
+<span class="sd">        seconds per fold).</span>
 <span class="sd">    """</span>
-    <span class="n">per_seed</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
-        <span class="n">compute_metrics</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">"y_true"</span><span class="p">],</span> <span class="n">group</span><span class="p">[</span><span class="s2">"y_pred"</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">oof</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"seed"</span><span class="p">)</span>
-    <span class="p">])</span>
-    <span class="n">summary</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">feature_set</span><span class="p">}</span>
+    <span class="n">folds</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">fold_scores</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"model"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+        <span class="s2">"feature_set"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">feature_set</span><span class="p">,</span>
+        <span class="s2">"n_folds"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">folds</span><span class="p">),</span>
+    <span class="p">}</span>
     <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"mae"</span><span class="p">,</span> <span class="s2">"r2"</span><span class="p">]:</span>
-        <span class="n">summary</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="n">per_seed</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-        <span class="n">summary</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_std"</span><span class="p">]</span> <span class="o">=</span> <span class="n">per_seed</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">summary</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span> <span class="o">=</span> <span class="n">folds</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">summary</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_std"</span><span class="p">]</span> <span class="o">=</span> <span class="n">folds</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">summary</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">fold_scores</span><span class="p">[</span><span class="s2">"fit_time_s"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
     <span class="n">summary</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">fold_scores</span><span class="p">[</span><span class="s2">"predict_time_s"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">summary</span></div>
@@ -416,6 +425,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>
 
