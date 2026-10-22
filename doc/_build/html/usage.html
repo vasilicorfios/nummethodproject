@@ -14,7 +14,7 @@
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Results" href="results.html" />
+    <link rel="next" title="Data exploration" href="exploration.html" />
     <link rel="prev" title="MMA3001 Numerical Methods Project" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -169,8 +169,12 @@ the cost is fixed overhead, not arithmetic.</p>
 <section id="exploratory-plots">
 <h2>Exploratory plots<a class="headerlink" href="#exploratory-plots" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/explore_plots.py</span>
+<span class="go">python src/explore_plots.py --no-show   # only write the PNGs</span>
 </pre></div>
 </div>
+<p>This saves the SPL histogram and the SPL-vs-feature scatter plots for
+feature sets A and B to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> (shown on <a class="reference internal" href="exploration.html"><span class="doc">Data exploration</span></a>),
+then opens every exploratory figure, including the per-chord-length grid.</p>
 </section>
 <section id="running-the-tests">
 <h2>Running the tests<a class="headerlink" href="#running-the-tests" title="Link to this heading">¶</a></h2>
@@ -251,6 +255,7 @@ a missing data file raises <code class="docutils literal notranslate"><span clas
 <li class="toctree-l2"><a class="reference internal" href="#building-these-docs">Building these docs</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
 </ul>
@@ -260,7 +265,7 @@ a missing data file raises <code class="docutils literal notranslate"><span clas
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="index.html" title="previous chapter">MMA3001 Numerical Methods Project</a></li>
-      <li>Next: <a href="results.html" title="next chapter">Results</a></li>
+      <li>Next: <a href="exploration.html" title="next chapter">Data exploration</a></li>
   </ul></li>
 </ul>
 </div>

@@ -9,5 +9,6 @@ dataset: predicting scaled sound pressure level (dB) from test conditions.
    :caption: Contents
 
    usage
+   exploration
    results
    api

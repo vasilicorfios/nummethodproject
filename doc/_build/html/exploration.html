@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Data exploration &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Results" href="results.html" />
+    <link rel="prev" title="Usage" href="usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="data-exploration">
+<h1>Data exploration<a class="headerlink" href="#data-exploration" title="Link to this heading">¶</a></h1>
+<p>These figures show the full dataset (all 1503 rows, including the test
+hold-out) before any model is fitted. They are written to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code>
+by <code class="docutils literal notranslate"><span class="pre">src/explore_plots.py</span></code>. To update this page:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/explore_plots.py --no-show</span>
+<span class="go">sphinx-build -b html doc doc/_build/html</span>
+</pre></div>
+</div>
+<section id="distribution-of-the-target">
+<h2>Distribution of the target<a class="headerlink" href="#distribution-of-the-target" title="Link to this heading">¶</a></h2>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/explore_spl_distribution.png"><img alt="Histogram of scaled sound pressure level in 1 dB bins, with dashed and dotted lines at the mean and median." src="_images/explore_spl_distribution.png" style="width: 85%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Number of observations in each 1 dB band of scaled sound pressure level.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>SPL ranges from about 103 to 141 dB, with a mean of 124.8 dB and a standard
+deviation of 6.9 dB. The distribution is skewed to the left (skewness about
+−0.4): most measurements lie between 120 and 135 dB, with a longer tail of
+quiet conditions. The mean is slightly below the median (125.7 dB) for the
+same reason. Few rows lie in either tail, so models have little data to
+learn from there. This helps explain why the linear baseline pulls its
+predictions towards the mean (see <a class="reference internal" href="results.html"><span class="doc">Results</span></a>).</p>
+</section>
+<section id="feature-set-a-the-raw-inputs">
+<h2>Feature set A: the raw inputs<a class="headerlink" href="#feature-set-a-the-raw-inputs" title="Link to this heading">¶</a></h2>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="_images/explore_spl_vs_features.png"><img alt="Five scatter plots of SPL against frequency, angle of attack, chord length, free-stream velocity and displacement thickness." src="_images/explore_spl_vs_features.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">SPL against each of the five raw inputs. Frequency is on a log axis.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Chord length and velocity take only six and four distinct values, and the
+angle of attack 27, so the data form vertical bands rather than a
+continuous cloud. Within every band SPL spreads over 20 to 30 dB, so no
+single input explains much of the variance on its own. The average SPL
+rises slightly up to about 800 Hz and then falls at higher frequencies. This hump is a
+non-linear shape that a straight line in frequency cannot follow.</p>
+</section>
+<section id="feature-set-b-the-physics-derived-features">
+<h2>Feature set B: the physics-derived features<a class="headerlink" href="#feature-set-b-the-physics-derived-features" title="Link to this heading">¶</a></h2>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="_images/explore_spl_vs_physics_features.png"><img alt="Three scatter plots of SPL against log frequency, Strouhal number and chord Reynolds number." src="_images/explore_spl_vs_physics_features.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">SPL against the three features that set B adds to set A: log10
+frequency, Strouhal number and chord Reynolds number. Strouhal and
+Reynolds numbers are on log axes.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The Strouhal number, which combines frequency, displacement thickness and
+velocity, collapses the data far more tightly than any raw input. Most of
+the loudest points lie at Strouhal numbers of roughly 0.03 to 0.2, and SPL
+falls steadily at higher values. This suggests
+the spectra share a similar shape once frequency is scaled this way. The
+relationship is still curved, so even with this feature a linear model
+cannot fit it fully. Reynolds number, like chord and velocity, shows
+vertical bands with a wide SPL spread in each.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data exploration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#distribution-of-the-target">Distribution of the target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feature-set-a-the-raw-inputs">Feature set A: the raw inputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feature-set-b-the-physics-derived-features">Feature set B: the physics-derived features</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usage.html" title="previous chapter">Usage</a></li>
+      <li>Next: <a href="results.html" title="next chapter">Results</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/exploration.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
