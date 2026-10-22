@@ -737,6 +737,39 @@ Empty if the model has no linear coefficients.</p>
 </dl>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.evaluate.SETUP_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">SETUP_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['setup_id',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'attack_angle_deg']</span></em><a class="headerlink" href="#functions.evaluate.SETUP_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Columns describing one wind-tunnel setup in <a class="reference internal" href="#functions.evaluate.per_setup_rmse" title="functions.evaluate.per_setup_rmse"><code class="xref py py-func docutils literal notranslate"><span class="pre">per_setup_rmse()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.evaluate.per_setup_rmse">
+<span class="sig-prename descclassname"><span class="pre">functions.evaluate.</span></span><span class="sig-name descname"><span class="pre">per_setup_rmse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/evaluate.html#per_setup_rmse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.evaluate.per_setup_rmse" title="Link to this definition">¶</a></dt>
+<dd><p>Out-of-fold error for every wind-tunnel setup (one noise spectrum each).</p>
+<p>In each CV repeat a setup sits in exactly one validation fold, so it is
+predicted once per seed by a model that never saw it. The setup’s RMSE
+is computed separately for each seed and then averaged over seeds. The
+bias (mean of measured minus predicted) shows whether the model sits
+mostly above or below the measured spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> – Output of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">cross_validate()</span></code></a> (or the tuned-MLP
+equivalent from <a class="reference internal" href="#module-functions.tuning" title="functions.tuning"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.tuning</span></code></a>).</p></li>
+<li><p><strong>data</strong> – The dataset the result was computed on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per setup, worst first, with columns <code class="docutils literal notranslate"><span class="pre">setup_id</span></code>,
+<code class="docutils literal notranslate"><span class="pre">chord_length_m</span></code>, <code class="docutils literal notranslate"><span class="pre">velocity_mps</span></code>, <code class="docutils literal notranslate"><span class="pre">attack_angle_deg</span></code>,
+<code class="docutils literal notranslate"><span class="pre">n_rows</span></code> (measurements in the spectrum), <code class="docutils literal notranslate"><span class="pre">rmse</span></code> (dB, mean over
+seeds), <code class="docutils literal notranslate"><span class="pre">rmse_sd_seeds</span></code> and <code class="docutils literal notranslate"><span class="pre">bias</span></code> (dB; positive means the model
+under-predicts).</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-run_cv">Entry point that cross-validates models on feature sets and reports results.</p>
 <p>Every combination of the requested models and feature sets is evaluated with
 repeated grouped 5-fold CV (<a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>). The
@@ -948,6 +981,32 @@ three panels show what a good, typical and poor prediction looks like.</p>
 <li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
 <li><p><strong>data</strong> – The dataset the results were computed on.</p></li>
 <li><p><strong>seed</strong> – CV seed whose OOF predictions are shown.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_results.plot_setup_spectra">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_setup_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_setup_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_setup_spectra" title="Link to this definition">¶</a></dt>
+<dd><p>Measured and predicted spectra for chosen setups, one panel each.</p>
+<p>Each panel is one wind-tunnel setup: SPL against frequency, with the
+measured spectrum in black and each model’s out-of-fold prediction in
+its series colour. Predictions are averaged over the CV seeds (each seed
+predicts the setup once, from a model that never saw it). Panels have
+their own y-axis, because spectra sit at very different levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a> (or the
+tuned-MLP equivalent), in colour order.</p></li>
+<li><p><strong>data</strong> – The dataset the results were computed on.</p></li>
+<li><p><strong>setup_ids</strong> – Setups to draw, in panel order.</p></li>
+<li><p><strong>titles</strong> – Optional panel titles (default: the setup’s conditions).</p></li>
+<li><p><strong>ncols</strong> – Panels per row.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1296,6 +1355,40 @@ then need extending. Parameters with a single grid value are skipped.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.tuning.refit_outer_predictions">
+<span class="sig-prename descclassname"><span class="pre">functions.tuning.</span></span><span class="sig-name descname"><span class="pre">refit_outer_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outer_scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></span><a class="reference internal" href="_modules/functions/tuning.html#refit_outer_predictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.tuning.refit_outer_predictions" title="Link to this definition">¶</a></dt>
+<dd><p>Rebuild the tuned MLP’s out-of-fold predictions from saved results.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tuning_outer_scores.csv</span></code> records which setting won each outer fold
+but not the row-by-row predictions. Because the MLP has a fixed
+<code class="docutils literal notranslate"><span class="pre">random_state</span></code> and is trained on exactly the same rows, refitting the
+winning setting reproduces each fold’s model, and so its predictions,
+exactly. This takes seconds instead of re-running the whole nested CV.
+Each refitted fold’s RMSE is checked against the saved value as proof.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Dataset with every column the feature set needs.</p></li>
+<li><p><strong>outer_scores</strong> – The saved <a class="reference internal" href="#functions.tuning.TuningResult.outer_scores" title="functions.tuning.TuningResult.outer_scores"><code class="xref py py-attr docutils literal notranslate"><span class="pre">TuningResult.outer_scores</span></code></a> table
+(e.g. read from <code class="docutils literal notranslate"><span class="pre">results/tuning_outer_scores.csv</span></code>).</p></li>
+<li><p><strong>feature_set</strong> – Which feature set’s rows to rebuild.</p></li>
+<li><p><strong>extra_params</strong> – Further fixed model parameters that were in the search
+grid (none for the standard grid; used by the tests).</p></li>
+<li><p><strong>atol</strong> – Largest allowed difference between refitted and saved RMSE.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CVResult</span></code></a> (model <code class="docutils literal notranslate"><span class="pre">&quot;mlp</span> <span class="pre">(tuned)&quot;</span></code>)
+with per-fold scores and OOF predictions.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If no rows match <code class="docutils literal notranslate"><span class="pre">feature_set</span></code>, or a refitted fold’s
+    RMSE differs from the saved one (the saved results then came from
+    different code or data).</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-functions.plot_tuning">Figures for the nested-CV tuning of the MLP.</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#functions.plot_tuning.plot_inner_grid_heatmap" title="functions.plot_tuning.plot_inner_grid_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_inner_grid_heatmap()</span></code></a>: mean inner-CV RMSE for every setting in
@@ -1504,6 +1597,89 @@ result depend on the random shuffle of setups into folds?”</p></li>
 <dd><p>Tune, compare, print and save results for every requested feature set.</p>
 <p>Console output is plain ASCII (R2, +/-) because the Windows console
 cannot always show R² or ±; the saved tables use the proper symbols.</p>
+</dd></dl>
+
+</section>
+<section id="module-run_error_analysis">
+<span id="error-analysis"></span><h2>Error analysis<a class="headerlink" href="#module-run_error_analysis" title="Link to this heading">¶</a></h2>
+<p>Entry point that finds the setups the models predict worst.</p>
+<p>Each wind-tunnel setup (one chord, velocity and angle) gives one noise
+spectrum. This script computes the out-of-fold RMSE of every setup for the
+linear baseline and the tuned MLP, ranks setups by the MLP’s RMSE (the
+better model, so its failures are the interesting ones) and plots the worst
+spectra:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_error_analysis</span><span class="o">.</span><span class="n">py</span>                     <span class="c1"># sets A and B, 10 worst</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_error_analysis</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">B</span> <span class="o">--</span><span class="n">n</span><span class="o">-</span><span class="n">worst</span> <span class="mi">5</span>
+</pre></div>
+</div>
+<p>The MLP’s predictions are rebuilt from <code class="docutils literal notranslate"><span class="pre">results/tuning_outer_scores.csv</span></code>
+(run <code class="docutils literal notranslate"><span class="pre">src/run_tuning.py</span></code> first) by refitting each fold’s chosen setting;
+see <a class="reference internal" href="#functions.tuning.refit_outer_predictions" title="functions.tuning.refit_outer_predictions"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.tuning.refit_outer_predictions()</span></code></a>. This takes about 30 s
+per feature set. The test hold-out is never used.</p>
+<p>Writes, for each feature set <code class="docutils literal notranslate"><span class="pre">&lt;fs&gt;</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">results/setup_rmse_&lt;fs&gt;.csv</span></code>: every setup with both models’ RMSE and bias.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results/worst_setups_&lt;fs&gt;.csv</span></code>: the worst setups by MLP RMSE.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/worst_setups_&lt;fs&gt;.csv</span></code>: a rounded copy for the docs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/worst_setups_spectra_&lt;fs&gt;.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: their spectra.</p></li>
+</ul>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_error_analysis.N_WORST">
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">N_WORST</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#run_error_analysis.N_WORST" title="Link to this definition">¶</a></dt>
+<dd><p>Default number of worst setups to report.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_error_analysis.parse_args">
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.parse_args" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code> and <code class="docutils literal notranslate"><span class="pre">--n-worst</span></code> command-line options.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>argv</strong> – Arguments to parse; <code class="docutils literal notranslate"><span class="pre">None</span></code> reads the command line.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">feature_sets</span></code> and <code class="docutils literal notranslate"><span class="pre">n_worst</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_error_analysis.setup_comparison">
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">setup_comparison</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mlp_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#setup_comparison"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.setup_comparison" title="Link to this definition">¶</a></dt>
+<dd><p>Put both models’ per-setup errors side by side, worst MLP first.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mlp_setups</strong> – <a class="reference internal" href="#functions.evaluate.per_setup_rmse" title="functions.evaluate.per_setup_rmse"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.per_setup_rmse()</span></code></a> for the MLP.</p></li>
+<li><p><strong>linear_setups</strong> – The same for the linear baseline.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per setup with the setup columns, <code class="docutils literal notranslate"><span class="pre">n_rows</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_mlp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">bias_mlp</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_linear</span></code>, <code class="docutils literal notranslate"><span class="pre">bias_linear</span></code> and <code class="docutils literal notranslate"><span class="pre">rank</span></code> (1 =
+worst for the MLP).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_error_analysis.write_doc_table">
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">write_doc_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">worst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#write_doc_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.write_doc_table" title="Link to this definition">¶</a></dt>
+<dd><p>Write a rounded worst-setups table for the HTML results page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>worst</strong> – The top rows of <a class="reference internal" href="#run_error_analysis.setup_comparison" title="run_error_analysis.setup_comparison"><code class="xref py py-func docutils literal notranslate"><span class="pre">setup_comparison()</span></code></a>.</p></li>
+<li><p><strong>feature_set</strong> – Feature set name, used in the file name.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_error_analysis.main">
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.main" title="Link to this definition">¶</a></dt>
+<dd><p>Rank setups by error, print the worst, and save tables and figures.</p>
 </dd></dl>
 
 </section>
@@ -1927,6 +2103,7 @@ interactive inspection rather than the HTML page.</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.evaluate">Cross-validation and metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_results">Results figures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.tuning">MLP tuning (nested cross-validation)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-run_error_analysis">Error analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_distribution">Exploratory plots</a></li>
 </ul>

@@ -589,6 +589,169 @@ for other initialisations were not tested.</p></li>
 </ul>
 </section>
 </section>
+<section id="worst-predicted-setups">
+<h2>Worst-predicted setups<a class="headerlink" href="#worst-predicted-setups" title="Link to this heading">¶</a></h2>
+<p>Each wind-tunnel setup (one chord, velocity and angle) gives one measured
+noise spectrum. To see <em>which</em> conditions the models fail on, the
+out-of-fold RMSE of every one of the 90 cross-validation setups was
+computed. In each CV repeat a setup is predicted once, by a model that never
+saw it, and its RMSE is averaged over the 3 seeds. Setups are ranked by the
+tuned MLP’s RMSE, because the better model’s failures are the informative
+ones. The table and figure are for feature set B, the best combination.</p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">The 10 setups with the highest tuned-MLP RMSE, feature set B (bias = mean of measured − predicted; positive means the model is too low)</span><a class="headerlink" href="#id18" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Rank</p></th>
+<th class="head"><p>Setup</p></th>
+<th class="head"><p>Chord (m)</p></th>
+<th class="head"><p>Velocity (m/s)</p></th>
+<th class="head"><p>Angle (deg)</p></th>
+<th class="head"><p>Frequencies</p></th>
+<th class="head"><p>MLP RMSE (dB)</p></th>
+<th class="head"><p>MLP bias (dB)</p></th>
+<th class="head"><p>Linear RMSE (dB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>19</p></td>
+<td><p>0.0254</p></td>
+<td><p>71.3</p></td>
+<td><p>22.2</p></td>
+<td><p>15</p></td>
+<td><p>6.44</p></td>
+<td><p>3.48</p></td>
+<td><p>7.7</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>18</p></td>
+<td><p>0.0254</p></td>
+<td><p>71.3</p></td>
+<td><p>17.4</p></td>
+<td><p>17</p></td>
+<td><p>4.75</p></td>
+<td><p>-4.41</p></td>
+<td><p>8.91</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>28</p></td>
+<td><p>0.0508</p></td>
+<td><p>39.6</p></td>
+<td><p>19.7</p></td>
+<td><p>14</p></td>
+<td><p>4.54</p></td>
+<td><p>-1.39</p></td>
+<td><p>3.28</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>9</p></td>
+<td><p>0.0254</p></td>
+<td><p>39.6</p></td>
+<td><p>22.2</p></td>
+<td><p>15</p></td>
+<td><p>4.49</p></td>
+<td><p>2.06</p></td>
+<td><p>6.61</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>8</p></td>
+<td><p>0.0254</p></td>
+<td><p>39.6</p></td>
+<td><p>17.4</p></td>
+<td><p>15</p></td>
+<td><p>4.48</p></td>
+<td><p>-1.72</p></td>
+<td><p>8.55</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>55</p></td>
+<td><p>0.1016</p></td>
+<td><p>71.3</p></td>
+<td><p>8.9</p></td>
+<td><p>16</p></td>
+<td><p>4.31</p></td>
+<td><p>1.75</p></td>
+<td><p>5.69</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>93</p></td>
+<td><p>0.2286</p></td>
+<td><p>71.3</p></td>
+<td><p>7.3</p></td>
+<td><p>16</p></td>
+<td><p>4.07</p></td>
+<td><p>2.6</p></td>
+<td><p>7.51</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p>26</p></td>
+<td><p>0.0508</p></td>
+<td><p>39.6</p></td>
+<td><p>11.2</p></td>
+<td><p>14</p></td>
+<td><p>3.83</p></td>
+<td><p>0.26</p></td>
+<td><p>3.66</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p>3</p></td>
+<td><p>0.0254</p></td>
+<td><p>31.7</p></td>
+<td><p>17.4</p></td>
+<td><p>15</p></td>
+<td><p>3.78</p></td>
+<td><p>1.36</p></td>
+<td><p>7.28</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p>14</p></td>
+<td><p>0.0254</p></td>
+<td><p>71.3</p></td>
+<td><p>0.0</p></td>
+<td><p>10</p></td>
+<td><p>3.41</p></td>
+<td><p>1.46</p></td>
+<td><p>5.4</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id19">
+<a class="reference internal image-reference" href="_images/worst_setups_spectra_B.png"><img alt="Ten panels of SPL against frequency for the worst-predicted setups, comparing the measured spectrum with linear and tuned-MLP predictions." src="_images/worst_setups_spectra_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Measured spectra (black) and out-of-fold predictions (averaged over the 3
+seeds) for the 10 worst setups, worst first. Each panel has its own SPL
+axis.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>What the worst setups have in common:</p>
+<ul class="simple">
+<li><p><strong>They cluster at the smallest chord and the most extreme conditions.</strong>
+6 of the 10 have the smallest chord (0.0254 m), 6 are at an angle of attack
+of 17.4° or more, and 5 are at the highest velocity (71.3 m/s). This
+matches the RMSE breakdown above.</p></li>
+<li><p><strong>Several have a sharp, narrow tonal peak</strong> about 10–15 dB above the
+broadband level (ranks 1, 4, 5 and 9: all 0.0254 m chord at 17.4–22.2°).
+Both models smooth the peak out, so most of the error sits within one or
+two frequency bands. The smallest chord also gives the lowest chord
+Reynolds numbers in the dataset (about 5×10⁴ to 1.2×10⁵). Narrow peaks
+like these are consistent with tonal noise mechanisms that appear at low
+Reynolds number, such as laminar boundary-layer vortex shedding. The
+data cannot confirm the mechanism, but it explains why a model trained
+mostly on smooth broadband spectra struggles here.</p></li>
+<li><p><strong>The problem setups are the same for both feature sets.</strong> 9 of the 10
+worst setups for set A are also among the 10 worst for set B
+(<code class="docutils literal notranslate"><span class="pre">results/worst_setups_A.csv</span></code>).</p></li>
+<li><p><strong>The MLP is not better everywhere.</strong> It beats linear on 8 of these 10
+setups, but is worse on ranks 3 and 8 (0.0508 m chord at 39.6 m/s), where
+it puts a peak at the wrong frequency.</p></li>
+</ul>
+<p>Very few training setups resemble these conditions. When one of them is held
+out, the model sees at most a few setups with the same chord at nearby
+angles, so it has to extrapolate. These setups are therefore where the model
+is least trustworthy, and the main limit on its use near stall and at small
+chords.</p>
+</section>
 <section id="runtime-memory-and-flops">
 <h2>Runtime, memory and FLOPs<a class="headerlink" href="#runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
 <p>Each model is fitted once on all cross-validation rows. Times are the median
@@ -596,8 +759,8 @@ of 20 repeats, and peak memory is traced with <code class="docutils literal notr
 bound, since it cannot see memory allocated inside compiled LAPACK code). The
 FLOP count comes from <a class="reference internal" href="api.html#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.linear_flop_estimate()</span></code></a>, and
 the fit rate is the estimated FLOPs divided by the measured fit time.</p>
-<table class="docutils align-default" id="id18">
-<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id18" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id20">
+<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id20" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -692,6 +855,7 @@ not separated from model error, so the lowest achievable RMSE is unknown.</p></l
 <li class="toctree-l2"><a class="reference internal" href="#where-the-errors-are">Where the errors are</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-the-linear-model-learned">What the linear model learned</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tuned-mlp-nested-cross-validation">Tuned MLP (nested cross-validation)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#worst-predicted-setups">Worst-predicted setups</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#runtime-memory-and-flops">Runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-these-results-cannot-show">What these results cannot show</a></li>
 </ul>
