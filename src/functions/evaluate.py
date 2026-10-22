@@ -370,3 +370,49 @@ def coefficient_summary(result: CVResult) -> pd.DataFrame:
         lambda s: float(np.mean(np.sign(s) == mean_sign[s.name]))
     )
     return out
+
+
+#: Columns describing one wind-tunnel setup in :func:`per_setup_rmse`.
+SETUP_COLUMNS = ["setup_id", "chord_length_m", "velocity_mps", "attack_angle_deg"]
+
+
+def per_setup_rmse(result: CVResult, data: pd.DataFrame) -> pd.DataFrame:
+    """Out-of-fold error for every wind-tunnel setup (one noise spectrum each).
+
+    In each CV repeat a setup sits in exactly one validation fold, so it is
+    predicted once per seed by a model that never saw it. The setup's RMSE
+    is computed separately for each seed and then averaged over seeds. The
+    bias (mean of measured minus predicted) shows whether the model sits
+    mostly above or below the measured spectrum.
+
+    Args:
+        result: Output of :func:`cross_validate` (or the tuned-MLP
+            equivalent from :mod:`functions.tuning`).
+        data: The dataset the result was computed on.
+
+    Returns:
+        One row per setup, worst first, with columns ``setup_id``,
+        ``chord_length_m``, ``velocity_mps``, ``attack_angle_deg``,
+        ``n_rows`` (measurements in the spectrum), ``rmse`` (dB, mean over
+        seeds), ``rmse_sd_seeds`` and ``bias`` (dB; positive means the model
+        under-predicts).
+    """
+    # setup_id depends only on (chord, velocity, angle), not on the seed.
+    setups = assign_folds(data)[SETUP_COLUMNS]
+    oof = result.oof[["seed", "row", "y_true", "y_pred"]].join(setups, on="row")
+    oof["residual"] = oof["y_true"] - oof["y_pred"]
+    oof["sq_err"] = oof["residual"] ** 2
+
+    per_seed = oof.groupby(["setup_id", "seed"]).agg(
+        n_rows=("residual", "size"), mse=("sq_err", "mean"), bias=("residual", "mean")
+    )
+    per_seed["rmse"] = np.sqrt(per_seed["mse"])
+    stats = per_seed.groupby(level="setup_id").agg(
+        n_rows=("n_rows", "first"),
+        rmse=("rmse", "mean"),
+        rmse_sd_seeds=("rmse", "std"),
+        bias=("bias", "mean"),
+    )
+    info = setups.drop_duplicates("setup_id").set_index("setup_id")
+    out = info.join(stats, how="inner").reset_index()
+    return out.sort_values("rmse", ascending=False, kind="stable").reset_index(drop=True)
