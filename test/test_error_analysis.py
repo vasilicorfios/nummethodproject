@@ -1,0 +1,140 @@
+"""Tests for :mod:`functions.error_analysis` and its figures.
+
+Most tests use made-up "models" whose errors are known exactly: a perfect
+model (prediction = measurement) and one that is wrong only at each
+setup's peak. The answers can then be worked out by hand.
+"""
+
+import matplotlib
+
+# Non-interactive backend: tests must not open windows.
+matplotlib.use("Agg")
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+from functions.error_analysis import (  # noqa: E402
+    peak_error_share,
+    peak_error_summary,
+    peak_scaling_fit,
+    residual_matrix,
+    spectral_peaks,
+)
+from functions.evaluate import CVResult, per_setup_rmse  # noqa: E402
+from functions.make_folds import TEST_FOLD, assign_folds  # noqa: E402
+from functions.plot_error_analysis import (  # noqa: E402
+    plot_error_map,
+    plot_peak_scaling,
+    plot_residual_heatmap,
+)
+from functions.plot_tuning import save_png_pdf  # noqa: E402
+
+
+def _fake_result(data: pd.DataFrame, offsets: pd.Series | None = None) -> CVResult:
+    """A 'model' predicting every CV row as measured, plus optional offsets (dB)."""
+    folded = assign_folds(data)
+    cv = folded[folded["fold"] != TEST_FOLD]
+    y_pred = cv["spl_db"] + (offsets.reindex(cv.index).fillna(0.0) if offsets is not None else 0.0)
+    oof = pd.DataFrame({"seed": 42, "fold": cv["fold"], "row": cv.index,
+                        "y_true": cv["spl_db"].to_numpy(), "y_pred": y_pred.to_numpy(),
+                        "chord_length_m": cv["chord_length_m"], "velocity_mps": cv["velocity_mps"]})
+    return CVResult("fake", "B", pd.DataFrame(), oof.reset_index(drop=True), pd.DataFrame())
+
+
+@pytest.fixture(scope="module")
+def perfect(data):
+    """A perfect model and the peak table it produces."""
+    result = _fake_result(data)
+    return result, spectral_peaks(data, result)
+
+
+def test_peaks_only_for_cv_setups_and_interior(data, perfect):
+    """One row per CV setup; peaks are interior points with the required prominence."""
+    _, peaks = perfect
+    folded = assign_folds(data)
+    assert set(peaks["setup_id"]) == set(folded.loc[folded["fold"] != TEST_FOLD, "setup_id"])
+    found = peaks[peaks["has_peak"]]
+    assert (found["prominence_db"] >= 5.0).all()
+    assert (found["peak_index"] > 0).all()  # never the first frequency
+    assert found["st_peak"].to_numpy() == pytest.approx(
+        (found["peak_hz"] * found["disp_thickness_m"] / found["velocity_mps"]).to_numpy())
+
+
+def test_perfect_model_finds_every_peak(perfect):
+    """A model equal to the measurements puts its peak exactly on the measured one."""
+    _, peaks = perfect
+    assert (peaks.loc[peaks["has_peak"], "pred_peak_steps_off"] == 0).all()
+
+
+def test_scaling_fit_recovers_exact_strouhal_law():
+    """Peaks at exactly St = 0.1 give slope 1, R² 1 and no Strouhal spread."""
+    u = np.array([31.7, 39.6, 55.5, 71.3, 39.6])
+    length = np.array([0.001, 0.002, 0.004, 0.003, 0.0005])
+    peaks = pd.DataFrame({"has_peak": True, "velocity_mps": u, "disp_thickness_m": length,
+                          "peak_hz": 0.1 * u / length})
+    fit = peak_scaling_fit(peaks, "disp_thickness_m")
+    assert fit["slope"] == pytest.approx(1.0)
+    assert fit["r2"] == pytest.approx(1.0)
+    assert fit["median_st"] == pytest.approx(0.1)
+    assert fit["st_spread"] == pytest.approx(1.0)
+    assert fit["n"] == 5
+
+
+def test_residual_matrix_shape_and_values(data, perfect):
+    """90 CV setups x 21 frequencies; a perfect model has zero residual everywhere measured."""
+    result, _ = perfect
+    matrix = residual_matrix(result, data)
+    assert matrix.shape == (90, 21)
+    assert list(matrix.columns) == sorted(matrix.columns)
+    assert np.nanmax(np.abs(matrix.to_numpy())) == pytest.approx(0.0)
+
+
+def test_peak_error_share_when_error_only_at_peak(data, perfect):
+    """If the only error is at the peak frequency, all squared error is in the window."""
+    _, peaks = perfect
+    folded = assign_folds(data)
+    offsets = {}
+    for _, p in peaks[peaks["has_peak"]].iterrows():
+        rows = folded[folded["setup_id"] == p["setup_id"]].sort_values("frequency_hz")
+        offsets[rows.index[p["peak_index"]]] = 3.0
+    shares = peak_error_share(_fake_result(data, pd.Series(offsets)), data, peaks)
+    assert shares["error_share"].to_numpy() == pytest.approx(1.0)
+    # Window = peak +/- 1 step = 3 frequencies (fewer only if the peak is one from the end).
+    n_freq = folded[folded["fold"] != TEST_FOLD].groupby("setup_id").size()
+    expected = 3 / n_freq.loc[shares["setup_id"]].to_numpy()
+    assert (shares["frequency_share"].to_numpy() <= expected + 1e-12).all()
+    # One 3 dB error over n frequencies gives RMSE 3 / sqrt(n).
+    assert shares["rmse"].to_numpy() == pytest.approx(3 / np.sqrt(n_freq.loc[shares["setup_id"]].to_numpy()))
+
+
+def test_peak_error_summary_hand_calculated():
+    """Medians are taken over all peaked setups and over the strongly tonal ones."""
+    shares = pd.DataFrame({"setup_id": [1, 2, 3], "error_share": [0.1, 0.2, 0.9],
+                           "frequency_share": [0.2, 0.2, 0.25]})
+    peaks = pd.DataFrame({"setup_id": [1, 2, 3], "prominence_db": [6.0, 8.0, 20.0]})
+    out = peak_error_summary(shares, peaks)
+    assert out["n"].tolist() == [3, 1]
+    assert out["median_error_share"].tolist() == pytest.approx([0.2, 0.9])
+    assert out["median_frequency_share"].tolist() == pytest.approx([0.2, 0.25])
+
+
+def test_error_analysis_figures_saved(data, perfect, linear_b, tmp_path):
+    """The error map, peak-scaling plot and residual heatmap save as PNG and PDF."""
+    result, peaks = perfect
+    setups = per_setup_rmse(linear_b, data)
+    paths = save_png_pdf(plot_error_map([("linear", setups)], data,
+                                        setups[["setup_id"]].head(3).assign(rank=[1, 2, 3])),
+                         tmp_path, "map")
+    fit = peak_scaling_fit(peaks, "disp_thickness_m")
+    paths += save_png_pdf(plot_peak_scaling(peaks, fit, "perfect"), tmp_path, "scaling")
+    paths += save_png_pdf(plot_residual_heatmap([("perfect", residual_matrix(result, data))], data, peaks),
+                          tmp_path, "heatmap")
+    assert len(paths) == 6 and all(p.stat().st_size > 0 for p in paths)
+
+
+@pytest.fixture(scope="module")
+def linear_b(data):
+    """Linear baseline on feature set B (fast)."""
+    from functions.evaluate import cross_validate
+    return cross_validate(data, "linear", "B")

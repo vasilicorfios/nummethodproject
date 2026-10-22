@@ -433,6 +433,55 @@
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
+
+
+<span class="c1">#: Columns describing one wind-tunnel setup in :func:`per_setup_rmse`.</span>
+<span class="n">SETUP_COLUMNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="per_setup_rmse">
+<a class="viewcode-back" href="../../api.html#functions.evaluate.per_setup_rmse">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">per_setup_rmse</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Out-of-fold error for every wind-tunnel setup (one noise spectrum each).</span>
+
+<span class="sd">    In each CV repeat a setup sits in exactly one validation fold, so it is</span>
+<span class="sd">    predicted once per seed by a model that never saw it. The setup's RMSE</span>
+<span class="sd">    is computed separately for each seed and then averaged over seeds. The</span>
+<span class="sd">    bias (mean of measured minus predicted) shows whether the model sits</span>
+<span class="sd">    mostly above or below the measured spectrum.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        result: Output of :func:`cross_validate` (or the tuned-MLP</span>
+<span class="sd">            equivalent from :mod:`functions.tuning`).</span>
+<span class="sd">        data: The dataset the result was computed on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per setup, worst first, with columns ``setup_id``,</span>
+<span class="sd">        ``chord_length_m``, ``velocity_mps``, ``attack_angle_deg``,</span>
+<span class="sd">        ``n_rows`` (measurements in the spectrum), ``rmse`` (dB, mean over</span>
+<span class="sd">        seeds), ``rmse_sd_seeds`` and ``bias`` (dB; positive means the model</span>
+<span class="sd">        under-predicts).</span>
+<span class="sd">    """</span>
+    <span class="c1"># setup_id depends only on (chord, velocity, angle), not on the seed.</span>
+    <span class="n">setups</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">)[</span><span class="n">SETUP_COLUMNS</span><span class="p">]</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">oof</span><span class="p">[[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"row"</span><span class="p">,</span> <span class="s2">"y_true"</span><span class="p">,</span> <span class="s2">"y_pred"</span><span class="p">]]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">setups</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"row"</span><span class="p">)</span>
+    <span class="n">oof</span><span class="p">[</span><span class="s2">"residual"</span><span class="p">]</span> <span class="o">=</span> <span class="n">oof</span><span class="p">[</span><span class="s2">"y_true"</span><span class="p">]</span> <span class="o">-</span> <span class="n">oof</span><span class="p">[</span><span class="s2">"y_pred"</span><span class="p">]</span>
+    <span class="n">oof</span><span class="p">[</span><span class="s2">"sq_err"</span><span class="p">]</span> <span class="o">=</span> <span class="n">oof</span><span class="p">[</span><span class="s2">"residual"</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="n">per_seed</span> <span class="o">=</span> <span class="n">oof</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"seed"</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">n_rows</span><span class="o">=</span><span class="p">(</span><span class="s2">"residual"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">),</span> <span class="n">mse</span><span class="o">=</span><span class="p">(</span><span class="s2">"sq_err"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span> <span class="n">bias</span><span class="o">=</span><span class="p">(</span><span class="s2">"residual"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">per_seed</span><span class="p">[</span><span class="s2">"rmse"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">per_seed</span><span class="p">[</span><span class="s2">"mse"</span><span class="p">])</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">per_seed</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">n_rows</span><span class="o">=</span><span class="p">(</span><span class="s2">"n_rows"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span>
+        <span class="n">rmse</span><span class="o">=</span><span class="p">(</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+        <span class="n">rmse_sd_seeds</span><span class="o">=</span><span class="p">(</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"std"</span><span class="p">),</span>
+        <span class="n">bias</span><span class="o">=</span><span class="p">(</span><span class="s2">"bias"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">setups</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"inner"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
 </pre></div>
 
           </div>
@@ -463,6 +512,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>

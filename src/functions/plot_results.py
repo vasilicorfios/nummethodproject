@@ -294,6 +294,62 @@ def plot_example_spectra(results: list[CVResult], data: pd.DataFrame,
     return fig
 
 
+def plot_setup_spectra(results: list[CVResult], data: pd.DataFrame, setup_ids: list[int],
+                       titles: list[str] | None = None, ncols: int = 5) -> Figure:
+    """Measured and predicted spectra for chosen setups, one panel each.
+
+    Each panel is one wind-tunnel setup: SPL against frequency, with the
+    measured spectrum in black and each model's out-of-fold prediction in
+    its series colour. Predictions are averaged over the CV seeds (each seed
+    predicts the setup once, from a model that never saw it). Panels have
+    their own y-axis, because spectra sit at very different levels.
+
+    Args:
+        results: Outputs of :func:`functions.evaluate.cross_validate` (or the
+            tuned-MLP equivalent), in colour order.
+        data: The dataset the results were computed on.
+        setup_ids: Setups to draw, in panel order.
+        titles: Optional panel titles (default: the setup's conditions).
+        ncols: Panels per row.
+
+    Returns:
+        The figure (not shown or saved).
+    """
+    setup_of_row = assign_folds(data)["setup_id"]
+    mean_pred = [r.oof.groupby("row")["y_pred"].mean() for r in results]
+    nrows = -(-len(setup_ids) // ncols)  # ceiling division
+    fig, axes = plt.subplots(nrows, ncols, figsize=(3.3 * ncols, 3.0 * nrows),
+                             squeeze=False, layout="constrained")
+    fig.set_facecolor(SURFACE)
+
+    for k, ax in enumerate(axes.flat):
+        if k >= len(setup_ids):
+            ax.set_visible(False)  # unused panel in the last row
+            continue
+        _style(ax)
+        rows = setup_of_row.index[setup_of_row == setup_ids[k]]
+        spectrum = data.loc[rows].sort_values("frequency_hz")
+        ax.plot(spectrum["frequency_hz"], spectrum["spl_db"], color=INK, linewidth=1.5,
+                marker="o", markersize=3.5, label="Measured")
+        for i, (result, pred) in enumerate(zip(results, mean_pred)):
+            ax.plot(spectrum["frequency_hz"], pred.loc[spectrum.index], color=SERIES_COLOURS[i],
+                    linewidth=2, label=_label(result))
+        _frequency_axis(ax)
+        c = spectrum.iloc[0]
+        ax.set_title(
+            titles[k] if titles else
+            f"c={c['chord_length_m']:.4f} m, U={c['velocity_mps']:.1f} m/s, "
+            f"α={c['attack_angle_deg']:.1f}°",
+            fontsize=8.5, loc="left",
+        )
+    for ax in axes[-1]:
+        ax.set_xlabel("Frequency (Hz)")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("SPL (dB)")
+    axes[0, 0].legend(frameon=False, fontsize=7.5, labelcolor=INK_SECONDARY)
+    return fig
+
+
 def save_result_figures(data: pd.DataFrame, results: list[CVResult], out_dir: Path) -> list[Path]:
     """Draw every results figure and save it as a PNG.
 

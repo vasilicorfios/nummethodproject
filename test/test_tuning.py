@@ -224,6 +224,9 @@ def test_output_csvs_have_expected_columns_and_15_rows(data, tiny_run, tmp_path)
     # 15 folds x 1 setting x 2 inner splits, all of which hit max_iter=20.
     assert summ["inner_fits"].iat[0] == summ["inner_fits_hit_max_iter"].iat[0] == 30
     assert (tmp_path / "tuning_warnings.txt").read_text().strip() == "No warnings."
+    oof = pd.read_csv(tmp_path / tuning.OOF_FILENAME)
+    assert oof.columns[0] == "feature_set"
+    assert len(oof) == outer["n_val"].sum()  # one row per outer-validation measurement
 
 
 def test_tuning_figures_saved_as_png_and_pdf(tiny_run, tmp_path):
@@ -239,3 +242,70 @@ def test_tuning_figures_saved_as_png_and_pdf(tiny_run, tmp_path):
             assert header[1:4] == b"PNG"
         else:
             assert header == b"%PDF"
+
+
+def test_refit_reproduces_saved_predictions(data, tiny_run):
+    """Refitting each fold's chosen setting rebuilds the same predictions exactly."""
+    result, _ = tiny_run
+    rebuilt = tuning.refit_outer_predictions(
+        data, result.outer_scores, "A",
+        extra_params={"regressor__regressor__max_iter": 20}, atol=1e-9,
+    )
+    original = result.cv_result.oof.sort_values(["seed", "row"]).reset_index(drop=True)
+    again = rebuilt.oof.sort_values(["seed", "row"]).reset_index(drop=True)
+    np.testing.assert_allclose(again["y_pred"], original["y_pred"], rtol=0, atol=1e-9)
+
+
+def test_refit_rejects_out_of_date_results(data, tiny_run):
+    """If saved scores do not match a refit, an error is raised instead of silently continuing."""
+    result, _ = tiny_run
+    stale = result.outer_scores.copy()
+    stale.loc[0, "rmse"] += 1.0
+    with pytest.raises(ValueError, match="out of date"):
+        tuning.refit_outer_predictions(
+            data, stale, "A", extra_params={"regressor__regressor__max_iter": 20})
+
+
+def test_setup_spectra_figure(data, tiny_run, tmp_path):
+    """The worst-setup figure draws one panel per setup and saves as PNG and PDF."""
+    from functions.evaluate import per_setup_rmse
+    from functions.plot_results import plot_setup_spectra
+    result, _ = tiny_run
+    worst = per_setup_rmse(result.cv_result, data)["setup_id"].head(3).tolist()
+    fig = plot_setup_spectra([result.cv_result], data, worst, ncols=2)
+    assert sum(ax.get_visible() for ax in fig.axes) == 3
+    paths = save_png_pdf(fig, tmp_path, "worst")
+    assert all(p.stat().st_size > 0 for p in paths)
+
+
+def test_setup_comparison_ranks_by_mlp_rmse():
+    """Setups are matched by id and ranked worst-first by the MLP's RMSE."""
+    import run_error_analysis
+    base = {"chord_length_m": [0.1, 0.2], "velocity_mps": [40.0, 40.0],
+            "attack_angle_deg": [0.0, 5.0], "n_rows": [10, 12]}
+    mlp = pd.DataFrame({"setup_id": [1, 2], **base, "rmse": [2.0, 5.0], "bias": [0.1, -1.0]})
+    lin = pd.DataFrame({"setup_id": [2, 1], "rmse": [6.0, 3.0], "bias": [0.0, 0.5]})
+    out = run_error_analysis.setup_comparison(mlp, lin)
+    assert out["setup_id"].tolist() == [2, 1]
+    assert out["rank"].tolist() == [1, 2]
+    assert out["rmse_linear"].tolist() == [6.0, 3.0]
+
+
+def test_saved_oof_round_trip(data, tiny_run, tmp_path):
+    """Predictions saved by run_tuning load back identically and pass the score check."""
+    result, _ = tiny_run
+    linear = cross_validate(data, "linear", "A")
+    paired = paired_vs_linear(result.outer_scores, linear.fold_scores)
+    summary = pd.DataFrame([run_tuning.summary_row(result, paired)])
+    run_tuning.write_outputs([result], [paired], summary, [], tmp_path)
+
+    saved = pd.read_csv(tmp_path / tuning.OOF_FILENAME)
+    loaded = tuning.tuned_result_from_saved(saved, result.outer_scores, "A")
+    np.testing.assert_allclose(loaded.oof["y_pred"], result.cv_result.oof["y_pred"])
+    assert loaded.oof["angle_band"].cat.ordered  # band order restored after CSV
+    assert loaded.model == tuning.TUNED_LABEL
+
+    stale = saved.copy()
+    stale.loc[0, "y_pred"] += 50.0
+    with pytest.raises(ValueError, match="out of date"):
+        tuning.tuned_result_from_saved(stale, result.outer_scores, "A")

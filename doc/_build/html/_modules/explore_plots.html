@@ -34,27 +34,85 @@
 <span></span><span class="sd">"""Entry point that displays the exploratory plots for the airfoil dataset.</span>
 
 <span class="sd">The plotting functions live in their own modules</span>
-<span class="sd">(:mod:`functions.plot_spl_vs_features`, :mod:`functions.plot_spl_by_chord_length`</span>
-<span class="sd">and :mod:`functions.plot_spl_vs_physics_features`); this script just loads the</span>
-<span class="sd">data, adds the physics features and shows all three figures::</span>
+<span class="sd">(:mod:`functions.plot_spl_distribution`, :mod:`functions.plot_spl_vs_features`,</span>
+<span class="sd">:mod:`functions.plot_spl_by_chord_length` and</span>
+<span class="sd">:mod:`functions.plot_spl_vs_physics_features`); this script loads the data,</span>
+<span class="sd">adds the physics features, saves the figures used by the HTML docs to</span>
+<span class="sd">``doc/generated/`` and then shows every figure::</span>
 
 <span class="sd">    python src/explore_plots.py</span>
+<span class="sd">    python src/explore_plots.py --no-show   # only write the PNGs</span>
 <span class="sd">"""</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_by_chord_length</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_by_chord_length</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_distribution</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_physics_features</span>
+
+<span class="c1">#: Directory for figures included by the Sphinx data page</span>
+<span class="c1">#: (``doc/exploration.rst``): ``&lt;project root&gt;/doc/generated``.</span>
+<span class="n">DOC_FIGURES_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"doc"</span> <span class="o">/</span> <span class="s2">"generated"</span>
+
+
+<div class="viewcode-block" id="save_explore_figures">
+<a class="viewcode-back" href="../api.html#explore_plots.save_explore_figures">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_explore_figures</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DOC_FIGURES_DIR</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Draw the exploratory figures used in the docs and save them as PNGs.</span>
+
+<span class="sd">    The per-chord-length grid is left out: it is very tall and is meant for</span>
+<span class="sd">    interactive inspection rather than the HTML page.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df: Dataset with physics features, as returned by</span>
+<span class="sd">            :func:`functions.physics_features.add_physics_features`.</span>
+<span class="sd">        out_dir: Directory for the PNG files (created if missing).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Paths of the files written: ``explore_spl_distribution.png``,</span>
+<span class="sd">        ``explore_spl_vs_features.png`` and</span>
+<span class="sd">        ``explore_spl_vs_physics_features.png``.</span>
+<span class="sd">    """</span>
+    <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">figures</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"explore_spl_distribution.png"</span><span class="p">:</span> <span class="n">plot_spl_distribution</span><span class="p">(</span><span class="n">df</span><span class="p">),</span>
+        <span class="s2">"explore_spl_vs_features.png"</span><span class="p">:</span> <span class="n">plot_spl_vs_features</span><span class="p">(</span><span class="n">df</span><span class="p">),</span>
+        <span class="s2">"explore_spl_vs_physics_features.png"</span><span class="p">:</span> <span class="n">plot_spl_vs_physics_features</span><span class="p">(</span><span class="n">df</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">written</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">fig</span> <span class="ow">in</span> <span class="n">figures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">out_dir</span> <span class="o">/</span> <span class="n">name</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+        <span class="c1"># Close each figure so it is not shown twice when main() re-draws.</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+        <span class="n">written</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">written</span></div>
+
 
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../api.html#explore_plots.main">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Load the dataset and display all exploratory figures."""</span>
+<span class="w">    </span><span class="sd">"""Save the docs figures, then display all exploratory figures."""</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--no-show"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">"write the PNGs without opening plot windows"</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
     <span class="n">df</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">save_explore_figures</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Wrote </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">no_show</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="n">plot_spl_distribution</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_vs_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_by_chord_length</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_vs_physics_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -94,6 +152,7 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
 </ul>

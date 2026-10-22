@@ -53,6 +53,7 @@ Example:
 # ``pd.DataFrame | None`` on the mock at import time would fail.
 from __future__ import annotations
 
+import ast
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -97,6 +98,9 @@ INNER_CV_SEED = 0
 
 #: GridSearchCV maximises its score, so RMSE is used negated.
 SCORING = "neg_root_mean_squared_error"
+
+#: File (in ``results/``) holding the tuned MLP's out-of-fold predictions.
+OOF_FILENAME = "tuning_oof_predictions.csv"
 
 #: Warn if a grid-edge value wins in more than this fraction of outer folds.
 EDGE_WARNING_FRACTION = 0.5
@@ -430,3 +434,132 @@ def edge_of_grid_warnings(result: TuningResult,
                     f"won in {fraction:.0%} of outer folds; the grid may need extending."
                 )
     return messages
+
+
+def refit_outer_predictions(
+    data: pd.DataFrame,
+    outer_scores: pd.DataFrame,
+    feature_set: str,
+    extra_params: dict | None = None,
+    atol: float = 1e-6,
+) -> CVResult:
+    """Rebuild the tuned MLP's out-of-fold predictions from saved results.
+
+    ``tuning_outer_scores.csv`` records which setting won each outer fold
+    but not the row-by-row predictions. Because the MLP has a fixed
+    ``random_state`` and is trained on exactly the same rows, refitting the
+    winning setting reproduces each fold's model, and so its predictions,
+    exactly. This takes seconds instead of re-running the whole nested CV.
+    Each refitted fold's RMSE is checked against the saved value as proof.
+
+    Args:
+        data: Dataset with every column the feature set needs.
+        outer_scores: The saved :attr:`TuningResult.outer_scores` table
+            (e.g. read from ``results/tuning_outer_scores.csv``).
+        feature_set: Which feature set's rows to rebuild.
+        extra_params: Further fixed model parameters that were in the search
+            grid (none for the standard grid; used by the tests).
+        atol: Largest allowed difference between refitted and saved RMSE.
+
+    Returns:
+        A :class:`~functions.evaluate.CVResult` (model ``"mlp (tuned)"``)
+        with per-fold scores and OOF predictions.
+
+    Raises:
+        ValueError: If no rows match ``feature_set``, or a refitted fold's
+            RMSE differs from the saved one (the saved results then came from
+            different code or data).
+    """
+    rows = outer_scores[outer_scores["feature_set"] == feature_set]
+    if rows.empty:
+        raise ValueError(f"No saved outer scores for feature set {feature_set!r}")
+    columns = get_feature_columns(feature_set)
+    fold_rows, oof_parts = [], []
+
+    for seed, group in rows.groupby("seed", sort=False):
+        folded = assign_folds(data, cv_seed=int(seed))
+        cv = folded[folded["fold"] != TEST_FOLD]  # the test hold-out is never used
+        for _, saved in group.iterrows():
+            train = cv[cv["fold"] != saved["fold"]]
+            val = cv[cv["fold"] == saved["fold"]]
+            # The CSV stores layer sizes as text such as "(128, 128)".
+            params = {
+                LAYERS_KEY: ast.literal_eval(str(saved["hidden_layer_sizes"])),
+                ALPHA_KEY: float(saved["alpha"]),
+                **(extra_params or {}),
+            }
+            model = build_model(MODEL_NAME).set_params(**params)
+            start = time.perf_counter()
+            model.fit(train[columns], train[TARGET])
+            fit_time = time.perf_counter() - start
+            start = time.perf_counter()
+            y_pred = model.predict(val[columns])
+            predict_time = time.perf_counter() - start
+
+            scores = compute_metrics(val[TARGET], y_pred)
+            if abs(scores["rmse"] - saved["rmse"]) > atol:
+                raise ValueError(
+                    f"Refit of {feature_set} seed {seed} fold {saved['fold']} gives RMSE "
+                    f"{scores['rmse']:.6f}, saved {saved['rmse']:.6f}; results are out of date"
+                )
+            fold_rows.append({
+                "seed": int(seed), "fold": int(saved["fold"]),
+                "n_train": len(train), "n_val": len(val), **scores,
+                "fit_time_s": fit_time, "predict_time_s": predict_time,
+            })
+            oof_parts.append(oof_frame(int(seed), int(saved["fold"]), val, y_pred))
+
+    return CVResult(
+        model=TUNED_LABEL,
+        feature_set=feature_set,
+        fold_scores=pd.DataFrame(fold_rows),
+        oof=concat_oof(oof_parts),
+        coefficients=pd.DataFrame(columns=["seed", "fold", "feature", "effect_db_per_sd"]),
+    )
+
+
+def tuned_result_from_saved(
+    oof: pd.DataFrame,
+    outer_scores: pd.DataFrame,
+    feature_set: str,
+    atol: float = 1e-6,
+) -> CVResult:
+    """Rebuild the tuned MLP's result from saved out-of-fold predictions.
+
+    Reads the rows of :data:`OOF_FILENAME` for one feature set. Each fold's
+    RMSE is recomputed from the saved predictions and checked against
+    ``tuning_outer_scores.csv``, so the two files cannot silently disagree.
+
+    Args:
+        oof: Contents of :data:`OOF_FILENAME` (all feature sets).
+        outer_scores: Contents of ``tuning_outer_scores.csv``.
+        feature_set: Which feature set to rebuild.
+        atol: Largest allowed RMSE difference between the two files.
+
+    Returns:
+        A :class:`~functions.evaluate.CVResult` (model ``"mlp (tuned)"``).
+
+    Raises:
+        ValueError: If the feature set is missing, or a fold's RMSE from the
+            saved predictions differs from the saved score.
+    """
+    rows = oof[oof["feature_set"] == feature_set].drop(columns="feature_set")
+    scores = outer_scores[outer_scores["feature_set"] == feature_set].reset_index(drop=True)
+    if rows.empty or scores.empty:
+        raise ValueError(f"No saved tuned-MLP results for feature set {feature_set!r}")
+    for (seed, fold), group in rows.groupby(["seed", "fold"]):
+        rmse = compute_metrics(group["y_true"], group["y_pred"])["rmse"]
+        saved = scores.loc[(scores["seed"] == seed) & (scores["fold"] == fold), "rmse"]
+        if saved.empty or abs(rmse - saved.iat[0]) > atol:
+            raise ValueError(
+                f"Saved predictions for {feature_set} seed {seed} fold {fold} do not match "
+                "tuning_outer_scores.csv; results are out of date"
+            )
+    return CVResult(
+        model=TUNED_LABEL,
+        feature_set=feature_set,
+        fold_scores=scores,
+        # concat_oof restores the ordered band categories lost in the CSV.
+        oof=concat_oof([rows.reset_index(drop=True)]),
+        coefficients=pd.DataFrame(columns=["seed", "fold", "feature", "effect_db_per_sd"]),
+    )

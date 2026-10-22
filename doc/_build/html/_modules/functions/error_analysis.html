@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>functions.error_analysis &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for functions.error_analysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Where and why the models fail: spectral peaks, Strouhal scaling, residuals.</span>
+
+<span class="sd">Three analyses of the out-of-fold predictions, all on the cross-validation</span>
+<span class="sd">setups only (the test hold-out is never looked at):</span>
+
+<span class="sd">* :func:`spectral_peaks` finds the most prominent peak of each measured</span>
+<span class="sd">  spectrum and the frequency at which a model's predicted spectrum peaks.</span>
+<span class="sd">* :func:`peak_scaling_fit` checks a physical law: if a peak is produced at a</span>
+<span class="sd">  fixed Strouhal number ``St = f L / U`` (``L`` a length scale), its</span>
+<span class="sd">  frequency is proportional to ``U / L``. On log axes that is a straight</span>
+<span class="sd">  line of **slope 1**. A fitted slope well away from 1 means a single</span>
+<span class="sd">  Strouhal number does not describe the peaks.</span>
+<span class="sd">* :func:`residual_matrix` and :func:`peak_error_share` show where along the</span>
+<span class="sd">  spectrum the errors sit, and how much of each setup's error comes from the</span>
+<span class="sd">  frequencies around its measured peak.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    &gt;&gt;&gt; from functions.error_analysis import spectral_peaks, peak_scaling_fit</span>
+<span class="sd">    &gt;&gt;&gt; peaks = spectral_peaks(data, mlp_result)      # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; peak_scaling_fit(peaks, "disp_thickness_m")   # doctest: +SKIP</span>
+<span class="sd">"""</span>
+
+<span class="c1"># Postponed annotations: the docs build mocks pandas, and evaluating</span>
+<span class="c1"># ``CVResult | None`` at import time is safest avoided.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">linregress</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
+
+<span class="c1">#: A peak must stand this many dB above the lower of its two neighbouring</span>
+<span class="c1">#: troughs (its "prominence") to count. Below about 5 dB a peak is hard to</span>
+<span class="c1">#: tell from measurement scatter; the scaling conclusions were checked to be</span>
+<span class="c1">#: the same at 3 and 8 dB.</span>
+<span class="n">PEAK_PROMINENCE_DB</span> <span class="o">=</span> <span class="mf">5.0</span>
+
+<span class="c1">#: Peaks at least this prominent are treated as strongly tonal in</span>
+<span class="c1">#: :func:`peak_error_summary` (narrow spikes well above the broadband level).</span>
+<span class="n">TONAL_PROMINENCE_DB</span> <span class="o">=</span> <span class="mf">15.0</span>
+
+<span class="c1">#: Frequencies within this many 1/3-octave steps of the measured peak count</span>
+<span class="c1">#: as "at the peak" in :func:`peak_error_share`.</span>
+<span class="n">PEAK_WINDOW_STEPS</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="c1">#: Columns describing a setup, carried into the peak table.</span>
+<span class="n">_SETUP_INFO</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"disp_thickness_m"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cv_rows</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The cross-validation rows with ``setup_id`` (test hold-out removed)."""</span>
+    <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mean_prediction</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Out-of-fold prediction per data row, averaged over the CV seeds."""</span>
+    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">oof</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"row"</span><span class="p">)[</span><span class="s2">"y_pred"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="spectral_peaks">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.spectral_peaks">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">spectral_peaks</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">prominence_db</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">PEAK_PROMINENCE_DB</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Find each setup's most prominent measured peak (and predicted peak).</span>
+
+<span class="sd">    Peaks are found with :func:`scipy.signal.find_peaks`, which only accepts</span>
+<span class="sd">    interior points, so a spectrum that simply rises or falls to its end has</span>
+<span class="sd">    no peak. Frequencies are 1/3-octave centres, so a peak frequency is only</span>
+<span class="sd">    known to within one 1/3-octave step (about ±12%).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with physics features.</span>
+<span class="sd">        result: Optional model result; adds the frequency at which the</span>
+<span class="sd">            model's seed-averaged predicted spectrum is highest.</span>
+<span class="sd">        prominence_db: Minimum prominence for a measured peak.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per cross-validation setup with the setup columns,</span>
+<span class="sd">        ``has_peak``, ``peak_hz``, ``prominence_db``, ``peak_index`` (position</span>
+<span class="sd">        of the peak in the setup's sorted frequencies), ``st_peak``</span>
+<span class="sd">        (``peak_hz * disp_thickness_m / velocity_mps``) and, with ``result``,</span>
+<span class="sd">        ``pred_peak_hz`` and ``pred_peak_steps_off`` (1/3-octave steps from</span>
+<span class="sd">        the measured peak).</span>
+<span class="sd">    """</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">_cv_rows</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">predicted</span> <span class="o">=</span> <span class="n">_mean_prediction</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">setup_id</span><span class="p">,</span> <span class="n">spectrum</span> <span class="ow">in</span> <span class="n">cv</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">):</span>
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"frequency_hz"</span><span class="p">)</span>
+        <span class="n">freqs</span> <span class="o">=</span> <span class="n">spectrum</span><span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="n">index</span><span class="p">,</span> <span class="n">props</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="s2">"spl_db"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">prominence</span><span class="o">=</span><span class="n">prominence_db</span><span class="p">)</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">_SETUP_INFO</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">setup_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s2">"prominences"</span><span class="p">])]</span>
+            <span class="n">row</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">has_peak</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">peak_hz</span><span class="o">=</span><span class="n">freqs</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">peak_index</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+                       <span class="n">prominence_db</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s2">"prominences"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">row</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">has_peak</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">peak_hz</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">peak_index</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">prominence_db</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">predicted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">k_pred</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">predicted</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">spectrum</span><span class="o">.</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()))</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"pred_peak_hz"</span><span class="p">]</span> <span class="o">=</span> <span class="n">freqs</span><span class="p">[</span><span class="n">k_pred</span><span class="p">]</span>
+            <span class="c1"># Adjacent measured frequencies are one 1/3-octave step apart.</span>
+            <span class="n">row</span><span class="p">[</span><span class="s2">"pred_peak_steps_off"</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_pred</span> <span class="o">-</span> <span class="n">row</span><span class="p">[</span><span class="s2">"peak_index"</span><span class="p">]</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">"has_peak"</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">peaks</span><span class="p">[</span><span class="s2">"st_peak"</span><span class="p">]</span> <span class="o">=</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">]</span> <span class="o">*</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"disp_thickness_m"</span><span class="p">]</span> <span class="o">/</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">peaks</span></div>
+
+
+
+<div class="viewcode-block" id="peak_scaling_fit">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.peak_scaling_fit">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">peak_scaling_fit</span><span class="p">(</span><span class="n">peaks</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">length_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Test whether peak frequencies scale with ``U / L`` (constant Strouhal).</span>
+
+<span class="sd">    Fits ``log10(peak_hz) = slope * log10(U / L) + intercept`` over the setups</span>
+<span class="sd">    that have a peak. Constant-Strouhal scaling predicts ``slope = 1``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        peaks: Output of :func:`spectral_peaks`.</span>
+<span class="sd">        length_column: Column used as the length scale ``L``, e.g.</span>
+<span class="sd">            ``"disp_thickness_m"`` or ``"chord_length_m"``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``length_scale``, ``n`` (setups with a peak), ``slope``,</span>
+<span class="sd">        ``slope_ci95`` (half-width of the 95% confidence interval), ``r2``,</span>
+<span class="sd">        ``median_st`` (median of ``peak_hz * L / U``) and the spread factors</span>
+<span class="sd">        ``peak_hz_spread`` and ``st_spread`` (10 to the power of the SD of</span>
+<span class="sd">        their log10). If Strouhal scaling held, ``st_spread`` would be much</span>
+<span class="sd">        smaller than ``peak_hz_spread``.</span>
+<span class="sd">    """</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">peaks</span><span class="p">[</span><span class="n">peaks</span><span class="p">[</span><span class="s2">"has_peak"</span><span class="p">]]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="n">length_column</span><span class="p">])</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">])</span>
+    <span class="n">fit</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">st</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">length_column</span><span class="p">]</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"length_scale"</span><span class="p">:</span> <span class="n">length_column</span><span class="p">,</span>
+        <span class="s2">"n"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+        <span class="s2">"slope"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">slope</span><span class="p">,</span>
+        <span class="s2">"slope_ci95"</span><span class="p">:</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">fit</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="s2">"intercept"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">intercept</span><span class="p">,</span>
+        <span class="s2">"r2"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">rvalue</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">"median_st"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">median</span><span class="p">()),</span>
+        <span class="s2">"peak_hz_spread"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">])</span><span class="o">.</span><span class="n">std</span><span class="p">()),</span>
+        <span class="s2">"st_spread"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">st</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()),</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="residual_matrix">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.residual_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">residual_matrix</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Mean residual (measured − predicted) for every setup and frequency.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        result: Model result.</span>
+<span class="sd">        data: The dataset the result was computed on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A table indexed by ``setup_id`` with one column per measured</span>
+<span class="sd">        frequency (Hz, ascending). Values are in dB, averaged over seeds;</span>
+<span class="sd">        NaN where that frequency was not measured for the setup. Rows are</span>
+<span class="sd">        ordered by chord, then angle, then velocity.</span>
+<span class="sd">    """</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">_cv_rows</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv</span><span class="p">[</span><span class="s2">"spl_db"</span><span class="p">]</span> <span class="o">-</span> <span class="n">_mean_prediction</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">cv</span><span class="o">.</span><span class="n">index</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"residual"</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">cv</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"frequency_hz"</span><span class="p">]],</span> <span class="n">residual</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"frequency_hz"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"residual"</span><span class="p">)</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)</span>
+             <span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">])[</span><span class="s2">"setup_id"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">order</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="peak_error_share">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.peak_error_share">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">peak_error_share</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">peaks</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                     <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">PEAK_WINDOW_STEPS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""How much of each peaked setup's squared error sits around its peak.</span>
+
+<span class="sd">    For each setup with a measured peak, the frequencies within ``window``</span>
+<span class="sd">    1/3-octave steps of the peak form the "peak window". If errors were</span>
+<span class="sd">    spread evenly along the spectrum, the window's share of the squared</span>
+<span class="sd">    error would equal its share of the frequencies.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        result: Model result.</span>
+<span class="sd">        data: The dataset the result was computed on.</span>
+<span class="sd">        peaks: Output of :func:`spectral_peaks`.</span>
+<span class="sd">        window: Half-width of the peak window in 1/3-octave steps.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per peaked setup: ``setup_id``, ``rmse`` (from the</span>
+<span class="sd">        seed-averaged prediction), ``error_share`` (fraction of squared</span>
+<span class="sd">        error in the window) and ``frequency_share`` (fraction of the</span>
+<span class="sd">        setup's frequencies in the window).</span>
+<span class="sd">    """</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">_cv_rows</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">predicted</span> <span class="o">=</span> <span class="n">_mean_prediction</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">peaks</span><span class="p">[</span><span class="n">peaks</span><span class="p">[</span><span class="s2">"has_peak"</span><span class="p">]]</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">cv</span><span class="p">[</span><span class="n">cv</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"frequency_hz"</span><span class="p">)</span>
+        <span class="n">sq</span> <span class="o">=</span> <span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="s2">"spl_db"</span><span class="p">]</span> <span class="o">-</span> <span class="n">predicted</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">spectrum</span><span class="o">.</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectrum</span><span class="p">))</span>
+        <span class="n">in_window</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">positions</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s2">"peak_index"</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">window</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"setup_id"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]),</span>
+            <span class="s2">"rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sq</span><span class="o">.</span><span class="n">mean</span><span class="p">())),</span>
+            <span class="s2">"error_share"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">sq</span><span class="p">[</span><span class="n">in_window</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">sq</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+            <span class="s2">"frequency_share"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">in_window</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="peak_error_summary">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.peak_error_summary">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">peak_error_summary</span><span class="p">(</span><span class="n">shares</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">peaks</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                       <span class="n">tonal_db</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">TONAL_PROMINENCE_DB</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Median peak-window error share for all peaked and strongly tonal setups.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        shares: :func:`peak_error_share` output for one model.</span>
+<span class="sd">        peaks: :func:`spectral_peaks` output.</span>
+<span class="sd">        tonal_db: Prominence threshold for "strongly tonal".</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Two rows (all peaks, strongly tonal) with ``group``, ``n``,</span>
+<span class="sd">        ``median_error_share`` and ``median_frequency_share``.</span>
+<span class="sd">    """</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">shares</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">peaks</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"prominence_db"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">)</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="sa">f</span><span class="s2">"all peaks (&gt;= </span><span class="si">{</span><span class="n">PEAK_PROMINENCE_DB</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> dB)"</span><span class="p">:</span> <span class="n">merged</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"strongly tonal (&gt;= </span><span class="si">{</span><span class="n">tonal_db</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> dB)"</span><span class="p">:</span> <span class="n">merged</span><span class="p">[</span><span class="n">merged</span><span class="p">[</span><span class="s2">"prominence_db"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">tonal_db</span><span class="p">],</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+        <span class="p">{</span><span class="s2">"group"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"n"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">),</span>
+         <span class="s2">"median_error_share"</span><span class="p">:</span> <span class="n">g</span><span class="p">[</span><span class="s2">"error_share"</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">(),</span>
+         <span class="s2">"median_frequency_share"</span><span class="p">:</span> <span class="n">g</span><span class="p">[</span><span class="s2">"frequency_share"</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">])</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exploration.html">Data exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

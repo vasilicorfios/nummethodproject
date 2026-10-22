@@ -160,3 +160,34 @@ def test_coefficient_summary_hand_calculated():
 def test_coefficients_recorded_for_linear(linear_a):
     """One coefficient per feature for every one of the 15 fits."""
     assert len(linear_a.coefficients) == len(CV_SEEDS) * N_FOLDS * 5
+
+
+def test_per_setup_rmse_hand_calculated(data):
+    """One setup's errors (3, -4) in seed 1 and (0, 0) in seed 2: mean RMSE sqrt(12.5)/2."""
+    from functions.evaluate import per_setup_rmse
+    setups = assign_folds(data)
+    rows = setups.index[setups["setup_id"] == 0][:2]
+    oof = pd.DataFrame({
+        "seed": [1, 1, 2, 2],
+        "row": list(rows) * 2,
+        "y_true": [100.0, 100.0, 100.0, 100.0],
+        "y_pred": [97.0, 104.0, 100.0, 100.0],  # residuals 3, -4, 0, 0
+    })
+    out = per_setup_rmse(CVResult("m", "A", pd.DataFrame(), oof, pd.DataFrame()), data)
+    assert len(out) == 1
+    row = out.iloc[0]
+    assert row["setup_id"] == 0 and row["n_rows"] == 2
+    assert row["rmse"] == pytest.approx(np.sqrt(12.5) / 2)
+    assert row["bias"] == pytest.approx(-0.25)  # mean of seed biases (-0.5, 0)
+    assert row["chord_length_m"] == setups.loc[rows[0], "chord_length_m"]
+
+
+def test_per_setup_rmse_covers_every_cv_setup(data, linear_a):
+    """Every cross-validation setup appears once; no test-set setup appears."""
+    from functions.evaluate import per_setup_rmse
+    out = per_setup_rmse(linear_a, data)
+    folded = assign_folds(data)
+    cv_setups = set(folded.loc[folded["fold"] != TEST_FOLD, "setup_id"])
+    assert set(out["setup_id"]) == cv_setups
+    assert out["setup_id"].is_unique
+    assert out["rmse"].is_monotonic_decreasing  # worst first

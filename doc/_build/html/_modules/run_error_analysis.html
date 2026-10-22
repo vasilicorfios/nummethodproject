@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>run_error_analysis &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for run_error_analysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Entry point that finds the setups the models predict worst.</span>
+
+<span class="sd">Each wind-tunnel setup (one chord, velocity and angle) gives one noise</span>
+<span class="sd">spectrum. This script computes the out-of-fold RMSE of every setup for the</span>
+<span class="sd">linear baseline and the tuned MLP, ranks setups by the MLP's RMSE (the</span>
+<span class="sd">better model, so its failures are the interesting ones) and plots the worst</span>
+<span class="sd">spectra::</span>
+
+<span class="sd">    python src/run_error_analysis.py                     # sets A and B, 10 worst</span>
+<span class="sd">    python src/run_error_analysis.py --feature-sets B --n-worst 5</span>
+
+<span class="sd">The tuned MLP's out-of-fold predictions are read from</span>
+<span class="sd">``results/tuning_oof_predictions.csv``, which ``src/run_tuning.py`` writes.</span>
+<span class="sd">If that file is missing (results from before it was added), they are</span>
+<span class="sd">rebuilt by refitting each fold's chosen setting</span>
+<span class="sd">(:func:`functions.tuning.refit_outer_predictions`, about 30 s per feature</span>
+<span class="sd">set) and the file is written, so later runs can load it directly. Either</span>
+<span class="sd">way every fold is checked against ``tuning_outer_scores.csv``. The test</span>
+<span class="sd">hold-out is never used.</span>
+
+<span class="sd">It then runs three further analyses (:mod:`functions.error_analysis`):</span>
+
+<span class="sd">* an **error map** placing every setup on the test matrix, coloured by RMSE;</span>
+<span class="sd">* a **Strouhal check**: do measured peak frequencies scale with ``U / δ*``</span>
+<span class="sd">  (constant Strouhal number), and does the MLP put its peak in the right</span>
+<span class="sd">  place?</span>
+<span class="sd">* a **residual heatmap** (setups x frequencies) and the share of each</span>
+<span class="sd">  setup's error that sits around its measured peak.</span>
+
+<span class="sd">Writes, for each feature set ``&lt;fs&gt;``:</span>
+
+<span class="sd">* ``results/setup_rmse_&lt;fs&gt;.csv``: every setup with both models' RMSE and bias.</span>
+<span class="sd">* ``results/worst_setups_&lt;fs&gt;.csv``: the worst setups by MLP RMSE.</span>
+<span class="sd">* ``doc/generated/worst_setups_&lt;fs&gt;.csv``: a rounded copy for the docs.</span>
+<span class="sd">* ``doc/generated/worst_setups_spectra_&lt;fs&gt;.png`` and ``.pdf``: their spectra.</span>
+<span class="sd">* ``results/spectral_peaks_&lt;fs&gt;.csv``: measured and predicted peak per setup.</span>
+<span class="sd">* ``results/peak_scaling_&lt;fs&gt;.csv``: Strouhal-scaling fits for δ* and chord.</span>
+<span class="sd">* ``results/peak_error_share_&lt;fs&gt;.csv``: per-setup share of error at the peak.</span>
+<span class="sd">* ``doc/generated/peak_scaling_&lt;fs&gt;.csv`` and ``peak_error_share_&lt;fs&gt;.csv``:</span>
+<span class="sd">  rounded tables for the docs.</span>
+<span class="sd">* ``doc/generated/error_map_&lt;fs&gt;``, ``peak_scaling_&lt;fs&gt;`` and</span>
+<span class="sd">  ``residual_heatmap_&lt;fs&gt;`` (``.png`` and ``.pdf``): the figures.</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span><span class="p">,</span> <span class="n">per_setup_rmse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">peak_error_share</span><span class="p">,</span>
+    <span class="n">peak_error_summary</span><span class="p">,</span>
+    <span class="n">peak_scaling_fit</span><span class="p">,</span>
+    <span class="n">residual_matrix</span><span class="p">,</span>
+    <span class="n">spectral_peaks</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_error_map</span><span class="p">,</span> <span class="n">plot_peak_scaling</span><span class="p">,</span> <span class="n">plot_residual_heatmap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_setup_spectra</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_png_pdf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">OOF_FILENAME</span><span class="p">,</span> <span class="n">refit_outer_predictions</span><span class="p">,</span> <span class="n">tuned_result_from_saved</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">run_cv</span><span class="w"> </span><span class="kn">import</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="n">RESULTS_DIR</span>
+
+<span class="c1">#: Default number of worst setups to report.</span>
+<span class="n">N_WORST</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<div class="viewcode-block" id="parse_args">
+<a class="viewcode-back" href="../api.html#run_error_analysis.parse_args">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Parse the ``--feature-sets`` and ``--n-worst`` command-line options.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        argv: Arguments to parse; ``None`` reads the command line.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Namespace with ``feature_sets`` and ``n_worst``.</span>
+<span class="sd">    """</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--feature-sets"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"+"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">],</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">])</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--n-worst"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">N_WORST</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_tuned_mlp">
+<a class="viewcode-back" href="../api.html#run_error_analysis.load_tuned_mlp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_tuned_mlp</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">outer_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                   <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CVResult</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Get the tuned MLP's out-of-fold predictions, refitting only if needed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with physics features.</span>
+<span class="sd">        outer_scores: Contents of ``results/tuning_outer_scores.csv``.</span>
+<span class="sd">        feature_set: Feature set to load.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The tuned-MLP result, and ``True`` if it had to be refitted (so it</span>
+<span class="sd">        should be saved).</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="n">OOF_FILENAME</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">saved</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">feature_set</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">saved</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="n">tuned_result_from_saved</span><span class="p">(</span><span class="n">saved</span><span class="p">,</span> <span class="n">outer_scores</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">),</span> <span class="kc">False</span>
+    <span class="c1"># Older results without saved predictions: rebuild them exactly by refitting.</span>
+    <span class="k">return</span> <span class="n">refit_outer_predictions</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">outer_scores</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">),</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="save_recovered_predictions">
+<a class="viewcode-back" href="../api.html#run_error_analysis.save_recovered_predictions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_recovered_predictions</span><span class="p">(</span><span class="n">recovered</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CVResult</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Add refitted predictions to :data:`~functions.tuning.OOF_FILENAME`.</span>
+
+<span class="sd">    Rows for other feature sets already in the file are kept.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        recovered: Tuned-MLP results rebuilt by refitting.</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="n">OOF_FILENAME</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">oof</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">feature_set</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">feature_set</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recovered</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">,</span> <span class="n">new</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"feature_set"</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">old</span><span class="p">[</span><span class="o">~</span><span class="n">old</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">new</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">])],</span> <span class="n">new</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">new</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Saved recovered tuned-MLP predictions to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="setup_comparison">
+<a class="viewcode-back" href="../api.html#run_error_analysis.setup_comparison">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_comparison</span><span class="p">(</span><span class="n">mlp_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Put both models' per-setup errors side by side, worst MLP first.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mlp_setups: :func:`functions.evaluate.per_setup_rmse` for the MLP.</span>
+<span class="sd">        linear_setups: The same for the linear baseline.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per setup with the setup columns, ``n_rows``, ``rmse_mlp``,</span>
+<span class="sd">        ``bias_mlp``, ``rmse_linear``, ``bias_linear`` and ``rank`` (1 =</span>
+<span class="sd">        worst for the MLP).</span>
+<span class="sd">    """</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"n_rows"</span><span class="p">]</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">mlp_setups</span><span class="p">[</span><span class="n">keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"bias"</span><span class="p">]]</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">linear_setups</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"bias"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">"_mlp"</span><span class="p">,</span> <span class="s2">"_linear"</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">merged</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"rmse_mlp"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">merged</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"rank"</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">merged</span></div>
+
+
+
+<div class="viewcode-block" id="write_doc_table">
+<a class="viewcode-back" href="../api.html#run_error_analysis.write_doc_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_doc_table</span><span class="p">(</span><span class="n">worst</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Write a rounded worst-setups table for the HTML results page.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        worst: The top rows of :func:`setup_comparison`.</span>
+<span class="sd">        feature_set: Feature set name, used in the file name.</span>
+<span class="sd">    """</span>
+    <span class="n">DOC_TABLES_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Rank"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"rank"</span><span class="p">],</span>
+        <span class="s2">"Setup"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">],</span>
+        <span class="s2">"Chord (m)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"chord_length_m"</span><span class="p">],</span>
+        <span class="s2">"Velocity (m/s)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">],</span>
+        <span class="s2">"Angle (deg)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">],</span>
+        <span class="s2">"Frequencies"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"n_rows"</span><span class="p">],</span>
+        <span class="s2">"MLP RMSE (dB)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"rmse_mlp"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"MLP bias (dB)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"bias_mlp"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Linear RMSE (dB)"</span><span class="p">:</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"rmse_linear"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"worst_setups_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_percent</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format fractions as whole percentages, e.g. 0.123 -&gt; "12%"."""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">values</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"%"</span>
+
+
+<div class="viewcode-block" id="run_extra_analyses">
+<a class="viewcode-back" href="../api.html#run_error_analysis.run_extra_analyses">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">linear</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">mlp</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span>
+                       <span class="n">linear_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                       <span class="n">worst</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Error map, Strouhal check and residual heatmap for one feature set.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with physics features.</span>
+<span class="sd">        linear: Linear baseline result.</span>
+<span class="sd">        mlp: Tuned-MLP result.</span>
+<span class="sd">        linear_setups: :func:`functions.evaluate.per_setup_rmse` for linear.</span>
+<span class="sd">        mlp_setups: The same for the MLP.</span>
+<span class="sd">        worst: The worst-setups table (for rank labels on the error map).</span>
+<span class="sd">    """</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">feature_set</span>
+    <span class="n">mlp_label</span><span class="p">,</span> <span class="n">linear_label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"mlp (tuned) / </span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"linear / </span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="c1"># 1. Error map: where on the test matrix are the badly predicted setups?</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_error_map</span><span class="p">([(</span><span class="n">linear_label</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">),</span> <span class="p">(</span><span class="n">mlp_label</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">)],</span> <span class="n">data</span><span class="p">,</span>
+                         <span class="n">label_ranks</span><span class="o">=</span><span class="n">worst</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"rank"</span><span class="p">]])</span>
+    <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"error_map_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1"># 2. Strouhal check on the measured peaks (and the MLP's predicted peaks).</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">spectral_peaks</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mlp</span><span class="p">)</span>
+    <span class="n">fits</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">peak_scaling_fit</span><span class="p">(</span><span class="n">peaks</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"disp_thickness_m"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">)])</span>
+    <span class="n">peaks</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"spectral_peaks_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">fits</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"peak_scaling_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Length scale L"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"length_scale"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="s2">"δ* (displacement thickness)"</span><span class="p">,</span>
+                                                     <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="s2">"c (chord)"</span><span class="p">}),</span>
+        <span class="s2">"Setups with a peak"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"n"</span><span class="p">],</span>
+        <span class="s2">"Fitted slope (constant St gives 1)"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"slope"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">" ± "</span>
+                                               <span class="o">+</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"slope_ci95"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"R²"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"r2"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Median St = f L / U"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"median_st"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="s2">"</span><span class="si">{:.3g}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">),</span>
+        <span class="s2">"Spread of f (×)"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"peak_hz_spread"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+        <span class="s2">"Spread of St (×)"</span><span class="p">:</span> <span class="n">fits</span><span class="p">[</span><span class="s2">"st_spread"</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"peak_scaling_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_peak_scaling</span><span class="p">(</span><span class="n">peaks</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">mlp_label</span><span class="p">),</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span>
+                 <span class="sa">f</span><span class="s2">"peak_scaling_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">n_close</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">peaks</span><span class="p">[</span><span class="s2">"pred_peak_steps_off"</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Strouhal check (</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">): slope vs U/delta* = </span><span class="si">{</span><span class="n">fits</span><span class="p">[</span><span class="s1">'slope'</span><span class="p">]</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> +/- "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fits</span><span class="p">[</span><span class="s1">'slope_ci95'</span><span class="p">]</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> (1 = constant Strouhal), R2 </span><span class="si">{</span><span class="n">fits</span><span class="p">[</span><span class="s1">'r2'</span><span class="p">]</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">; "</span>
+          <span class="sa">f</span><span class="s2">"MLP peak within one 1/3-octave step in </span><span class="si">{</span><span class="n">n_close</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">peaks</span><span class="p">[</span><span class="s1">'has_peak'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span><span class="si">}</span><span class="s2"> peaked setups"</span><span class="p">)</span>
+
+    <span class="c1"># 3. Where along the spectrum is the error, and how much is at the peak?</span>
+    <span class="n">shares</span><span class="p">,</span> <span class="n">summaries</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="p">((</span><span class="n">linear_label</span><span class="p">,</span> <span class="n">linear</span><span class="p">),</span> <span class="p">(</span><span class="n">mlp_label</span><span class="p">,</span> <span class="n">mlp</span><span class="p">)):</span>
+        <span class="n">share</span> <span class="o">=</span> <span class="n">peak_error_share</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">peaks</span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">shares</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">share</span><span class="p">)</span>
+        <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">peak_error_summary</span><span class="p">(</span><span class="n">share</span><span class="p">,</span> <span class="n">peaks</span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">label</span><span class="p">))</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">shares</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"peak_error_share_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">summaries</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"Model"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+        <span class="s2">"Setups"</span><span class="p">:</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"group"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">", n = "</span> <span class="o">+</span> <span class="n">summary</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"Frequencies in peak window (median)"</span><span class="p">:</span> <span class="n">_percent</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"median_frequency_share"</span><span class="p">]),</span>
+        <span class="s2">"Squared error in peak window (median)"</span><span class="p">:</span> <span class="n">_percent</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"median_error_share"</span><span class="p">]),</span>
+    <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"peak_error_share_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_residual_heatmap</span><span class="p">([(</span><span class="n">linear_label</span><span class="p">,</span> <span class="n">residual_matrix</span><span class="p">(</span><span class="n">linear</span><span class="p">,</span> <span class="n">data</span><span class="p">)),</span>
+                                 <span class="p">(</span><span class="n">mlp_label</span><span class="p">,</span> <span class="n">residual_matrix</span><span class="p">(</span><span class="n">mlp</span><span class="p">,</span> <span class="n">data</span><span class="p">))],</span> <span class="n">data</span><span class="p">,</span> <span class="n">peaks</span><span class="p">)</span>
+    <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"residual_heatmap_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../api.html#run_error_analysis.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rank setups by error, print the worst, and save tables and figures."""</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">add_physics_features</span><span class="p">(</span><span class="n">load_airfoil_data</span><span class="p">())</span>
+    <span class="n">outer_scores</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"tuning_outer_scores.csv"</span><span class="p">)</span>
+
+    <span class="n">recovered</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">feature_set</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">feature_sets</span><span class="p">:</span>
+        <span class="n">linear</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
+        <span class="c1"># Load (or, for older results, rebuild) the MLP's predictions; both</span>
+        <span class="c1"># paths check them against the saved tuning scores fold by fold.</span>
+        <span class="n">mlp</span><span class="p">,</span> <span class="n">refitted</span> <span class="o">=</span> <span class="n">load_tuned_mlp</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">outer_scores</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">refitted</span><span class="p">:</span>
+            <span class="n">recovered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mlp</span><span class="p">)</span>
+        <span class="n">mlp_setups</span><span class="p">,</span> <span class="n">linear_setups</span> <span class="o">=</span> <span class="n">per_setup_rmse</span><span class="p">(</span><span class="n">mlp</span><span class="p">,</span> <span class="n">data</span><span class="p">),</span> <span class="n">per_setup_rmse</span><span class="p">(</span><span class="n">linear</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">setup_comparison</span><span class="p">(</span><span class="n">mlp_setups</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">)</span>
+        <span class="n">worst</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">n_worst</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Feature set </span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">n_worst</span><span class="si">}</span><span class="s2"> worst setups for the tuned MLP "</span>
+              <span class="sa">f</span><span class="s2">"(of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">; RMSE averaged over 3 seeds, dB)"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">worst</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">"n_rows"</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+        <span class="n">RESULTS_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"setup_rmse_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">worst</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"worst_setups_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">write_doc_table</span><span class="p">(</span><span class="n">worst</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
+
+        <span class="n">titles</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">'rank'</span><span class="p">])</span><span class="si">}</span><span class="s2">  c=</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'chord_length_m'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> m, U=</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'velocity_mps'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> m/s, "</span>
+            <span class="sa">f</span><span class="s2">"α=</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'attack_angle_deg'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">°</span><span class="se">\n</span><span class="s2">MLP </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'rmse_mlp'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB, linear </span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="s1">'rmse_linear'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB"</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">worst</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+        <span class="p">]</span>
+        <span class="c1"># Linear first (blue), tuned MLP second (orange), as in every comparison.</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_setup_spectra</span><span class="p">([</span><span class="n">linear</span><span class="p">,</span> <span class="n">mlp</span><span class="p">],</span> <span class="n">data</span><span class="p">,</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">titles</span><span class="o">=</span><span class="n">titles</span><span class="p">)</span>
+        <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"worst_setups_spectra_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">linear</span><span class="p">,</span> <span class="n">mlp</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">,</span> <span class="n">worst</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">recovered</span><span class="p">:</span>
+        <span class="n">save_recovered_predictions</span><span class="p">(</span><span class="n">recovered</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">CSV files written to </span><span class="si">{</span><span class="n">RESULTS_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Documentation tables and figures written to </span><span class="si">{</span><span class="n">DOC_TABLES_DIR</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exploration.html">Data exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

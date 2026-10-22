@@ -1,0 +1,5 @@
+Model,Setups,Frequencies in peak window (median),Squared error in peak window (median)
+linear / A,"all peaks (>= 5 dB), n = 64",21%,30%
+linear / A,"strongly tonal (>= 15 dB), n = 4",20%,55%
+mlp (tuned) / A,"all peaks (>= 5 dB), n = 64",21%,12%
+mlp (tuned) / A,"strongly tonal (>= 15 dB), n = 4",20%,73%
