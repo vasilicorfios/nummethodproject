@@ -1,0 +1,2 @@
+[A] hidden_layer_sizes = (128, 128) (the largest grid value) won in 100% of outer folds; the grid may need extending.
+[B] hidden_layer_sizes = (128, 128) (the largest grid value) won in 60% of outer folds; the grid may need extending.

@@ -52,6 +52,19 @@ Results figures
 .. automodule:: functions.plot_results
    :members:
 
+MLP tuning (nested cross-validation)
+------------------------------------
+
+.. automodule:: functions.tuning
+   :members:
+   :undoc-members:
+
+.. automodule:: functions.plot_tuning
+   :members:
+
+.. automodule:: run_tuning
+   :members:
+
 Performance profiling
 ---------------------
 

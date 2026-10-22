@@ -51,10 +51,17 @@
 <span class="sd">step changes the predictions, but it is applied anyway so every model runs</span>
 <span class="sd">through the same pipeline and the linear coefficients are comparable in size.</span>
 
-<span class="sd">Only the linear baseline is registered so far. Tree-based models, SVR and an</span>
-<span class="sd">MLP are planned; each is added as one :class:`ModelSpec` entry in</span>
-<span class="sd">:data:`MODELS` (trees do not need input scaling, so they would use</span>
-<span class="sd">``scale_inputs=False``).</span>
+<span class="sd">Two models are registered:</span>
+
+<span class="sd">* ``"linear"``: ordinary least squares, the baseline.</span>
+<span class="sd">* ``"mlp"``: a multi-layer perceptron (``MLPRegressor``) with early</span>
+<span class="sd">  stopping. The layer sizes and ``alpha`` set here are only defaults; the</span>
+<span class="sd">  values actually reported come from nested cross-validation in</span>
+<span class="sd">  :mod:`functions.tuning`.</span>
+
+<span class="sd">Tree-based models and SVR are planned; each is added as one</span>
+<span class="sd">:class:`ModelSpec` entry in :data:`MODELS` (trees do not need input</span>
+<span class="sd">scaling, so they would use ``scale_inputs=False``).</span>
 
 <span class="sd">Example:</span>
 <span class="sd">    &gt;&gt;&gt; from functions.models import build_model</span>
@@ -73,8 +80,36 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegressorMixin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformedTargetRegressor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearRegression</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neural_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPRegressor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+
+<span class="c1">#: Default MLP settings. Hidden layer sizes and ``alpha`` are tuned by</span>
+<span class="c1">#: :mod:`functions.tuning`; the rest are fixed for every fit.</span>
+<span class="n">MLP_DEFAULTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+    <span class="s2">"alpha"</span><span class="p">:</span> <span class="mf">1e-3</span><span class="p">,</span>  <span class="c1"># L2 penalty: larger values give smoother, simpler fits</span>
+    <span class="c1"># Hold back 10% of the training rows and stop once their score has not</span>
+    <span class="c1"># improved by more than tol for 20 epochs in a row. This stops</span>
+    <span class="c1"># training before the network starts memorising noise.</span>
+    <span class="s2">"early_stopping"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">"validation_fraction"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="s2">"n_iter_no_change"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">"tol"</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span>
+    <span class="c1"># A high cap, so early stopping (not the cap) decides when to stop.</span>
+    <span class="s2">"max_iter"</span><span class="p">:</span> <span class="mi">2000</span><span class="p">,</span>
+    <span class="c1"># Fixed so the random starting weights, and therefore results, repeat.</span>
+    <span class="s2">"random_state"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_mlp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MLPRegressor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a new MLP with :data:`MLP_DEFAULTS`.</span>
+
+<span class="sd">    Arguments are passed by keyword: ``MLPRegressor``'s first positional</span>
+<span class="sd">    parameter is ``loss``, not the layer sizes.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">MLPRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">MLP_DEFAULTS</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ModelSpec">
@@ -97,11 +132,14 @@
 
 
 
-<span class="c1">#: Model name -&gt; :class:`ModelSpec`. Add planned models (tree-based, SVR,</span>
-<span class="c1">#: MLP) here; anything with randomness must be given a fixed</span>
-<span class="c1">#: ``random_state`` so results are reproducible.</span>
+<span class="c1">#: Model name -&gt; :class:`ModelSpec`. Add planned models (tree-based, SVR)</span>
+<span class="c1">#: here; anything with randomness must be given a fixed ``random_state`` so</span>
+<span class="c1">#: results are reproducible.</span>
 <span class="n">MODELS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">"linear"</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">LinearRegression</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1"># Neural networks train by gradient descent, which needs inputs on</span>
+    <span class="c1"># similar scales, so the inputs are standardised.</span>
+    <span class="s2">"mlp"</span><span class="p">:</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="n">make</span><span class="o">=</span><span class="n">_make_mlp</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
 <span class="p">}</span>
 
 
@@ -203,7 +241,6 @@
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
 </ul>

@@ -18,10 +18,17 @@ Scaling the target to zero mean and unit variance matters for SVR (its
 step changes the predictions, but it is applied anyway so every model runs
 through the same pipeline and the linear coefficients are comparable in size.
 
-Only the linear baseline is registered so far. Tree-based models, SVR and an
-MLP are planned; each is added as one :class:`ModelSpec` entry in
-:data:`MODELS` (trees do not need input scaling, so they would use
-``scale_inputs=False``).
+Two models are registered:
+
+* ``"linear"``: ordinary least squares, the baseline.
+* ``"mlp"``: a multi-layer perceptron (``MLPRegressor``) with early
+  stopping. The layer sizes and ``alpha`` set here are only defaults; the
+  values actually reported come from nested cross-validation in
+  :mod:`functions.tuning`.
+
+Tree-based models and SVR are planned; each is added as one
+:class:`ModelSpec` entry in :data:`MODELS` (trees do not need input
+scaling, so they would use ``scale_inputs=False``).
 
 Example:
     >>> from functions.models import build_model
@@ -40,8 +47,36 @@ import pandas as pd
 from sklearn.base import RegressorMixin
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
+#: Default MLP settings. Hidden layer sizes and ``alpha`` are tuned by
+#: :mod:`functions.tuning`; the rest are fixed for every fit.
+MLP_DEFAULTS = {
+    "hidden_layer_sizes": (64, 64),
+    "alpha": 1e-3,  # L2 penalty: larger values give smoother, simpler fits
+    # Hold back 10% of the training rows and stop once their score has not
+    # improved by more than tol for 20 epochs in a row. This stops
+    # training before the network starts memorising noise.
+    "early_stopping": True,
+    "validation_fraction": 0.1,
+    "n_iter_no_change": 20,
+    "tol": 1e-4,
+    # A high cap, so early stopping (not the cap) decides when to stop.
+    "max_iter": 2000,
+    # Fixed so the random starting weights, and therefore results, repeat.
+    "random_state": 0,
+}
+
+
+def _make_mlp() -> MLPRegressor:
+    """Return a new MLP with :data:`MLP_DEFAULTS`.
+
+    Arguments are passed by keyword: ``MLPRegressor``'s first positional
+    parameter is ``loss``, not the layer sizes.
+    """
+    return MLPRegressor(**MLP_DEFAULTS)
 
 
 @dataclass(frozen=True)
@@ -61,11 +96,14 @@ class ModelSpec:
     scale_inputs: bool = True
 
 
-#: Model name -> :class:`ModelSpec`. Add planned models (tree-based, SVR,
-#: MLP) here; anything with randomness must be given a fixed
-#: ``random_state`` so results are reproducible.
+#: Model name -> :class:`ModelSpec`. Add planned models (tree-based, SVR)
+#: here; anything with randomness must be given a fixed ``random_state`` so
+#: results are reproducible.
 MODELS = {
     "linear": ModelSpec(make=LinearRegression, scale_inputs=True),
+    # Neural networks train by gradient descent, which needs inputs on
+    # similar scales, so the inputs are standardised.
+    "mlp": ModelSpec(make=_make_mlp, scale_inputs=True),
 }
 
 

@@ -57,8 +57,10 @@ It is repeated with seeds 42, 43 and 44.</p></li>
 model that did not see it during training (an out-of-fold, or OOF,
 prediction).</p></li>
 <li><p><strong>Metrics:</strong> RMSE (the main metric), MAE and R² are computed on each
-seed’s pooled OOF predictions. Each table entry is the mean ± standard
-deviation over the three seeds.</p></li>
+validation fold separately. Each summary entry is the mean ± sample
+standard deviation over all 15 folds (5 folds × 3 seeds). Every fold
+scores a model on a batch of setups it never saw, so the ± shows how much
+the score changes from one batch of unseen setups to the next.</p></li>
 <li><p><strong>Timings:</strong> <code class="docutils literal notranslate"><span class="pre">time.perf_counter</span></code> around each fold’s fit and predict,
 averaged over all 15 folds.</p></li>
 </ul>
@@ -68,6 +70,10 @@ averaged over all 15 folds.</p></li>
 <li><p><strong>linear:</strong> ordinary least-squares linear regression (the baseline).
 Inputs and target are standardised with scalers fitted on the training
 folds only.</p></li>
+<li><p><strong>mlp (tuned):</strong> a multi-layer perceptron whose network size and L2
+penalty <code class="docutils literal notranslate"><span class="pre">alpha</span></code> are chosen by nested cross-validation (see
+<a class="reference internal" href="#tuned-mlp-nested-cross-validation">Tuned MLP (nested cross-validation)</a> below). It uses the same scaling
+pipeline and the same outer folds as the linear baseline.</p></li>
 </ul>
 <p>Feature sets: <strong>A</strong> = the five raw inputs; <strong>B</strong> = A + log10 frequency,
 Strouhal number and chord Reynolds number.</p>
@@ -76,7 +82,7 @@ Strouhal number and chord Reynolds number.</p>
 <section id="overall-accuracy">
 <h2>Overall accuracy<a class="headerlink" href="#overall-accuracy" title="Link to this heading">¶</a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Out-of-fold metrics (mean ± std over CV seeds)</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<caption><span class="caption-text">Validation metrics (mean ± std over all 15 folds)</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -90,19 +96,19 @@ Strouhal number and chord Reynolds number.</p>
 <tbody>
 <tr class="row-even"><td><p>linear</p></td>
 <td><p>A</p></td>
-<td><p>4.897 ± 0.020</p></td>
-<td><p>3.813 ± 0.023</p></td>
-<td><p>0.497 ± 0.004</p></td>
-<td><p>6.86</p></td>
-<td><p>2.76</p></td>
+<td><p>4.894 ± 0.235</p></td>
+<td><p>3.815 ± 0.218</p></td>
+<td><p>0.485 ± 0.078</p></td>
+<td><p>4.08</p></td>
+<td><p>1.63</p></td>
 </tr>
 <tr class="row-odd"><td><p>linear</p></td>
 <td><p>B</p></td>
-<td><p>4.586 ± 0.007</p></td>
-<td><p>3.572 ± 0.007</p></td>
-<td><p>0.559 ± 0.001</p></td>
-<td><p>7.01</p></td>
-<td><p>2.78</p></td>
+<td><p>4.582 ± 0.254</p></td>
+<td><p>3.574 ± 0.221</p></td>
+<td><p>0.548 ± 0.072</p></td>
+<td><p>3.8</p></td>
+<td><p>1.42</p></td>
 </tr>
 </tbody>
 </table>
@@ -119,7 +125,8 @@ cross-validation row appears once. Points on the dashed line are perfect
 predictions. The clouds are flatter than the line: the models
 over-predict quiet conditions and under-predict loud ones, pulling
 extremes towards the mean. The RMSE in each title is for this one seed,
-so it differs slightly from the mean over seeds in the table above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+pooled over all its folds, so it differs slightly from the mean of
+per-fold scores in the table above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -359,6 +366,229 @@ number with chord and velocity), so the model cannot separate their
 individual effects. Their coefficients should not be given a physical
 meaning, even though the predictions themselves are stable.</p>
 </section>
+<section id="tuned-mlp-nested-cross-validation">
+<h2>Tuned MLP (nested cross-validation)<a class="headerlink" href="#tuned-mlp-nested-cross-validation" title="Link to this heading">¶</a></h2>
+<section id="how-it-was-tuned">
+<h3>How it was tuned<a class="headerlink" href="#how-it-was-tuned" title="Link to this heading">¶</a></h3>
+<p>For every seed and outer fold, an <strong>inner</strong> grouped 5-fold cross-validation
+on the outer-training setups compared 35 settings: hidden layers (32,),
+(64,), (32, 32), (64, 64) and (128, 128), each with alpha 1e-5, 1e-4, 1e-3,
+1e-2, 0.1, 1 and 10. The setting with the lowest inner RMSE was refitted on
+all outer-training rows and scored on the <strong>outer</strong> fold, which played no
+part in the choice. Every split keeps a setup’s rows together, and the test
+hold-out was not used.</p>
+<p>The grid was widened once. In a one-seed trial with the original 20
+settings (largest network (64, 64), largest alpha 0.1), the largest network
+won every fold and the largest alpha won four of five, so the best settings
+sat on the edge of the grid. (128, 128) and alphas 1 and 10 were added
+before the full run reported here.</p>
+</section>
+<section id="accuracy-and-comparison-with-linear">
+<h3>Accuracy and comparison with linear<a class="headerlink" href="#accuracy-and-comparison-with-linear" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Tuned MLP outer-fold results and paired comparison with linear</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Feature set</p></th>
+<th class="head"><p>Outer folds</p></th>
+<th class="head"><p>MLP RMSE (dB), mean ± SD over folds</p></th>
+<th class="head"><p>MLP RMSE SD across seeds (dB)</p></th>
+<th class="head"><p>MLP MAE (dB)</p></th>
+<th class="head"><p>MLP R²</p></th>
+<th class="head"><p>Linear RMSE (dB)</p></th>
+<th class="head"><p>MLP − linear RMSE per fold (dB)</p></th>
+<th class="head"><p>Folds MLP won</p></th>
+<th class="head"><p>Tuning time (min)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>15</p></td>
+<td><p>2.561 ± 0.332</p></td>
+<td><p>0.027</p></td>
+<td><p>1.818 ± 0.176</p></td>
+<td><p>0.855 ± 0.050</p></td>
+<td><p>4.894</p></td>
+<td><p>-2.333 ± 0.383</p></td>
+<td><p>15 / 15</p></td>
+<td><p>23.8</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>15</p></td>
+<td><p>2.365 ± 0.227</p></td>
+<td><p>0.052</p></td>
+<td><p>1.689 ± 0.132</p></td>
+<td><p>0.879 ± 0.030</p></td>
+<td><p>4.582</p></td>
+<td><p>-2.217 ± 0.174</p></td>
+<td><p>15 / 15</p></td>
+<td><p>19.8</p></td>
+</tr>
+</tbody>
+</table>
+<p>Two spreads are reported. <strong>SD over folds</strong> is how much the score changes
+from one batch of unseen setups to the next. <strong>SD across seeds</strong> is how much
+the average depends on the random shuffle of setups into folds. The second
+is much smaller, so the results do not hinge on one particular split.</p>
+<p>Both models are scored on exactly the same folds, so the fair comparison is
+the RMSE difference within each fold (MLP minus linear; negative means the
+MLP was better). The tuned MLP was better than linear in every outer fold on
+both feature sets, by roughly 2.2–2.3 dB. That is far larger than the spread
+of the differences. As with the linear model, feature set B gives a lower
+MLP RMSE than set A.</p>
+<figure class="align-default" id="id10">
+<a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_A.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set A." src="_images/tuning_pred_vs_measured_A.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set A: out-of-fold predictions for one seed, linear (left) and
+tuned MLP (right). The MLP’s points lie much closer to the y = x line,
+including the quiet and loud extremes that the linear model pulls
+towards the mean.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id11">
+<a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_B.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set B." src="_images/tuning_pred_vs_measured_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set B: the same comparison.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="where-the-mlp-still-struggles">
+<h3>Where the MLP still struggles<a class="headerlink" href="#where-the-mlp-still-struggles" title="Link to this heading">¶</a></h3>
+<figure class="align-default" id="id12">
+<a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_A.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set A." src="_images/tuning_rmse_breakdown_A.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set A: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id13">
+<a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_B.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set B." src="_images/tuning_rmse_breakdown_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set B: RMSE by subgroup, linear and tuned MLP.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The MLP lowers the error in every subgroup, but the pattern is the same as
+for linear: the smallest chord, angles above 15° and the lowest frequency
+band remain the hardest conditions to predict. One new pattern appears:
+for the MLP, the highest free-stream velocity (71.3 m/s) has a noticeably
+larger error than the other velocities, which was not the case for linear.</p>
+</section>
+<section id="which-settings-were-chosen">
+<h3>Which settings were chosen<a class="headerlink" href="#which-settings-were-chosen" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">Settings chosen by the inner CV (settings that never won are omitted)</span><a class="headerlink" href="#id14" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Feature set</p></th>
+<th class="head"><p>Hidden layer sizes</p></th>
+<th class="head"><p>alpha</p></th>
+<th class="head"><p>Outer folds won</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>(128, 128)</p></td>
+<td><p>0.1</p></td>
+<td><p>9</p></td>
+</tr>
+<tr class="row-odd"><td><p>A</p></td>
+<td><p>(128, 128)</p></td>
+<td><p>1</p></td>
+<td><p>5</p></td>
+</tr>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>(128, 128)</p></td>
+<td><p>0.01</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>(128, 128)</p></td>
+<td><p>1</p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p>B</p></td>
+<td><p>(64, 64)</p></td>
+<td><p>0.1</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>(64, 64)</p></td>
+<td><p>1</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p>B</p></td>
+<td><p>(128, 128)</p></td>
+<td><p>0.1</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>(64,)</p></td>
+<td><p>0.001</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>B</p></td>
+<td><p>(32, 32)</p></td>
+<td><p>0.1</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id15">
+<a class="reference internal image-reference" href="_images/tuning_inner_grid_heatmap.png"><img alt="Heatmaps of mean inner-CV RMSE over network size and alpha for feature sets A and B, with the best cell outlined." src="_images/tuning_inner_grid_heatmap.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Mean inner-CV RMSE for every setting, averaged over all outer folds and
+seeds; the outlined cell is the best. Alpha = 10 is clearly too strong a
+penalty for every network, and the best alphas are 0.1–1, so the alpha
+range now brackets the optimum. Larger networks do better, but the gain
+shrinks: on set B, (128, 128) and (64, 64) are almost tied at alpha 1.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p><strong>Edge-of-grid warning.</strong> The largest network, (128, 128), was chosen in 15 of
+15 outer folds on set A and in 9 of 15 on set B. A still larger network might
+be slightly better, especially on set A. On set B, the heatmap shows the
+improvement from (64, 64) to (128, 128) is already very small.</p>
+</section>
+<section id="early-stopping">
+<h3>Early stopping<a class="headerlink" href="#early-stopping" title="Link to this heading">¶</a></h3>
+<figure class="align-default" id="id16">
+<a class="reference internal image-reference" href="_images/tuning_loss_curves_A.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set A." src="_images/tuning_loss_curves_A.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set A: training loss (top) and early-stopping R² (bottom) per
+epoch for the selected model in three outer folds. The dashed line marks
+the best epoch; the final model keeps those weights.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id17">
+<a class="reference internal image-reference" href="_images/tuning_loss_curves_B.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set B." src="_images/tuning_loss_curves_B.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Feature set B: the same curves.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>No fit, inner or refit, reached the <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> cap of 2000 epochs: early
+stopping ended every one.</p>
+</section>
+<section id="limitations-of-the-tuning">
+<h3>Limitations of the tuning<a class="headerlink" href="#limitations-of-the-tuning" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Early stopping holds back random rows, not whole setups.</strong>
+<code class="docutils literal notranslate"><span class="pre">MLPRegressor</span></code> decides when to stop using a random 10% of the rows it is
+trained on. Rows from one setup are strongly correlated, so these
+held-back rows usually have near-identical neighbours from the same setup
+in the training data. The stopping check is therefore mildly optimistic,
+and training may stop a little late. This does not affect the reported
+scores, which come from grouped outer folds that early stopping never sees.</p></li>
+<li><p><strong>Inner folds are grouped but not stratified on chord.</strong></p></li>
+<li><p><strong>The largest network was often chosen</strong>, so the grid may not contain the
+best size (see above).</p></li>
+<li><p><strong>One weight initialisation.</strong> Every MLP uses <code class="docutils literal notranslate"><span class="pre">random_state=0</span></code>. Results
+for other initialisations were not tested.</p></li>
+</ul>
+</section>
+</section>
 <section id="runtime-memory-and-flops">
 <h2>Runtime, memory and FLOPs<a class="headerlink" href="#runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
 <p>Each model is fitted once on all cross-validation rows. Times are the median
@@ -366,8 +596,8 @@ of 20 repeats, and peak memory is traced with <code class="docutils literal notr
 bound, since it cannot see memory allocated inside compiled LAPACK code). The
 FLOP count comes from <a class="reference internal" href="api.html#functions.profiling.linear_flop_estimate" title="functions.profiling.linear_flop_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.profiling.linear_flop_estimate()</span></code></a>, and
 the fit rate is the estimated FLOPs divided by the measured fit time.</p>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">Profile of one fit on all CV rows</span><a class="headerlink" href="#id18" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -461,6 +691,7 @@ not separated from model error, so the lowest achievable RMSE is unknown.</p></l
 <li class="toctree-l2"><a class="reference internal" href="#overall-accuracy">Overall accuracy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#where-the-errors-are">Where the errors are</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-the-linear-model-learned">What the linear model learned</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tuned-mlp-nested-cross-validation">Tuned MLP (nested cross-validation)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#runtime-memory-and-flops">Runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-these-results-cannot-show">What these results cannot show</a></li>
 </ul>

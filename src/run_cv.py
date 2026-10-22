@@ -10,8 +10,9 @@ B::
 
 Results are printed and written as CSV files to ``results/``:
 
-* ``cv_summary.csv``: one row per model/feature set (OOF RMSE, MAE, R² as
-  mean and std over seeds; mean fit and predict time per fold).
+* ``cv_summary.csv``: one row per model/feature set (validation RMSE, MAE,
+  R² as mean and std over all 15 folds, 5 folds x 3 seeds; mean fit and
+  predict time per fold).
 * ``cv_fold_scores.csv``: scores and timings for every seed and fold.
 * ``cv_rmse_breakdown.csv``: OOF RMSE by chord, velocity, angle band and
   frequency band.
@@ -154,7 +155,7 @@ def main() -> None:
     breakdown = pd.concat(breakdowns, ignore_index=True)
 
     with pd.option_context("display.width", 120, "display.float_format", "{:.4f}".format):
-        print("Out-of-fold metrics (mean and std over CV seeds; times are mean per fold)")
+        print("Validation metrics (mean and std over all folds of all seeds; times are mean per fold)")
         print(summary.to_string(index=False))
         print("\nOut-of-fold RMSE breakdown (dB)")
         # One column per model/feature set so they can be compared side by side.
