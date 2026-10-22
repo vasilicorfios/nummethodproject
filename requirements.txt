@@ -1,0 +1,23 @@
+# Exact versions used for every result in this repository (Python 3.10.5).
+# Install with:  pip install -r requirements.txt
+
+# Data handling and numerics
+numpy==1.24.2
+pandas==2.3.3
+scipy==1.15.3
+openpyxl==3.1.5          # reads data/airfoil_self_noise.xlsx
+
+# Models
+scikit-learn==1.7.2
+joblib==1.6.0            # saves the final trained models (run_final.py)
+threadpoolctl==3.7.0     # reports maths-library threads in the profile
+
+# Figures
+matplotlib==3.7.1
+
+# Tests and test report
+pytest==9.1.1
+pytest-html==4.2.0
+
+# HTML documentation
+sphinx==8.1.3
