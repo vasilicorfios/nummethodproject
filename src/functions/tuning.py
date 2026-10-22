@@ -158,6 +158,7 @@ class TuningResult:
         selected_models: The refitted best model of each outer fold, keyed
             by ``(seed, fold)``; used for the loss-curve figure.
         param_grid: The grid that was searched.
+        n_inner_splits: Number of inner folds used.
     """
 
     feature_set: str
@@ -166,6 +167,7 @@ class TuningResult:
     cv_result: CVResult
     selected_models: dict[tuple[int, int], TransformedTargetRegressor]
     param_grid: dict
+    n_inner_splits: int = N_INNER_SPLITS
 
 
 def nested_cv(
@@ -293,6 +295,7 @@ def nested_cv(
         cv_result=cv_result,
         selected_models=selected,
         param_grid=param_grid,
+        n_inner_splits=n_inner_splits,
     )
 
 

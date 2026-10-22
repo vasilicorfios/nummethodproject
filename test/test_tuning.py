@@ -7,13 +7,25 @@ inner folds, no test-set rows anywhere, and outer validation rows never
 reaching the tuning search.
 """
 
-import numpy as np
-import pandas as pd
-import pytest
+import matplotlib
 
-import functions.tuning as tuning
-from functions.make_folds import CV_SEEDS, N_FOLDS, TEST_FOLD, assign_folds
-from functions.tuning import (
+# Non-interactive backend: tests must not open windows.
+matplotlib.use("Agg")
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+import functions.tuning as tuning  # noqa: E402
+import run_tuning  # noqa: E402
+from functions.evaluate import cross_validate  # noqa: E402
+from functions.make_folds import CV_SEEDS, N_FOLDS, TEST_FOLD, assign_folds  # noqa: E402
+from functions.plot_tuning import (  # noqa: E402
+    plot_inner_grid_heatmap,
+    plot_loss_curves,
+    save_png_pdf,
+)
+from functions.tuning import (  # noqa: E402
     ALPHA_KEY,
     INNER_COLUMNS,
     LAYERS_KEY,
@@ -181,3 +193,45 @@ def test_no_edge_warning_for_interior_winners():
     result = _fake_result(["(64,)"] * 4, [1e-3] * 4)
     assert edge_of_grid_warnings(result) == []
 
+
+
+def test_output_csvs_have_expected_columns_and_15_rows(data, tiny_run, tmp_path):
+    """All result CSVs are written with the documented columns; 15 rows for 3 seeds."""
+    result, _ = tiny_run
+    linear = cross_validate(data, "linear", "A")
+    paired = paired_vs_linear(result.outer_scores, linear.fold_scores)
+    summary = pd.DataFrame([run_tuning.summary_row(result, paired)])
+    run_tuning.write_outputs([result], [paired], summary, [], tmp_path)
+
+    outer = pd.read_csv(tmp_path / "tuning_outer_scores.csv")
+    assert list(outer.columns) == OUTER_COLUMNS
+    assert len(outer) == len(CV_SEEDS) * N_FOLDS
+    inner = pd.read_csv(tmp_path / "tuning_inner_grid.csv")
+    assert list(inner.columns) == INNER_COLUMNS
+    selected = pd.read_csv(tmp_path / "tuning_selected_params.csv")
+    assert {"hidden_layer_sizes", "alpha", "n_folds_won", "fraction_won"} <= set(selected.columns)
+    pair = pd.read_csv(tmp_path / "tuning_paired_vs_linear.csv")
+    assert {"rmse_mlp", "rmse_linear", "rmse_diff"} <= set(pair.columns)
+    assert len(pair) == len(CV_SEEDS) * N_FOLDS
+    summ = pd.read_csv(tmp_path / "tuning_summary.csv")
+    for column in ["rmse_mean", "rmse_sd_folds", "rmse_sd_seeds", "rmse_diff_mean",
+                   "mlp_wins", "tuning_time_total_s", "inner_fits_hit_max_iter"]:
+        assert column in summ.columns
+    # 15 folds x 1 setting x 2 inner splits, all of which hit max_iter=20.
+    assert summ["inner_fits"].iat[0] == summ["inner_fits_hit_max_iter"].iat[0] == 30
+    assert (tmp_path / "tuning_warnings.txt").read_text().strip() == "No warnings."
+
+
+def test_tuning_figures_saved_as_png_and_pdf(tiny_run, tmp_path):
+    """The heatmap and loss curves are written in both formats."""
+    result, _ = tiny_run
+    keys = list(result.selected_models)[:2]
+    paths = save_png_pdf(plot_inner_grid_heatmap([result]), tmp_path, "heatmap")
+    paths += save_png_pdf(plot_loss_curves(result, keys), tmp_path, "loss")
+    for path in paths:
+        header = path.read_bytes()[:4]
+        # PNG files start with byte 0x89 then "PNG"; PDF files with "%PDF".
+        if path.suffix == ".png":
+            assert header[1:4] == b"PNG"
+        else:
+            assert header == b"%PDF"
