@@ -13,7 +13,7 @@ Writes to ``results/``:
 * ``tuning_outer_scores.csv``: one row per (feature set, seed, outer fold):
   chosen setting, inner-CV best RMSE, outer RMSE/MAE/R², epochs run,
   max-iter hits and timings.
-* ``tuning_inner_grid.csv``: mean and std inner-CV RMSE of all 20 settings
+* ``tuning_inner_grid.csv``: mean and std inner-CV RMSE of all 35 settings
   for every (feature set, seed, outer fold).
 * ``tuning_selected_params.csv``: how often each setting was chosen.
 * ``tuning_paired_vs_linear.csv``: per-fold RMSE of MLP and linear and their

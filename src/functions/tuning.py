@@ -79,11 +79,14 @@ TUNED_LABEL = "mlp (tuned)"
 LAYERS_KEY = "regressor__regressor__hidden_layer_sizes"
 ALPHA_KEY = "regressor__regressor__alpha"
 
-#: The 20 settings tried in every inner search (4 architectures x 5 alphas).
-#: Layer sizes are listed from smallest to largest network.
+#: The 35 settings tried in every inner search (5 architectures x 7 alphas).
+#: Layer sizes are listed from smallest to largest network. (128, 128) and
+#: alphas 1 and 10 were added after a one-seed trial run in which the
+#: largest network (64, 64) and largest alpha (0.1) won most folds, i.e.
+#: the best settings sat on the edge of the original 20-setting grid.
 PARAM_GRID = {
-    LAYERS_KEY: [(32,), (64,), (32, 32), (64, 64)],
-    ALPHA_KEY: [1e-5, 1e-4, 1e-3, 1e-2, 1e-1],
+    LAYERS_KEY: [(32,), (64,), (32, 32), (64, 64), (128, 128)],
+    ALPHA_KEY: [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0],
 }
 
 #: Number of inner folds used to choose hyperparameters.

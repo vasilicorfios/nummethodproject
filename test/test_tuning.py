@@ -72,9 +72,11 @@ def tiny_run(data):
     return result, list(RecordingGridSearchCV.calls)
 
 
-def test_grid_is_the_requested_20_settings():
-    """4 architectures x 5 alphas, keyed to the real pipeline's parameter names."""
-    assert len(PARAM_GRID[LAYERS_KEY]) * len(PARAM_GRID[ALPHA_KEY]) == 20
+def test_grid_is_the_requested_35_settings():
+    """5 architectures x 7 alphas, keyed to the real pipeline's parameter names."""
+    assert len(PARAM_GRID[LAYERS_KEY]) * len(PARAM_GRID[ALPHA_KEY]) == 35
+    assert PARAM_GRID[LAYERS_KEY][-1] == (128, 128)
+    assert PARAM_GRID[ALPHA_KEY][-2:] == [1.0, 10.0]
     from functions.models import build_model
     params = build_model("mlp").get_params()
     assert LAYERS_KEY in params and ALPHA_KEY in params
@@ -182,7 +184,9 @@ def _fake_result(layers: list[str], alphas: list[float]) -> TuningResult:
 
 def test_edge_of_grid_warning_when_edge_wins_most_folds():
     """Largest alpha winning 3 of 4 folds triggers a warning; layers do not."""
-    result = _fake_result(["(64,)", "(32, 32)", "(64,)", "(32, 32)"], [1e-1, 1e-1, 1e-1, 1e-3])
+    largest_alpha = PARAM_GRID[ALPHA_KEY][-1]
+    result = _fake_result(["(64,)", "(32, 32)", "(64,)", "(32, 32)"],
+                          [largest_alpha, largest_alpha, largest_alpha, 1e-3])
     messages = edge_of_grid_warnings(result)
     assert len(messages) == 1
     assert "alpha" in messages[0] and "largest" in messages[0]
