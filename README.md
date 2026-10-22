@@ -19,6 +19,7 @@ Run every command from the project root.
 | `python src/run_cv.py` | Linear baseline: repeated grouped 5-fold CV on feature sets A and B | seconds |
 | `python src/run_profile.py` | Timing, memory and FLOP profile of the models | seconds |
 | `python src/run_tuning.py` | Tunes the MLP by nested CV and compares it with linear on the same folds | about an hour (see below) |
+| `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error and plots the 10 worst spectra (needs `run_tuning.py` results) | about 1 min |
 | `python -m pytest --html=test/test_report.html --self-contained-html` | Runs the tests and writes the HTML test report | about 10 s |
 
 Results are written as CSV files to `results/`. Rounded tables and figures go to `doc/generated/`. Rebuild the HTML docs with `sphinx-build -b html doc doc/_build/html`.

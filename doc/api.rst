@@ -65,6 +65,12 @@ MLP tuning (nested cross-validation)
 .. automodule:: run_tuning
    :members:
 
+Error analysis
+--------------
+
+.. automodule:: run_error_analysis
+   :members:
+
 Performance profiling
 ---------------------
 

@@ -290,6 +290,58 @@ Limitations of the tuning
 * **One weight initialisation.** Every MLP uses ``random_state=0``. Results
   for other initialisations were not tested.
 
+Worst-predicted setups
+----------------------
+
+Each wind-tunnel setup (one chord, velocity and angle) gives one measured
+noise spectrum. To see *which* conditions the models fail on, the
+out-of-fold RMSE of every one of the 90 cross-validation setups was
+computed. In each CV repeat a setup is predicted once, by a model that never
+saw it, and its RMSE is averaged over the 3 seeds. Setups are ranked by the
+tuned MLP's RMSE, because the better model's failures are the informative
+ones. The table and figure are for feature set B, the best combination.
+
+.. csv-table:: The 10 setups with the highest tuned-MLP RMSE, feature set B (bias = mean of measured − predicted; positive means the model is too low)
+   :file: generated/worst_setups_B.csv
+   :header-rows: 1
+
+.. figure:: generated/worst_setups_spectra_B.png
+   :width: 100%
+   :alt: Ten panels of SPL against frequency for the worst-predicted setups,
+         comparing the measured spectrum with linear and tuned-MLP predictions.
+
+   Measured spectra (black) and out-of-fold predictions (averaged over the 3
+   seeds) for the 10 worst setups, worst first. Each panel has its own SPL
+   axis.
+
+What the worst setups have in common:
+
+* **They cluster at the smallest chord and the most extreme conditions.**
+  6 of the 10 have the smallest chord (0.0254 m), 6 are at an angle of attack
+  of 17.4° or more, and 5 are at the highest velocity (71.3 m/s). This
+  matches the RMSE breakdown above.
+* **Several have a sharp, narrow tonal peak** about 10–15 dB above the
+  broadband level (ranks 1, 4, 5 and 9: all 0.0254 m chord at 17.4–22.2°).
+  Both models smooth the peak out, so most of the error sits within one or
+  two frequency bands. The smallest chord also gives the lowest chord
+  Reynolds numbers in the dataset (about 5×10⁴ to 1.2×10⁵). Narrow peaks
+  like these are consistent with tonal noise mechanisms that appear at low
+  Reynolds number, such as laminar boundary-layer vortex shedding. The
+  data cannot confirm the mechanism, but it explains why a model trained
+  mostly on smooth broadband spectra struggles here.
+* **The problem setups are the same for both feature sets.** 9 of the 10
+  worst setups for set A are also among the 10 worst for set B
+  (``results/worst_setups_A.csv``).
+* **The MLP is not better everywhere.** It beats linear on 8 of these 10
+  setups, but is worse on ranks 3 and 8 (0.0508 m chord at 39.6 m/s), where
+  it puts a peak at the wrong frequency.
+
+Very few training setups resemble these conditions. When one of them is held
+out, the model sees at most a few setups with the same chord at nearby
+angles, so it has to extrapolate. These setups are therefore where the model
+is least trustworthy, and the main limit on its use near stall and at small
+chords.
+
 Runtime, memory and FLOPs
 -------------------------
 
