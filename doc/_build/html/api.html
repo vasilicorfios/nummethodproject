@@ -1164,9 +1164,34 @@ on <code class="docutils literal notranslate"><span class="pre">doc/results.rst<
 </dd></dl>
 
 </section>
-<section id="module-functions.plot_spl_vs_features">
-<span id="exploratory-plots"></span><h2>Exploratory plots<a class="headerlink" href="#module-functions.plot_spl_vs_features" title="Link to this heading">¶</a></h2>
-<p>Overview scatter plot of SPL against every input feature.</p>
+<section id="module-functions.plot_spl_distribution">
+<span id="exploratory-plots"></span><h2>Exploratory plots<a class="headerlink" href="#module-functions.plot_spl_distribution" title="Link to this heading">¶</a></h2>
+<p>Histogram of the target, scaled sound pressure level (SPL).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_spl_distribution.plot_spl_distribution">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_spl_distribution.</span></span><span class="sig-name descname"><span class="pre">plot_spl_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_width_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_spl_distribution.html#plot_spl_distribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_spl_distribution.plot_spl_distribution" title="Link to this definition">¶</a></dt>
+<dd><p>Plot the number of observations in each SPL bin.</p>
+<p>Bin edges are whole multiples of <code class="docutils literal notranslate"><span class="pre">bin_width_db</span></code> so bars line up with
+round dB values. Dashed and dotted lines mark the mean and median, so
+any skew in the target is visible at a glance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – Dataset as returned by
+<a class="reference internal" href="#functions.data_loader.load_airfoil_data" title="functions.data_loader.load_airfoil_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.data_loader.load_airfoil_data()</span></code></a>.</p></li>
+<li><p><strong>bin_width_db</strong> – Width of each histogram bin in dB. Must be positive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created matplotlib figure (not yet shown).</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">bin_width_db</span></code> is not positive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.plot_spl_vs_features">Overview scatter plot of SPL against every input feature.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_spl_vs_features.plot_spl_vs_features">
 <span class="sig-prename descclassname"><span class="pre">functions.plot_spl_vs_features.</span></span><span class="sig-name descname"><span class="pre">plot_spl_vs_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_spl_vs_features.html#plot_spl_vs_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_spl_vs_features.plot_spl_vs_features" title="Link to this definition">¶</a></dt>
@@ -1224,16 +1249,51 @@ on a linear axis.</p>
 
 <p id="module-explore_plots">Entry point that displays the exploratory plots for the airfoil dataset.</p>
 <p>The plotting functions live in their own modules
-(<a class="reference internal" href="#module-functions.plot_spl_vs_features" title="functions.plot_spl_vs_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_features</span></code></a>, <a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a>
-and <a class="reference internal" href="#module-functions.plot_spl_vs_physics_features" title="functions.plot_spl_vs_physics_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_physics_features</span></code></a>); this script just loads the
-data, adds the physics features and shows all three figures:</p>
+(<a class="reference internal" href="#module-functions.plot_spl_distribution" title="functions.plot_spl_distribution"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_distribution</span></code></a>, <a class="reference internal" href="#module-functions.plot_spl_vs_features" title="functions.plot_spl_vs_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_features</span></code></a>,
+<a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a> and
+<a class="reference internal" href="#module-functions.plot_spl_vs_physics_features" title="functions.plot_spl_vs_physics_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_physics_features</span></code></a>); this script loads the data,
+adds the physics features, saves the figures used by the HTML docs to
+<code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> and then shows every figure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">explore_plots</span><span class="o">.</span><span class="n">py</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">explore_plots</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">show</span>   <span class="c1"># only write the PNGs</span>
 </pre></div>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="explore_plots.DOC_FIGURES_DIR">
+<span class="sig-prename descclassname"><span class="pre">explore_plots.</span></span><span class="sig-name descname"><span class="pre">DOC_FIGURES_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/doc/generated')</span></em><a class="headerlink" href="#explore_plots.DOC_FIGURES_DIR" title="Link to this definition">¶</a></dt>
+<dd><p>Directory for figures included by the Sphinx data page
+(<code class="docutils literal notranslate"><span class="pre">doc/exploration.rst</span></code>): <code class="docutils literal notranslate"><span class="pre">&lt;project</span> <span class="pre">root&gt;/doc/generated</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="explore_plots.save_explore_figures">
+<span class="sig-prename descclassname"><span class="pre">explore_plots.</span></span><span class="sig-name descname"><span class="pre">save_explore_figures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/doc/generated')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/explore_plots.html#save_explore_figures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#explore_plots.save_explore_figures" title="Link to this definition">¶</a></dt>
+<dd><p>Draw the exploratory figures used in the docs and save them as PNGs.</p>
+<p>The per-chord-length grid is left out: it is very tall and is meant for
+interactive inspection rather than the HTML page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – Dataset with physics features, as returned by
+<a class="reference internal" href="#functions.physics_features.add_physics_features" title="functions.physics_features.add_physics_features"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_features.add_physics_features()</span></code></a>.</p></li>
+<li><p><strong>out_dir</strong> – Directory for the PNG files (created if missing).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">explore_spl_distribution.png</span></code>,
+<code class="docutils literal notranslate"><span class="pre">explore_spl_vs_features.png</span></code> and
+<code class="docutils literal notranslate"><span class="pre">explore_spl_vs_physics_features.png</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Paths of the files written</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="explore_plots.main">
 <span class="sig-prename descclassname"><span class="pre">explore_plots.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/explore_plots.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#explore_plots.main" title="Link to this definition">¶</a></dt>
-<dd><p>Load the dataset and display all exploratory figures.</p>
+<dd><p>Save the docs figures, then display all exploratory figures.</p>
 </dd></dl>
 
 </section>
@@ -1268,6 +1328,7 @@ data, adds the physics features and shows all three figures:</p>
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
@@ -1278,7 +1339,7 @@ data, adds the physics features and shows all three figures:</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.evaluate">Cross-validation and metrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_results">Results figures</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_vs_features">Exploratory plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_distribution">Exploratory plots</a></li>
 </ul>
 </li>
 </ul>
