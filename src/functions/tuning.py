@@ -99,6 +99,9 @@ INNER_CV_SEED = 0
 #: GridSearchCV maximises its score, so RMSE is used negated.
 SCORING = "neg_root_mean_squared_error"
 
+#: File (in ``results/``) holding the tuned MLP's out-of-fold predictions.
+OOF_FILENAME = "tuning_oof_predictions.csv"
+
 #: Warn if a grid-edge value wins in more than this fraction of outer folds.
 EDGE_WARNING_FRACTION = 0.5
 
@@ -511,5 +514,52 @@ def refit_outer_predictions(
         feature_set=feature_set,
         fold_scores=pd.DataFrame(fold_rows),
         oof=concat_oof(oof_parts),
+        coefficients=pd.DataFrame(columns=["seed", "fold", "feature", "effect_db_per_sd"]),
+    )
+
+
+def tuned_result_from_saved(
+    oof: pd.DataFrame,
+    outer_scores: pd.DataFrame,
+    feature_set: str,
+    atol: float = 1e-6,
+) -> CVResult:
+    """Rebuild the tuned MLP's result from saved out-of-fold predictions.
+
+    Reads the rows of :data:`OOF_FILENAME` for one feature set. Each fold's
+    RMSE is recomputed from the saved predictions and checked against
+    ``tuning_outer_scores.csv``, so the two files cannot silently disagree.
+
+    Args:
+        oof: Contents of :data:`OOF_FILENAME` (all feature sets).
+        outer_scores: Contents of ``tuning_outer_scores.csv``.
+        feature_set: Which feature set to rebuild.
+        atol: Largest allowed RMSE difference between the two files.
+
+    Returns:
+        A :class:`~functions.evaluate.CVResult` (model ``"mlp (tuned)"``).
+
+    Raises:
+        ValueError: If the feature set is missing, or a fold's RMSE from the
+            saved predictions differs from the saved score.
+    """
+    rows = oof[oof["feature_set"] == feature_set].drop(columns="feature_set")
+    scores = outer_scores[outer_scores["feature_set"] == feature_set].reset_index(drop=True)
+    if rows.empty or scores.empty:
+        raise ValueError(f"No saved tuned-MLP results for feature set {feature_set!r}")
+    for (seed, fold), group in rows.groupby(["seed", "fold"]):
+        rmse = compute_metrics(group["y_true"], group["y_pred"])["rmse"]
+        saved = scores.loc[(scores["seed"] == seed) & (scores["fold"] == fold), "rmse"]
+        if saved.empty or abs(rmse - saved.iat[0]) > atol:
+            raise ValueError(
+                f"Saved predictions for {feature_set} seed {seed} fold {fold} do not match "
+                "tuning_outer_scores.csv; results are out of date"
+            )
+    return CVResult(
+        model=TUNED_LABEL,
+        feature_set=feature_set,
+        fold_scores=scores,
+        # concat_oof restores the ordered band categories lost in the CSV.
+        oof=concat_oof([rows.reset_index(drop=True)]),
         coefficients=pd.DataFrame(columns=["seed", "fold", "feature", "effect_db_per_sd"]),
     )

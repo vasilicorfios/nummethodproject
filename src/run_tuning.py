@@ -20,6 +20,9 @@ Writes to ``results/``:
   difference (MLP minus linear).
 * ``tuning_summary.csv``: headline numbers per feature set (see
   :func:`summary_row`).
+* ``tuning_oof_predictions.csv``: every outer-fold (out-of-fold) prediction,
+  one row per (feature set, seed, measurement), so per-setup analyses never
+  need to refit (see :func:`functions.tuning.tuned_result_from_saved`).
 * ``tuning_warnings.txt``: edge-of-grid and convergence warnings, if any.
 
 Rounded tables and the figures (PNG + PDF) go to ``doc/generated/`` for the
@@ -40,6 +43,7 @@ from functions.physics_features import add_physics_features
 from functions.plot_results import plot_predicted_vs_measured, plot_rmse_breakdown
 from functions.plot_tuning import plot_inner_grid_heatmap, plot_loss_curves, save_png_pdf
 from functions.tuning import (
+    OOF_FILENAME,
     TuningResult,
     edge_of_grid_warnings,
     nested_cv,
@@ -129,6 +133,11 @@ def write_outputs(results: list[TuningResult], paired: list[pd.DataFrame],
     pd.concat([p.assign(feature_set=r.feature_set) for r, p in zip(results, paired)],
               ignore_index=True).to_csv(out_dir / "tuning_paired_vs_linear.csv", index=False)
     summary.to_csv(out_dir / "tuning_summary.csv", index=False)
+    # Row-level predictions, so later analyses can use them without refitting.
+    oof = pd.concat([r.cv_result.oof.assign(feature_set=r.feature_set) for r in results],
+                    ignore_index=True)
+    oof.insert(0, "feature_set", oof.pop("feature_set"))
+    oof.to_csv(out_dir / OOF_FILENAME, index=False)
     (out_dir / "tuning_warnings.txt").write_text(
         "\n".join(warnings) + "\n" if warnings else "No warnings.\n", encoding="utf-8")
 

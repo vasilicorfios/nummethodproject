@@ -224,6 +224,9 @@ def test_output_csvs_have_expected_columns_and_15_rows(data, tiny_run, tmp_path)
     # 15 folds x 1 setting x 2 inner splits, all of which hit max_iter=20.
     assert summ["inner_fits"].iat[0] == summ["inner_fits_hit_max_iter"].iat[0] == 30
     assert (tmp_path / "tuning_warnings.txt").read_text().strip() == "No warnings."
+    oof = pd.read_csv(tmp_path / tuning.OOF_FILENAME)
+    assert oof.columns[0] == "feature_set"
+    assert len(oof) == outer["n_val"].sum()  # one row per outer-validation measurement
 
 
 def test_tuning_figures_saved_as_png_and_pdf(tiny_run, tmp_path):
@@ -286,3 +289,23 @@ def test_setup_comparison_ranks_by_mlp_rmse():
     assert out["setup_id"].tolist() == [2, 1]
     assert out["rank"].tolist() == [1, 2]
     assert out["rmse_linear"].tolist() == [6.0, 3.0]
+
+
+def test_saved_oof_round_trip(data, tiny_run, tmp_path):
+    """Predictions saved by run_tuning load back identically and pass the score check."""
+    result, _ = tiny_run
+    linear = cross_validate(data, "linear", "A")
+    paired = paired_vs_linear(result.outer_scores, linear.fold_scores)
+    summary = pd.DataFrame([run_tuning.summary_row(result, paired)])
+    run_tuning.write_outputs([result], [paired], summary, [], tmp_path)
+
+    saved = pd.read_csv(tmp_path / tuning.OOF_FILENAME)
+    loaded = tuning.tuned_result_from_saved(saved, result.outer_scores, "A")
+    np.testing.assert_allclose(loaded.oof["y_pred"], result.cv_result.oof["y_pred"])
+    assert loaded.oof["angle_band"].cat.ordered  # band order restored after CSV
+    assert loaded.model == tuning.TUNED_LABEL
+
+    stale = saved.copy()
+    stale.loc[0, "y_pred"] += 50.0
+    with pytest.raises(ValueError, match="out of date"):
+        tuning.tuned_result_from_saved(stale, result.outer_scores, "A")

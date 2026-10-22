@@ -9,10 +9,14 @@ spectra::
     python src/run_error_analysis.py                     # sets A and B, 10 worst
     python src/run_error_analysis.py --feature-sets B --n-worst 5
 
-The MLP's predictions are rebuilt from ``results/tuning_outer_scores.csv``
-(run ``src/run_tuning.py`` first) by refitting each fold's chosen setting;
-see :func:`functions.tuning.refit_outer_predictions`. This takes about 30 s
-per feature set. The test hold-out is never used.
+The tuned MLP's out-of-fold predictions are read from
+``results/tuning_oof_predictions.csv``, which ``src/run_tuning.py`` writes.
+If that file is missing (results from before it was added), they are
+rebuilt by refitting each fold's chosen setting
+(:func:`functions.tuning.refit_outer_predictions`, about 30 s per feature
+set) and the file is written, so later runs can load it directly. Either
+way every fold is checked against ``tuning_outer_scores.csv``. The test
+hold-out is never used.
 
 Writes, for each feature set ``<fs>``:
 
@@ -31,7 +35,8 @@ from functions.evaluate import cross_validate, per_setup_rmse
 from functions.physics_features import add_physics_features
 from functions.plot_results import plot_setup_spectra
 from functions.plot_tuning import save_png_pdf
-from functions.tuning import refit_outer_predictions
+from functions.evaluate import CVResult
+from functions.tuning import OOF_FILENAME, refit_outer_predictions, tuned_result_from_saved
 from run_cv import DOC_TABLES_DIR, RESULTS_DIR
 
 #: Default number of worst setups to report.
@@ -51,6 +56,46 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--feature-sets", nargs="+", default=["A", "B"], choices=["A", "B"])
     parser.add_argument("--n-worst", type=int, default=N_WORST)
     return parser.parse_args(argv)
+
+
+def load_tuned_mlp(data: pd.DataFrame, outer_scores: pd.DataFrame,
+                   feature_set: str) -> tuple[CVResult, bool]:
+    """Get the tuned MLP's out-of-fold predictions, refitting only if needed.
+
+    Args:
+        data: Dataset with physics features.
+        outer_scores: Contents of ``results/tuning_outer_scores.csv``.
+        feature_set: Feature set to load.
+
+    Returns:
+        The tuned-MLP result, and ``True`` if it had to be refitted (so it
+        should be saved).
+    """
+    path = RESULTS_DIR / OOF_FILENAME
+    if path.exists():
+        saved = pd.read_csv(path)
+        if feature_set in set(saved["feature_set"]):
+            return tuned_result_from_saved(saved, outer_scores, feature_set), False
+    # Older results without saved predictions: rebuild them exactly by refitting.
+    return refit_outer_predictions(data, outer_scores, feature_set), True
+
+
+def save_recovered_predictions(recovered: list[CVResult]) -> None:
+    """Add refitted predictions to :data:`~functions.tuning.OOF_FILENAME`.
+
+    Rows for other feature sets already in the file are kept.
+
+    Args:
+        recovered: Tuned-MLP results rebuilt by refitting.
+    """
+    path = RESULTS_DIR / OOF_FILENAME
+    new = pd.concat([r.oof.assign(feature_set=r.feature_set) for r in recovered], ignore_index=True)
+    new.insert(0, "feature_set", new.pop("feature_set"))
+    if path.exists():
+        old = pd.read_csv(path)
+        new = pd.concat([old[~old["feature_set"].isin(new["feature_set"])], new], ignore_index=True)
+    new.to_csv(path, index=False)
+    print(f"Saved recovered tuned-MLP predictions to {path}")
 
 
 def setup_comparison(mlp_setups: pd.DataFrame, linear_setups: pd.DataFrame) -> pd.DataFrame:
@@ -101,11 +146,14 @@ def main(argv: list[str] | None = None) -> None:
     data = add_physics_features(load_airfoil_data())
     outer_scores = pd.read_csv(RESULTS_DIR / "tuning_outer_scores.csv")
 
+    recovered = []
     for feature_set in args.feature_sets:
         linear = cross_validate(data, "linear", feature_set)
-        # Rebuild the MLP's predictions; this also checks they match the
-        # saved tuning results fold by fold.
-        mlp = refit_outer_predictions(data, outer_scores, feature_set)
+        # Load (or, for older results, rebuild) the MLP's predictions; both
+        # paths check them against the saved tuning scores fold by fold.
+        mlp, refitted = load_tuned_mlp(data, outer_scores, feature_set)
+        if refitted:
+            recovered.append(mlp)
         table = setup_comparison(per_setup_rmse(mlp, data), per_setup_rmse(linear, data))
         worst = table.head(args.n_worst)
 
@@ -127,6 +175,8 @@ def main(argv: list[str] | None = None) -> None:
         fig = plot_setup_spectra([linear, mlp], data, worst["setup_id"].tolist(), titles=titles)
         save_png_pdf(fig, DOC_TABLES_DIR, f"worst_setups_spectra_{feature_set}")
 
+    if recovered:
+        save_recovered_predictions(recovered)
     print(f"\nCSV files written to {RESULTS_DIR}")
     print(f"Documentation tables and figures written to {DOC_TABLES_DIR}")
 
