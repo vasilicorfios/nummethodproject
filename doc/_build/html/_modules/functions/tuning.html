@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>functions.tuning &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for functions.tuning</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Nested cross-validation to tune and fairly score the MLP.</span>
+
+<span class="sd">Why nested CV?</span>
+<span class="sd">    If the same folds were used both to pick the best hyperparameters and</span>
+<span class="sd">    to report the score, the score would be optimistic: the chosen setting</span>
+<span class="sd">    is partly the one that got lucky on those folds. Nested CV keeps the two</span>
+<span class="sd">    jobs apart. An **inner** CV, run on the outer training rows only, picks</span>
+<span class="sd">    the hyperparameters; the **outer** validation fold, which the inner CV</span>
+<span class="sd">    never sees, then scores the chosen model. The outer scores are</span>
+<span class="sd">    therefore honest estimates for unseen setups.</span>
+
+<span class="sd">Procedure (:func:`nested_cv`), for each seed in</span>
+<span class="sd">:data:`~functions.make_folds.CV_SEEDS` and each outer fold:</span>
+
+<span class="sd">1. Drop the test hold-out (it is never used for training, tuning, early</span>
+<span class="sd">   stopping or scoring here). Outer validation = rows of this fold; outer</span>
+<span class="sd">   training = the other cross-validation rows.</span>
+<span class="sd">2. On the outer training rows only, ``GridSearchCV`` tries every setting in</span>
+<span class="sd">   :data:`PARAM_GRID` with an inner grouped 5-fold split</span>
+<span class="sd">   (:func:`inner_splitter`). ``setup_id`` is passed as ``groups``, so no</span>
+<span class="sd">   setup is ever split between inner training and inner validation.</span>
+<span class="sd">3. The best setting is refitted on all outer training rows and scored on</span>
+<span class="sd">   the outer validation fold (RMSE, MAE, R² in dB).</span>
+
+<span class="sd">Known limitations (quotable in the report):</span>
+
+<span class="sd">* **Early stopping uses random rows, not whole setups.** ``MLPRegressor``'s</span>
+<span class="sd">  built-in early stopping holds back a random 10% of the rows it is given</span>
+<span class="sd">  to decide when to stop. Rows from one setup are strongly correlated, so</span>
+<span class="sd">  the held-back rows usually have near-identical neighbours from the same</span>
+<span class="sd">  setup in the training part. The internal stopping check is therefore</span>
+<span class="sd">  mildly optimistic, and training may stop a little later than ideal.</span>
+<span class="sd">  This does **not** leak into the reported scores: the inner and outer</span>
+<span class="sd">  validation folds are grouped by setup, and the early-stopping rows are</span>
+<span class="sd">  taken only from the data being fitted, never from the fold being</span>
+<span class="sd">  scored. ``MLPRegressor`` was deliberately not rewritten to fix this.</span>
+<span class="sd">* **Inner folds are grouped but not stratified on chord.** ``GroupKFold``</span>
+<span class="sd">  keeps setups together but does not balance chord lengths across inner</span>
+<span class="sd">  folds (the outer folds are chord-stratified by</span>
+<span class="sd">  :func:`functions.make_folds.assign_folds`).</span>
+<span class="sd">* **Convergence.** Fits that stop at ``max_iter`` rather than by early</span>
+<span class="sd">  stopping are counted (:func:`_hit_max_iter`), not hidden. Warnings</span>
+<span class="sd">  raised in parallel worker processes cannot be caught in the main</span>
+<span class="sd">  process, so the count is collected as an extra "score" instead.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    &gt;&gt;&gt; from functions.tuning import nested_cv</span>
+<span class="sd">    &gt;&gt;&gt; result = nested_cv(data, "A", seeds=[42])   # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; result.outer_scores[["seed", "fold", "rmse"]]  # doctest: +SKIP</span>
+<span class="sd">"""</span>
+
+<span class="c1"># Postponed annotations: the docs build mocks pandas, and evaluating</span>
+<span class="c1"># ``pd.DataFrame | None`` on the mock at import time would fail.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformedTargetRegressor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span><span class="p">,</span> <span class="n">GroupKFold</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">TARGET</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="p">,</span> <span class="n">concat_oof</span><span class="p">,</span> <span class="n">oof_frame</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_feature_columns</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">CV_SEEDS</span><span class="p">,</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_model</span>
+
+<span class="c1">#: Registry name of the model being tuned.</span>
+<span class="n">MODEL_NAME</span> <span class="o">=</span> <span class="s2">"mlp"</span>
+
+<span class="c1">#: Name given to the tuned model in tables and figures.</span>
+<span class="n">TUNED_LABEL</span> <span class="o">=</span> <span class="s2">"mlp (tuned)"</span>
+
+<span class="c1">#: Grid keys. The model is TransformedTargetRegressor -&gt; Pipeline -&gt;</span>
+<span class="c1">#: step ``"regressor"`` (MLPRegressor), hence the double ``regressor__`` prefix.</span>
+<span class="n">LAYERS_KEY</span> <span class="o">=</span> <span class="s2">"regressor__regressor__hidden_layer_sizes"</span>
+<span class="n">ALPHA_KEY</span> <span class="o">=</span> <span class="s2">"regressor__regressor__alpha"</span>
+
+<span class="c1">#: The 35 settings tried in every inner search (5 architectures x 7 alphas).</span>
+<span class="c1">#: Layer sizes are listed from smallest to largest network. (128, 128) and</span>
+<span class="c1">#: alphas 1 and 10 were added after a one-seed trial run in which the</span>
+<span class="c1">#: largest network (64, 64) and largest alpha (0.1) won most folds, i.e.</span>
+<span class="c1">#: the best settings sat on the edge of the original 20-setting grid.</span>
+<span class="n">PARAM_GRID</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">LAYERS_KEY</span><span class="p">:</span> <span class="p">[(</span><span class="mi">32</span><span class="p">,),</span> <span class="p">(</span><span class="mi">64</span><span class="p">,),</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)],</span>
+    <span class="n">ALPHA_KEY</span><span class="p">:</span> <span class="p">[</span><span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e-1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="c1">#: Number of inner folds used to choose hyperparameters.</span>
+<span class="n">N_INNER_SPLITS</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="c1">#: Seed for shuffling setups into inner folds. Fixed so tuning repeats.</span>
+<span class="n">INNER_CV_SEED</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1">#: GridSearchCV maximises its score, so RMSE is used negated.</span>
+<span class="n">SCORING</span> <span class="o">=</span> <span class="s2">"neg_root_mean_squared_error"</span>
+
+<span class="c1">#: Warn if a grid-edge value wins in more than this fraction of outer folds.</span>
+<span class="n">EDGE_WARNING_FRACTION</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+<span class="c1">#: Columns of :attr:`TuningResult.outer_scores`.</span>
+<span class="n">OUTER_COLUMNS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"feature_set"</span><span class="p">,</span> <span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"n_train"</span><span class="p">,</span> <span class="s2">"n_val"</span><span class="p">,</span>
+    <span class="s2">"hidden_layer_sizes"</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">,</span> <span class="s2">"inner_best_rmse"</span><span class="p">,</span>
+    <span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"mae"</span><span class="p">,</span> <span class="s2">"r2"</span><span class="p">,</span> <span class="s2">"n_iter"</span><span class="p">,</span> <span class="s2">"refit_hit_max_iter"</span><span class="p">,</span>
+    <span class="s2">"inner_fits_hit_max_iter"</span><span class="p">,</span> <span class="s2">"tuning_time_s"</span><span class="p">,</span> <span class="s2">"fit_time_s"</span><span class="p">,</span> <span class="s2">"predict_time_s"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1">#: Columns of :attr:`TuningResult.inner_grid`.</span>
+<span class="n">INNER_COLUMNS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"feature_set"</span><span class="p">,</span> <span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"hidden_layer_sizes"</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">,</span>
+    <span class="s2">"mean_inner_rmse"</span><span class="p">,</span> <span class="s2">"std_inner_rmse"</span><span class="p">,</span> <span class="s2">"rank"</span><span class="p">,</span> <span class="s2">"inner_fits_hit_max_iter"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hit_max_iter</span><span class="p">(</span><span class="n">estimator</span><span class="p">:</span> <span class="n">TransformedTargetRegressor</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Scorer that returns 1.0 if the fitted MLP stopped at ``max_iter``.</span>
+
+<span class="sd">    Used as an extra GridSearchCV "score" so the number of fits that ran</span>
+<span class="sd">    out of epochs (instead of stopping early) is reported, even when the</span>
+<span class="sd">    fits run in parallel worker processes.</span>
+<span class="sd">    """</span>
+    <span class="n">mlp</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">regressor_</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"regressor"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">mlp</span><span class="o">.</span><span class="n">n_iter_</span> <span class="o">&gt;=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">max_iter</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="inner_splitter">
+<a class="viewcode-back" href="../../api.html#functions.tuning.inner_splitter">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">inner_splitter</span><span class="p">(</span><span class="n">n_splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">N_INNER_SPLITS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GroupKFold</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the grouped splitter used for the inner CV.</span>
+
+<span class="sd">    ``shuffle=True`` with a fixed seed randomises which setups go in which</span>
+<span class="sd">    inner fold, reproducibly. Groups (``setup_id``) are passed at fit time.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n_splits: Number of inner folds.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~sklearn.model_selection.GroupKFold`.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">GroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="n">n_splits</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">INNER_CV_SEED</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="TuningResult">
+<a class="viewcode-back" href="../../api.html#functions.tuning.TuningResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TuningResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Output of :func:`nested_cv` for one feature set.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        feature_set: Feature set the MLP was tuned on.</span>
+<span class="sd">        outer_scores: One row per (seed, outer fold), columns</span>
+<span class="sd">            :data:`OUTER_COLUMNS`: the chosen setting, inner-CV best RMSE,</span>
+<span class="sd">            outer RMSE/MAE/R² (dB), epochs run, max-iter hits and timings.</span>
+<span class="sd">        inner_grid: One row per (seed, outer fold, setting), columns</span>
+<span class="sd">            :data:`INNER_COLUMNS`: mean and std inner-CV RMSE from</span>
+<span class="sd">            ``cv_results_``.</span>
+<span class="sd">        cv_result: The outer predictions as a</span>
+<span class="sd">            :class:`functions.evaluate.CVResult` (model ``"mlp (tuned)"``),</span>
+<span class="sd">            so :func:`functions.evaluate.summarise`, the breakdowns and the</span>
+<span class="sd">            plots in :mod:`functions.plot_results` work on it unchanged.</span>
+<span class="sd">        selected_models: The refitted best model of each outer fold, keyed</span>
+<span class="sd">            by ``(seed, fold)``; used for the loss-curve figure.</span>
+<span class="sd">        param_grid: The grid that was searched.</span>
+<span class="sd">        n_inner_splits: Number of inner folds used.</span>
+<span class="sd">    """</span>
+
+    <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">outer_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">inner_grid</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+    <span class="n">cv_result</span><span class="p">:</span> <span class="n">CVResult</span>
+    <span class="n">selected_models</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">TransformedTargetRegressor</span><span class="p">]</span>
+    <span class="n">param_grid</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">n_inner_splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">N_INNER_SPLITS</span></div>
+
+
+
+<div class="viewcode-block" id="nested_cv">
+<a class="viewcode-back" href="../../api.html#functions.tuning.nested_cv">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">nested_cv</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">seeds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">CV_SEEDS</span><span class="p">,</span>
+    <span class="n">param_grid</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">PARAM_GRID</span><span class="p">,</span>
+    <span class="n">n_inner_splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">N_INNER_SPLITS</span><span class="p">,</span>
+    <span class="n">n_jobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">progress</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="nb">print</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TuningResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Tune the MLP by inner grouped CV and score it on the outer folds.</span>
+
+<span class="sd">    See the module docstring for the procedure and its limitations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with every column the feature set needs (see</span>
+<span class="sd">            :func:`functions.evaluate.cross_validate`).</span>
+<span class="sd">        feature_set: Key of :data:`functions.feature_sets.FEATURE_SETS`.</span>
+<span class="sd">        seeds: Outer CV seeds to run; a subset of</span>
+<span class="sd">            :data:`~functions.make_folds.CV_SEEDS` gives a quicker run.</span>
+<span class="sd">        param_grid: Settings to search (GridSearchCV format).</span>
+<span class="sd">        n_inner_splits: Number of inner folds.</span>
+<span class="sd">        n_jobs: Parallel jobs for GridSearchCV (-1 = all CPU cores).</span>
+<span class="sd">        progress: Called with one line of text per outer fold; ``None`` for</span>
+<span class="sd">            silence.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`TuningResult`.</span>
+<span class="sd">    """</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">get_feature_columns</span><span class="p">(</span><span class="n">feature_set</span><span class="p">)</span>
+    <span class="n">outer_rows</span><span class="p">,</span> <span class="n">inner_rows</span><span class="p">,</span> <span class="n">oof_parts</span><span class="p">,</span> <span class="n">selected</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="n">seeds</span><span class="p">:</span>
+        <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cv_seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="c1"># Remove the test hold-out before anything else, so it can never</span>
+        <span class="c1"># reach tuning, early stopping or scoring.</span>
+        <span class="n">cv</span> <span class="o">=</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">fold</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">cv</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()):</span>
+            <span class="c1"># Outer split: the validation fold is kept completely out of</span>
+            <span class="c1"># tuning, so its score is a fair test of the chosen setting.</span>
+            <span class="n">train</span> <span class="o">=</span> <span class="n">cv</span><span class="p">[</span><span class="n">cv</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">fold</span><span class="p">]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">cv</span><span class="p">[</span><span class="n">cv</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">fold</span><span class="p">]</span>
+
+            <span class="n">search</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
+                <span class="n">build_model</span><span class="p">(</span><span class="n">MODEL_NAME</span><span class="p">),</span>
+                <span class="n">param_grid</span><span class="p">,</span>
+                <span class="n">scoring</span><span class="o">=</span><span class="p">{</span><span class="s2">"rmse"</span><span class="p">:</span> <span class="n">SCORING</span><span class="p">,</span> <span class="s2">"hit_max_iter"</span><span class="p">:</span> <span class="n">_hit_max_iter</span><span class="p">},</span>
+                <span class="n">refit</span><span class="o">=</span><span class="s2">"rmse"</span><span class="p">,</span>  <span class="c1"># refit the best setting on all outer-training rows</span>
+                <span class="n">cv</span><span class="o">=</span><span class="n">inner_splitter</span><span class="p">(</span><span class="n">n_inner_splits</span><span class="p">),</span>
+                <span class="n">n_jobs</span><span class="o">=</span><span class="n">n_jobs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+            <span class="c1"># groups=setup_id makes the inner folds keep setups together.</span>
+            <span class="n">search</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">columns</span><span class="p">],</span> <span class="n">train</span><span class="p">[</span><span class="n">TARGET</span><span class="p">],</span> <span class="n">groups</span><span class="o">=</span><span class="n">train</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">])</span>
+            <span class="n">tuning_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+            <span class="n">best</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">best_estimator_</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">best</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">columns</span><span class="p">])</span>
+            <span class="n">predict_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+            <span class="n">mlp</span> <span class="o">=</span> <span class="n">best</span><span class="o">.</span><span class="n">regressor_</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"regressor"</span><span class="p">]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">cv_results_</span>
+            <span class="c1"># Mean of a 0/1 score over the inner folds x number of folds =</span>
+            <span class="c1"># number of inner fits that ran out of epochs.</span>
+            <span class="n">hits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"mean_test_hit_max_iter"</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_inner_splits</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">layers</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">best_params_</span><span class="p">[</span><span class="n">LAYERS_KEY</span><span class="p">]</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">best_params_</span><span class="p">[</span><span class="n">ALPHA_KEY</span><span class="p">]</span>
+
+            <span class="n">outer_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">"feature_set"</span><span class="p">:</span> <span class="n">feature_set</span><span class="p">,</span>
+                <span class="s2">"seed"</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
+                <span class="s2">"fold"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">fold</span><span class="p">),</span>
+                <span class="s2">"n_train"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">train</span><span class="p">),</span>
+                <span class="s2">"n_val"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">),</span>
+                <span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">layers</span><span class="p">),</span>
+                <span class="s2">"alpha"</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span>
+                <span class="s2">"inner_best_rmse"</span><span class="p">:</span> <span class="o">-</span><span class="n">search</span><span class="o">.</span><span class="n">best_score_</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="n">TARGET</span><span class="p">],</span> <span class="n">y_pred</span><span class="p">),</span>
+                <span class="s2">"n_iter"</span><span class="p">:</span> <span class="n">mlp</span><span class="o">.</span><span class="n">n_iter_</span><span class="p">,</span>
+                <span class="s2">"refit_hit_max_iter"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">mlp</span><span class="o">.</span><span class="n">n_iter_</span> <span class="o">&gt;=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">max_iter</span><span class="p">),</span>
+                <span class="s2">"inner_fits_hit_max_iter"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+                <span class="s2">"tuning_time_s"</span><span class="p">:</span> <span class="n">tuning_time</span><span class="p">,</span>
+                <span class="s2">"fit_time_s"</span><span class="p">:</span> <span class="n">search</span><span class="o">.</span><span class="n">refit_time_</span><span class="p">,</span>
+                <span class="s2">"predict_time_s"</span><span class="p">:</span> <span class="n">predict_time</span><span class="p">,</span>
+            <span class="p">})</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"params"</span><span class="p">]):</span>
+                <span class="n">inner_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">"feature_set"</span><span class="p">:</span> <span class="n">feature_set</span><span class="p">,</span>
+                    <span class="s2">"seed"</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
+                    <span class="s2">"fold"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">fold</span><span class="p">),</span>
+                    <span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">LAYERS_KEY</span><span class="p">]),</span>
+                    <span class="s2">"alpha"</span><span class="p">:</span> <span class="n">params</span><span class="p">[</span><span class="n">ALPHA_KEY</span><span class="p">],</span>
+                    <span class="c1"># Negate back: GridSearchCV stores -RMSE.</span>
+                    <span class="s2">"mean_inner_rmse"</span><span class="p">:</span> <span class="o">-</span><span class="n">res</span><span class="p">[</span><span class="s2">"mean_test_rmse"</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">"std_inner_rmse"</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="s2">"std_test_rmse"</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">"rank"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"rank_test_rmse"</span><span class="p">][</span><span class="n">i</span><span class="p">]),</span>
+                    <span class="s2">"inner_fits_hit_max_iter"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">hits</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="p">})</span>
+            <span class="n">oof_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oof_frame</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">fold</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span>
+            <span class="n">selected</span><span class="p">[(</span><span class="n">seed</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">fold</span><span class="p">))]</span> <span class="o">=</span> <span class="n">best</span>
+
+            <span class="k">if</span> <span class="n">progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">progress</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">] seed </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2"> fold </span><span class="si">{</span><span class="n">fold</span><span class="si">}</span><span class="s2">: best </span><span class="si">{</span><span class="n">layers</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"alpha=</span><span class="si">{</span><span class="n">alpha</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">  inner RMSE </span><span class="si">{</span><span class="o">-</span><span class="n">search</span><span class="o">.</span><span class="n">best_score_</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  "</span>
+                    <span class="sa">f</span><span class="s2">"outer RMSE </span><span class="si">{</span><span class="n">outer_rows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">'rmse'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> dB  "</span>
+                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">tuning_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s)"</span>
+                <span class="p">)</span>
+
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">outer_rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">OUTER_COLUMNS</span><span class="p">)</span>
+    <span class="n">cv_result</span> <span class="o">=</span> <span class="n">CVResult</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">TUNED_LABEL</span><span class="p">,</span>
+        <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
+        <span class="n">fold_scores</span><span class="o">=</span><span class="n">outer</span><span class="p">,</span>
+        <span class="n">oof</span><span class="o">=</span><span class="n">concat_oof</span><span class="p">(</span><span class="n">oof_parts</span><span class="p">),</span>
+        <span class="n">coefficients</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"feature"</span><span class="p">,</span> <span class="s2">"effect_db_per_sd"</span><span class="p">]),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">TuningResult</span><span class="p">(</span>
+        <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
+        <span class="n">outer_scores</span><span class="o">=</span><span class="n">outer</span><span class="p">,</span>
+        <span class="n">inner_grid</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">inner_rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">INNER_COLUMNS</span><span class="p">),</span>
+        <span class="n">cv_result</span><span class="o">=</span><span class="n">cv_result</span><span class="p">,</span>
+        <span class="n">selected_models</span><span class="o">=</span><span class="n">selected</span><span class="p">,</span>
+        <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span>
+        <span class="n">n_inner_splits</span><span class="o">=</span><span class="n">n_inner_splits</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="selection_counts">
+<a class="viewcode-back" href="../../api.html#functions.tuning.selection_counts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">selection_counts</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">TuningResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Count how often each grid setting was chosen across outer folds.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        result: Output of :func:`nested_cv`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per grid setting (including settings never chosen), with</span>
+<span class="sd">        columns ``feature_set``, ``hidden_layer_sizes``, ``alpha``,</span>
+<span class="sd">        ``n_folds_won`` and ``fraction_won``, most-chosen first.</span>
+<span class="sd">    """</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">(</span>
+        <span class="p">[[</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">param_grid</span><span class="p">[</span><span class="n">LAYERS_KEY</span><span class="p">]],</span> <span class="n">result</span><span class="o">.</span><span class="n">param_grid</span><span class="p">[</span><span class="n">ALPHA_KEY</span><span class="p">]],</span>
+        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"hidden_layer_sizes"</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">outer_scores</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">"hidden_layer_sizes"</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"n_folds_won"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">counts</span><span class="p">[</span><span class="s2">"fraction_won"</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="s2">"n_folds_won"</span><span class="p">]</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">outer_scores</span><span class="p">)</span>
+    <span class="n">counts</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"feature_set"</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">feature_set</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">counts</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"n_folds_won"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="seed_level_spread">
+<a class="viewcode-back" href="../../api.html#functions.tuning.seed_level_spread">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">seed_level_spread</span><span class="p">(</span><span class="n">outer_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Standard deviation of the per-seed mean scores.</span>
+
+<span class="sd">    Each seed's 5 outer-fold scores are averaged, then the SD is taken over</span>
+<span class="sd">    the seeds. This answers "how much does the result depend on how setups</span>
+<span class="sd">    were shuffled into folds?", a different question from the 15-fold SD</span>
+<span class="sd">    reported by :func:`functions.evaluate.summarise` ("how much does the</span>
+<span class="sd">    score change from one batch of unseen setups to the next?").</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        outer_scores: :attr:`TuningResult.outer_scores` or any per-fold</span>
+<span class="sd">            table with ``seed``, ``rmse``, ``mae`` and ``r2`` columns.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``{"rmse_sd_seeds", "mae_sd_seeds", "r2_sd_seeds", "n_seeds"}``.</span>
+<span class="sd">        The SDs are NaN when only one seed was run.</span>
+<span class="sd">    """</span>
+    <span class="n">per_seed</span> <span class="o">=</span> <span class="n">outer_scores</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"seed"</span><span class="p">)[[</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"mae"</span><span class="p">,</span> <span class="s2">"r2"</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">_sd_seeds"</span><span class="p">:</span> <span class="n">per_seed</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"rmse"</span><span class="p">,</span> <span class="s2">"mae"</span><span class="p">,</span> <span class="s2">"r2"</span><span class="p">]}</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">"n_seeds"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_seed</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="paired_vs_linear">
+<a class="viewcode-back" href="../../api.html#functions.tuning.paired_vs_linear">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_vs_linear</span><span class="p">(</span><span class="n">mlp_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">linear_scores</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compare MLP and linear RMSE fold by fold, on identical folds.</span>
+
+<span class="sd">    Both models are scored on exactly the same outer folds, so the fair</span>
+<span class="sd">    comparison is the difference within each fold, not two overlapping</span>
+<span class="sd">    mean ± SD ranges.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mlp_scores: Per-fold MLP scores with ``seed``, ``fold``, ``rmse``.</span>
+<span class="sd">        linear_scores: Per-fold linear scores with the same columns, e.g.</span>
+<span class="sd">            :attr:`functions.evaluate.CVResult.fold_scores`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per (seed, fold) with ``rmse_mlp``, ``rmse_linear`` and</span>
+<span class="sd">        ``rmse_diff`` (MLP minus linear; negative means the MLP was better).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the two tables do not cover the same (seed, fold) pairs.</span>
+<span class="sd">    """</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">]</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">mlp_scores</span><span class="p">[</span><span class="n">keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"rmse"</span><span class="p">]]</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">linear_scores</span><span class="p">[</span><span class="n">keys</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"rmse"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">"outer"</span><span class="p">,</span>
+        <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">"_mlp"</span><span class="p">,</span> <span class="s2">"_linear"</span><span class="p">),</span> <span class="n">indicator</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">merged</span><span class="p">[</span><span class="s2">"_merge"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"both"</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MLP and linear scores do not cover the same seeds and folds"</span><span class="p">)</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">merged</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">"_merge"</span><span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">merged</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">=</span> <span class="n">merged</span><span class="p">[</span><span class="s2">"rmse_mlp"</span><span class="p">]</span> <span class="o">-</span> <span class="n">merged</span><span class="p">[</span><span class="s2">"rmse_linear"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">merged</span></div>
+
+
+
+<div class="viewcode-block" id="paired_summary">
+<a class="viewcode-back" href="../../api.html#functions.tuning.paired_summary">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_summary</span><span class="p">(</span><span class="n">paired</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Summarise a :func:`paired_vs_linear` table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paired: Output of :func:`paired_vs_linear`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``rmse_diff_mean`` and ``rmse_diff_sd`` (dB, MLP minus linear),</span>
+<span class="sd">        ``mlp_wins`` (folds where the MLP had lower RMSE) and ``n_folds``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"rmse_diff_mean"</span><span class="p">:</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+        <span class="s2">"rmse_diff_sd"</span><span class="p">:</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"mlp_wins"</span><span class="p">:</span> <span class="nb">int</span><span class="p">((</span><span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+        <span class="s2">"n_folds"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">paired</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="edge_of_grid_warnings">
+<a class="viewcode-back" href="../../api.html#functions.tuning.edge_of_grid_warnings">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">edge_of_grid_warnings</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">TuningResult</span><span class="p">,</span>
+                          <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EDGE_WARNING_FRACTION</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Warn when the winning setting is often at the edge of the grid.</span>
+
+<span class="sd">    If the best alpha or layer size is the smallest or largest value tried</span>
+<span class="sd">    in most folds, the true optimum may lie outside the grid, which would</span>
+<span class="sd">    then need extending. Parameters with a single grid value are skipped.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        result: Output of :func:`nested_cv`.</span>
+<span class="sd">        threshold: Fraction of outer folds above which to warn.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Warning messages (empty if none apply).</span>
+<span class="sd">    """</span>
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">outer_scores</span>
+    <span class="n">checks</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"hidden_layer_sizes"</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">param_grid</span><span class="p">[</span><span class="n">LAYERS_KEY</span><span class="p">]],</span>
+        <span class="s2">"alpha"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">param_grid</span><span class="p">[</span><span class="n">ALPHA_KEY</span><span class="p">]),</span>
+    <span class="p">}</span>
+    <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">checks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">edge</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"smallest"</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="p">(</span><span class="s2">"largest"</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
+            <span class="n">fraction</span> <span class="o">=</span> <span class="p">(</span><span class="n">outer</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">fraction</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2"> (the </span><span class="si">{</span><span class="n">edge</span><span class="si">}</span><span class="s2"> grid value) "</span>
+                    <span class="sa">f</span><span class="s2">"won in </span><span class="si">{</span><span class="n">fraction</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> of outer folds; the grid may need extending."</span>
+                <span class="p">)</span>
+    <span class="k">return</span> <span class="n">messages</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

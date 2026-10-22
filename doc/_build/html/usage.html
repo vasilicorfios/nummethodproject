@@ -121,6 +121,32 @@ below 1) is not reliably estimated. In feature set B this happens to
 inputs, so their individual coefficients should not be interpreted
 physically.</p>
 </section>
+<section id="tuning-the-mlp-with-nested-cross-validation">
+<h2>Tuning the MLP with nested cross-validation<a class="headerlink" href="#tuning-the-mlp-with-nested-cross-validation" title="Link to this heading">¶</a></h2>
+<p>Choosing hyperparameters and scoring the model on the same folds would make
+the score optimistic. <strong>Nested cross-validation</strong> keeps the two jobs apart.
+For each outer fold, an inner grouped 5-fold cross-validation, run only on
+that fold’s training setups, picks the network size and <code class="docutils literal notranslate"><span class="pre">alpha</span></code>. The chosen
+model is then scored on the outer fold, which played no part in choosing it.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_tuning.py                               # all 3 seeds, sets A and B</span>
+<span class="go">python src/run_tuning.py --seeds 42 --feature-sets A   # quick one-seed check</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--seeds</span></code>: outer CV seeds to run, any of 42, 43 and 44 (default: all).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--feature-sets</span></code>: A and/or B (default: both).</p></li>
+</ul>
+<p>The grid has 35 settings: hidden layers (32,), (64,), (32, 32), (64, 64) and
+(128, 128), each with alpha 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1 and 10. A full
+run is 2,625 inner fits per feature set, plus one refit per outer fold, and
+takes about 44 minutes on an 8-core laptop for sets A and B together
+(measured: 23.8 min for A, 19.8 min for B). One seed on one feature set
+takes about 7–8 minutes. The script also re-runs the
+linear baseline on the same seeds and folds, so the two models can be
+compared fold by fold. Results go to <code class="docutils literal notranslate"><span class="pre">results/tuning_*.csv</span></code>, and tables and
+figures (PNG and PDF) go to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code>. The test hold-out is never
+used.</p>
+</section>
 <section id="profiling-runtime-memory-and-flops">
 <h2>Profiling runtime, memory and FLOPs<a class="headerlink" href="#profiling-runtime-memory-and-flops" title="Link to this heading">¶</a></h2>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_profile.py</span>
@@ -218,6 +244,7 @@ a missing data file raises <code class="docutils literal notranslate"><span clas
 <li class="toctree-l2"><a class="reference internal" href="#adding-physics-features">Adding physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#splitting-the-data">Splitting the data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#training-and-cross-validating-models">Training and cross-validating models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tuning-the-mlp-with-nested-cross-validation">Tuning the MLP with nested cross-validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#profiling-runtime-memory-and-flops">Profiling runtime, memory and FLOPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exploratory-plots">Exploratory plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-tests">Running the tests</a></li>

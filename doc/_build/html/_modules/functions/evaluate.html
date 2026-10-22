@@ -179,6 +179,59 @@
 
 
 
+<div class="viewcode-block" id="oof_frame">
+<a class="viewcode-back" href="../../api.html#functions.evaluate.oof_frame">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">oof_frame</span><span class="p">(</span><span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build the out-of-fold rows for one validation fold.</span>
+
+<span class="sd">    Shared by :func:`cross_validate` and :func:`functions.tuning.nested_cv`</span>
+<span class="sd">    so every model's OOF predictions have the same columns and can go</span>
+<span class="sd">    through the same breakdowns and plots.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        seed: CV seed of this fold.</span>
+<span class="sd">        fold: Fold number.</span>
+<span class="sd">        val: The validation rows (with the raw input and target columns).</span>
+<span class="sd">        y_pred: Predictions for ``val``, in the same order.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A DataFrame with the columns described in :attr:`CVResult.oof`.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">"seed"</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
+        <span class="s2">"fold"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">fold</span><span class="p">),</span>
+        <span class="s2">"row"</span><span class="p">:</span> <span class="n">val</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="s2">"y_true"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="n">TARGET</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+        <span class="s2">"y_pred"</span><span class="p">:</span> <span class="n">y_pred</span><span class="p">,</span>
+        <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="s2">"chord_length_m"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+        <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+        <span class="s2">"angle_band"</span><span class="p">:</span> <span class="n">angle_band</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+        <span class="s2">"frequency_band"</span><span class="p">:</span> <span class="n">frequency_band</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+    <span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="concat_oof">
+<a class="viewcode-back" href="../../api.html#functions.evaluate.concat_oof">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">concat_oof</span><span class="p">(</span><span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Join per-fold OOF frames from :func:`oof_frame` into one table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parts: One DataFrame per fold.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The concatenated rows, with the band columns as ordered categoricals.</span>
+<span class="sd">    """</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Restore the band ordering lost when the categoricals were concatenated.</span>
+    <span class="n">oof</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">oof</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">],</span> <span class="n">ANGLE_BAND_LABELS</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">oof</span><span class="p">[</span><span class="s2">"frequency_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span>
+        <span class="n">oof</span><span class="p">[</span><span class="s2">"frequency_band"</span><span class="p">],</span> <span class="n">FREQUENCY_BAND_LABELS</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">oof</span></div>
+
+
+
 <div class="viewcode-block" id="cross_validate">
 <a class="viewcode-back" href="../../api.html#functions.evaluate.cross_validate">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">cross_validate</span><span class="p">(</span>
@@ -248,17 +301,7 @@
                 <span class="s2">"fit_time_s"</span><span class="p">:</span> <span class="n">fit_time</span><span class="p">,</span>
                 <span class="s2">"predict_time_s"</span><span class="p">:</span> <span class="n">predict_time</span><span class="p">,</span>
             <span class="p">})</span>
-            <span class="n">oof_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-                <span class="s2">"seed"</span><span class="p">:</span> <span class="n">seed</span><span class="p">,</span>
-                <span class="s2">"fold"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">fold</span><span class="p">),</span>
-                <span class="s2">"row"</span><span class="p">:</span> <span class="n">val</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
-                <span class="s2">"y_true"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="n">TARGET</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
-                <span class="s2">"y_pred"</span><span class="p">:</span> <span class="n">y_pred</span><span class="p">,</span>
-                <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="s2">"chord_length_m"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
-                <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
-                <span class="s2">"angle_band"</span><span class="p">:</span> <span class="n">angle_band</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
-                <span class="s2">"frequency_band"</span><span class="p">:</span> <span class="n">frequency_band</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
-            <span class="p">}))</span>
+            <span class="n">oof_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oof_frame</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">fold</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">))</span>
 
             <span class="c1"># Kept per fold so the spread shows how stable each effect is.</span>
             <span class="n">effects</span> <span class="o">=</span> <span class="n">coefficient_effects</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">columns</span><span class="p">)</span>
@@ -270,12 +313,7 @@
                     <span class="s2">"effect_db_per_sd"</span><span class="p">:</span> <span class="n">effects</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
                 <span class="p">}))</span>
 
-    <span class="n">oof</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">oof_parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="c1"># Restore the band ordering lost when the categoricals were concatenated.</span>
-    <span class="n">oof</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">oof</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">],</span> <span class="n">ANGLE_BAND_LABELS</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">oof</span><span class="p">[</span><span class="s2">"frequency_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span>
-        <span class="n">oof</span><span class="p">[</span><span class="s2">"frequency_band"</span><span class="p">],</span> <span class="n">FREQUENCY_BAND_LABELS</span><span class="p">,</span> <span class="n">ordered</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">)</span>
+    <span class="n">oof</span> <span class="o">=</span> <span class="n">concat_oof</span><span class="p">(</span><span class="n">oof_parts</span><span class="p">)</span>
     <span class="n">coefficients</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">coef_parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">coef_parts</span>

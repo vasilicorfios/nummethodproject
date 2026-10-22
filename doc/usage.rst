@@ -98,6 +98,34 @@ below 1) is not reliably estimated. In feature set B this happens to
 inputs, so their individual coefficients should not be interpreted
 physically.
 
+Tuning the MLP with nested cross-validation
+-------------------------------------------
+
+Choosing hyperparameters and scoring the model on the same folds would make
+the score optimistic. **Nested cross-validation** keeps the two jobs apart.
+For each outer fold, an inner grouped 5-fold cross-validation, run only on
+that fold's training setups, picks the network size and ``alpha``. The chosen
+model is then scored on the outer fold, which played no part in choosing it.
+
+.. code-block:: console
+
+    python src/run_tuning.py                               # all 3 seeds, sets A and B
+    python src/run_tuning.py --seeds 42 --feature-sets A   # quick one-seed check
+
+* ``--seeds``: outer CV seeds to run, any of 42, 43 and 44 (default: all).
+* ``--feature-sets``: A and/or B (default: both).
+
+The grid has 35 settings: hidden layers (32,), (64,), (32, 32), (64, 64) and
+(128, 128), each with alpha 1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1 and 10. A full
+run is 2,625 inner fits per feature set, plus one refit per outer fold, and
+takes about 44 minutes on an 8-core laptop for sets A and B together
+(measured: 23.8 min for A, 19.8 min for B). One seed on one feature set
+takes about 7–8 minutes. The script also re-runs the
+linear baseline on the same seeds and folds, so the two models can be
+compared fold by fold. Results go to ``results/tuning_*.csv``, and tables and
+figures (PNG and PDF) go to ``doc/generated/``. The test hold-out is never
+used.
+
 Profiling runtime, memory and FLOPs
 -----------------------------------
 

@@ -75,7 +75,7 @@ MODEL_NAME = "mlp"
 TUNED_LABEL = "mlp (tuned)"
 
 #: Grid keys. The model is TransformedTargetRegressor -> Pipeline ->
-#: step "regressor" (MLPRegressor), hence the double "regressor__" prefix.
+#: step ``"regressor"`` (MLPRegressor), hence the double ``regressor__`` prefix.
 LAYERS_KEY = "regressor__regressor__hidden_layer_sizes"
 ALPHA_KEY = "regressor__regressor__alpha"
 
