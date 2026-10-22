@@ -134,6 +134,53 @@ def frequency_band(frequency_hz: pd.Series) -> pd.Series:
     return pd.cut(frequency_hz, bins=bins, labels=FREQUENCY_BAND_LABELS, right=False)
 
 
+def oof_frame(seed: int, fold: int, val: pd.DataFrame, y_pred) -> pd.DataFrame:
+    """Build the out-of-fold rows for one validation fold.
+
+    Shared by :func:`cross_validate` and :func:`functions.tuning.nested_cv`
+    so every model's OOF predictions have the same columns and can go
+    through the same breakdowns and plots.
+
+    Args:
+        seed: CV seed of this fold.
+        fold: Fold number.
+        val: The validation rows (with the raw input and target columns).
+        y_pred: Predictions for ``val``, in the same order.
+
+    Returns:
+        A DataFrame with the columns described in :attr:`CVResult.oof`.
+    """
+    return pd.DataFrame({
+        "seed": seed,
+        "fold": int(fold),
+        "row": val.index,
+        "y_true": val[TARGET].to_numpy(),
+        "y_pred": y_pred,
+        "chord_length_m": val["chord_length_m"].to_numpy(),
+        "velocity_mps": val["velocity_mps"].to_numpy(),
+        "angle_band": angle_band(val["attack_angle_deg"]).to_numpy(),
+        "frequency_band": frequency_band(val["frequency_hz"]).to_numpy(),
+    })
+
+
+def concat_oof(parts: list[pd.DataFrame]) -> pd.DataFrame:
+    """Join per-fold OOF frames from :func:`oof_frame` into one table.
+
+    Args:
+        parts: One DataFrame per fold.
+
+    Returns:
+        The concatenated rows, with the band columns as ordered categoricals.
+    """
+    oof = pd.concat(parts, ignore_index=True)
+    # Restore the band ordering lost when the categoricals were concatenated.
+    oof["angle_band"] = pd.Categorical(oof["angle_band"], ANGLE_BAND_LABELS, ordered=True)
+    oof["frequency_band"] = pd.Categorical(
+        oof["frequency_band"], FREQUENCY_BAND_LABELS, ordered=True
+    )
+    return oof
+
+
 def cross_validate(
     data: pd.DataFrame,
     model_name: str,
@@ -201,17 +248,7 @@ def cross_validate(
                 "fit_time_s": fit_time,
                 "predict_time_s": predict_time,
             })
-            oof_parts.append(pd.DataFrame({
-                "seed": seed,
-                "fold": int(fold),
-                "row": val.index,
-                "y_true": val[TARGET].to_numpy(),
-                "y_pred": y_pred,
-                "chord_length_m": val["chord_length_m"].to_numpy(),
-                "velocity_mps": val["velocity_mps"].to_numpy(),
-                "angle_band": angle_band(val["attack_angle_deg"]).to_numpy(),
-                "frequency_band": frequency_band(val["frequency_hz"]).to_numpy(),
-            }))
+            oof_parts.append(oof_frame(seed, fold, val, y_pred))
 
             # Kept per fold so the spread shows how stable each effect is.
             effects = coefficient_effects(model, columns)
@@ -223,12 +260,7 @@ def cross_validate(
                     "effect_db_per_sd": effects.to_numpy(),
                 }))
 
-    oof = pd.concat(oof_parts, ignore_index=True)
-    # Restore the band ordering lost when the categoricals were concatenated.
-    oof["angle_band"] = pd.Categorical(oof["angle_band"], ANGLE_BAND_LABELS, ordered=True)
-    oof["frequency_band"] = pd.Categorical(
-        oof["frequency_band"], FREQUENCY_BAND_LABELS, ordered=True
-    )
+    oof = concat_oof(oof_parts)
     coefficients = (
         pd.concat(coef_parts, ignore_index=True)
         if coef_parts
