@@ -182,6 +182,22 @@ fixed chord and angle, like the measurements. It then prints the acceptance
 criteria table (``results/acceptance.csv``); criteria that need the hold-out
 show as pending. It needs the tuning results from ``run_tuning.py``.
 
+Final hold-out evaluation (run once)
+------------------------------------
+
+.. code-block:: console
+
+    python src/run_final.py            # about 10 seconds
+
+This trains linear, the runner-up MLP and the final MLP once on all
+cross-validation rows, and evaluates them once on the test hold-out. It
+writes the metrics, breakdowns, per-setup results, the CV-vs-hold-out
+comparison and the final acceptance table to ``results/``, and saves the
+trained models to ``results/final_models/``. It refuses to run again if
+``results/holdout_metrics.csv`` exists, unless ``--force`` is given; fixed
+seeds make a forced re-run reproduce the same numbers. The selected model is
+not changed based on these results.
+
 Profiling runtime, memory and FLOPs
 -----------------------------------
 
