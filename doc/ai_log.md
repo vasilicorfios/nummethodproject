@@ -16,7 +16,10 @@ reflection, and are to be written by the student.
 
 Work done before these sessions (data loading, the grouped train/test split,
 physics features, exploratory plots and the exploration page) is not covered
-by this record. *Student to add whether AI was used for it.*
+by this record.
+
+> **✍️ WRITE THIS YOURSELF (1 of 3):** say whether AI was used for that
+> earlier work, and if so, for what. Delete this box when done.
 
 ## 1. What the AI was used for
 
@@ -122,14 +125,21 @@ tests and documentation, ran them, and reported results.
 
 ## 6. Approximate level of AI contribution
 
-*To be written by the student.* For reference, from the record above: most of
-the code, tests and documentation from the linear baseline onwards was drafted
-by the AI to the student's written specifications. The student set the tasks,
-the rules and the thresholds, and made the modelling decisions in section 3.
+> **✍️ WRITE THIS YOURSELF (2 of 3):** your own estimate of how much of the
+> work was AI-generated, and why you used AI for those parts. Delete this box
+> when done.
+
+For reference, from the record above: most of the code, tests and
+documentation from the linear baseline onwards was drafted by the AI to the
+student's written specifications. The student set the tasks, the rules and
+the thresholds, and made the modelling decisions in section 3.
 
 ## 7. Reflection
 
-*To be written by the student, in their own words.* The brief asks for:
+> **✍️ WRITE THIS YOURSELF (3 of 3):** your reflection, in your own words.
+> Delete this box when done.
+
+The brief asks for:
 
 - why AI was used for these tasks;
 - how AI use affected your understanding and workflow;
