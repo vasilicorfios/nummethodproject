@@ -5,9 +5,9 @@ airfoils taken in a wind tunnel. Five input features describe the test
 conditions and one target, the scaled sound pressure level, describes the
 measured noise.
 
-The Excel file is expected at ``data/airfoil_self_noise.xlsx``. It is not
-committed to the repository and must be kept locally, as noted in the
-project README.
+The Excel file is expected at ``data/airfoil_self_noise.xlsx``, where it is
+committed to the repository (it is small, about 75 kB), so a fresh clone can
+run every script.
 
 Example:
     >>> from functions.data_loader import load_airfoil_data

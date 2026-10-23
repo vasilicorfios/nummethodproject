@@ -4,10 +4,11 @@ Usage
 Setup
 -----
 
-Place ``airfoil_self_noise.xlsx`` in the ``data/`` directory (it is not
-committed to the repository), then install the dependencies::
+The dataset (``data/airfoil_self_noise.xlsx``) is included in the
+repository. Install the exact package versions used for the results (Python
+3.10)::
 
-    pip install pandas openpyxl matplotlib scikit-learn pytest pytest-html
+    pip install -r requirements.txt
 
 Loading the data
 ----------------
