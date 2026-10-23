@@ -114,7 +114,9 @@ def _one_seed(result: CVResult, seed: int) -> pd.DataFrame:
     return oof.assign(residual=oof["y_true"] - oof["y_pred"])
 
 
-def plot_predicted_vs_measured(results: list[CVResult], seed: int = CV_SEEDS[0]) -> Figure:
+def plot_predicted_vs_measured(results: list[CVResult], seed: int = CV_SEEDS[0],
+                               colours: list[str] | None = None,
+                               title_note: str | None = None) -> Figure:
     """Scatter OOF predicted SPL against measured SPL, one panel per result.
 
     Points on the dashed y = x line are perfect predictions. A cloud flatter
@@ -123,10 +125,17 @@ def plot_predicted_vs_measured(results: list[CVResult], seed: int = CV_SEEDS[0])
     Args:
         results: Outputs of :func:`functions.evaluate.cross_validate`.
         seed: CV seed whose OOF predictions are shown.
+        colours: Series colours in result order (default
+            :data:`SERIES_COLOURS`), so a model can keep its usual colour
+            whatever its position.
+        title_note: Text in brackets after each panel's RMSE (default
+            ``"seed <seed>"``).
 
     Returns:
         The figure (not shown or saved).
     """
+    colours = colours or SERIES_COLOURS
+    note = title_note if title_note is not None else f"seed {seed}"
     fig, axes = _new_figure(len(results), 4.6, 4.6, sharex=True, sharey=True)
     oofs = [_one_seed(r, seed) for r in results]
     lo = min(min(o["y_true"].min(), o["y_pred"].min()) for o in oofs) - 2
@@ -135,9 +144,9 @@ def plot_predicted_vs_measured(results: list[CVResult], seed: int = CV_SEEDS[0])
     for i, (ax, result, oof) in enumerate(zip(axes, results, oofs)):
         ax.plot([lo, hi], [lo, hi], color=MUTED, linestyle="--", linewidth=1)
         ax.scatter(oof["y_true"], oof["y_pred"], s=8, alpha=0.4,
-                   color=SERIES_COLOURS[i], edgecolors="none")
+                   color=colours[i], edgecolors="none")
         rmse = np.sqrt(np.mean(oof["residual"] ** 2))
-        ax.set_title(f"{_label(result)}   RMSE {rmse:.2f} dB (seed {seed})", fontsize=10, loc="left")
+        ax.set_title(f"{_label(result)}   RMSE {rmse:.2f} dB ({note})", fontsize=10, loc="left")
         ax.set_xlabel("Measured SPL (dB)")
         ax.set_xlim(lo, hi)
         ax.set_ylim(lo, hi)
@@ -176,15 +185,19 @@ def plot_residual_by_frequency(results: list[CVResult], data: pd.DataFrame,
     return fig
 
 
-def plot_rmse_breakdown(results: list[CVResult]) -> Figure:
+def plot_rmse_breakdown(results: list[CVResult], colours: list[str] | None = None) -> Figure:
     """Grouped bars of OOF RMSE for each subgroup, one panel per breakdown.
 
     Args:
         results: Outputs of :func:`functions.evaluate.cross_validate`.
+        colours: Series colours in result order (default
+            :data:`SERIES_COLOURS`), so a model can keep its usual colour
+            whatever its position.
 
     Returns:
         The figure (not shown or saved).
     """
+    colours = colours or SERIES_COLOURS
     breakdowns = [oof_rmse_breakdown(r) for r in results]
     fig, axes = _new_figure(len(BREAKDOWN_COLUMNS), 3.4, 3.8, sharey=True)
     width = 0.8 / len(results)
@@ -194,7 +207,7 @@ def plot_rmse_breakdown(results: list[CVResult]) -> Figure:
             rows = bd[bd["breakdown"] == column]
             x = np.arange(len(rows)) + (i - (len(results) - 1) / 2) * width
             # White edges give the 2px gap between adjacent bars.
-            ax.bar(x, rows["rmse"], width=width, color=SERIES_COLOURS[i],
+            ax.bar(x, rows["rmse"], width=width, color=colours[i],
                    edgecolor=SURFACE, linewidth=1.5, label=_label(result))
         labels = rows["group"].astype(str).str.replace(" Hz", "").str.replace(" kHz", "k")
         ax.set_xticks(np.arange(len(rows)), labels, rotation=35, ha="right")
@@ -295,7 +308,8 @@ def plot_example_spectra(results: list[CVResult], data: pd.DataFrame,
 
 
 def plot_setup_spectra(results: list[CVResult], data: pd.DataFrame, setup_ids: list[int],
-                       titles: list[str] | None = None, ncols: int = 5) -> Figure:
+                       titles: list[str] | None = None, ncols: int = 5,
+                       colours: list[str] | None = None) -> Figure:
     """Measured and predicted spectra for chosen setups, one panel each.
 
     Each panel is one wind-tunnel setup: SPL against frequency, with the
@@ -311,10 +325,14 @@ def plot_setup_spectra(results: list[CVResult], data: pd.DataFrame, setup_ids: l
         setup_ids: Setups to draw, in panel order.
         titles: Optional panel titles (default: the setup's conditions).
         ncols: Panels per row.
+        colours: Series colours in result order (default
+            :data:`SERIES_COLOURS`), so a model can keep its usual colour
+            whatever its position.
 
     Returns:
         The figure (not shown or saved).
     """
+    colours = colours or SERIES_COLOURS
     setup_of_row = assign_folds(data)["setup_id"]
     mean_pred = [r.oof.groupby("row")["y_pred"].mean() for r in results]
     nrows = -(-len(setup_ids) // ncols)  # ceiling division
@@ -332,7 +350,7 @@ def plot_setup_spectra(results: list[CVResult], data: pd.DataFrame, setup_ids: l
         ax.plot(spectrum["frequency_hz"], spectrum["spl_db"], color=INK, linewidth=1.5,
                 marker="o", markersize=3.5, label="Measured")
         for i, (result, pred) in enumerate(zip(results, mean_pred)):
-            ax.plot(spectrum["frequency_hz"], pred.loc[spectrum.index], color=SERIES_COLOURS[i],
+            ax.plot(spectrum["frequency_hz"], pred.loc[spectrum.index], color=colours[i],
                     linewidth=2, label=_label(result))
         _frequency_axis(ax)
         c = spectrum.iloc[0]

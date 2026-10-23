@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>functions.final &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for functions.final</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Building blocks for the single final hold-out evaluation (``run_final.py``).</span>
+
+<span class="sd">The test hold-out (``fold == TEST_FOLD``) is used here for the first and only</span>
+<span class="sd">time. Three models are trained once on **all** cross-validation rows and then</span>
+<span class="sd">predict the hold-out rows once:</span>
+
+<span class="sd">* ``mlp_final`` (:data:`functions.models.FINAL_MLP`): the selected model;</span>
+<span class="sd">  the acceptance criteria apply to it.</span>
+<span class="sd">* ``mlp_runner_up`` (:data:`functions.models.RUNNER_UP_MLP`): a cheaper</span>
+<span class="sd">  alternative, reported for comparison only.</span>
+<span class="sd">* ``linear``: the baseline.</span>
+
+<span class="sd">All three use :data:`functions.models.FINAL_FEATURE_SET` and are built by</span>
+<span class="sd">:func:`functions.models.build_model`, so no setting is retyped and all</span>
+<span class="sd">scaling is fitted on the training rows only.</span>
+
+<span class="sd">Hold-out predictions are stored in the same out-of-fold table format as the</span>
+<span class="sd">cross-validation results (:class:`functions.evaluate.CVResult`, with</span>
+<span class="sd">``seed = TEST_SEED`` and ``fold = TEST_FOLD``), so the existing breakdown and</span>
+<span class="sd">plotting functions work on them unchanged.</span>
+<span class="sd">"""</span>
+
+<span class="c1"># Postponed annotations: the docs build mocks pandas.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.compose</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformedTargetRegressor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neural_network</span><span class="w"> </span><span class="kn">import</span> <span class="n">MLPRegressor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.acceptance</span><span class="w"> </span><span class="kn">import</span> <span class="n">acceptance_table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">TARGET</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BREAKDOWN_COLUMNS</span><span class="p">,</span>
+    <span class="n">CVResult</span><span class="p">,</span>
+    <span class="n">compute_metrics</span><span class="p">,</span>
+    <span class="n">concat_oof</span><span class="p">,</span>
+    <span class="n">oof_frame</span><span class="p">,</span>
+    <span class="n">oof_rmse_breakdown</span><span class="p">,</span>
+    <span class="n">per_setup_rmse</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.feature_sets</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_feature_columns</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">TEST_SEED</span><span class="p">,</span> <span class="n">assign_folds</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FINAL_FEATURE_SET</span><span class="p">,</span>
+    <span class="n">FINAL_MODEL_NAME</span><span class="p">,</span>
+    <span class="n">RUNNER_UP_MLP</span><span class="p">,</span>
+    <span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">,</span>
+    <span class="n">build_model</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">#: Models evaluated on the hold-out, in report order, with short labels.</span>
+<span class="n">HOLDOUT_MODELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"linear"</span><span class="p">:</span> <span class="s2">"linear"</span><span class="p">,</span>
+    <span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">:</span> <span class="s2">"runner-up MLP"</span><span class="p">,</span>
+    <span class="n">FINAL_MODEL_NAME</span><span class="p">:</span> <span class="s2">"final MLP"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1">#: The selected model; the only one assessed against the acceptance criteria.</span>
+<span class="n">SELECTED_MODEL</span> <span class="o">=</span> <span class="n">FINAL_MODEL_NAME</span>
+
+<span class="c1">#: Columns describing a hold-out setup.</span>
+<span class="n">SETUP_INFO</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"disp_thickness_m"</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="split_train_holdout">
+<a class="viewcode-back" href="../../api.html#functions.final.split_train_holdout">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_train_holdout</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Split the dataset into all cross-validation rows and the hold-out rows.</span>
+
+<span class="sd">    The test hold-out depends only on ``TEST_SEED``, not on the CV seed, so</span>
+<span class="sd">    the default :func:`functions.make_folds.assign_folds` call gives it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with physics features.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``(train, holdout)``, both with ``setup_id`` and ``fold`` columns.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If the split fails :func:`check_split`.</span>
+<span class="sd">    """</span>
+    <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">train</span> <span class="o">=</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+    <span class="n">holdout</span> <span class="o">=</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+    <span class="n">check_split</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">holdout</span><span class="p">,</span> <span class="n">folded</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train</span><span class="p">,</span> <span class="n">holdout</span></div>
+
+
+
+<div class="viewcode-block" id="check_split">
+<a class="viewcode-back" href="../../api.html#functions.final.check_split">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_split</span><span class="p">(</span><span class="n">train</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">folded</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Refuse to continue unless the train/hold-out split is clean.</span>
+
+<span class="sd">    Checks that no setup is in both parts, that the hold-out has exactly the</span>
+<span class="sd">    rows and setups :func:`functions.make_folds.assign_folds` marked as test,</span>
+<span class="sd">    and that every row is in one part or the other. These are raised errors,</span>
+<span class="sd">    not ``assert`` statements, so they cannot be switched off.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        train: Training rows.</span>
+<span class="sd">        holdout: Hold-out rows.</span>
+<span class="sd">        folded: The full output of ``assign_folds``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: Describing the first problem found.</span>
+<span class="sd">    """</span>
+    <span class="n">shared</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">holdout</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">shared</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Setups in both training and hold-out rows: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">==</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">holdout</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">(</span><span class="n">holdout</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">expected</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Hold-out rows do not match the rows assign_folds marked as test"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Hold-out setup count does not match assign_folds"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">holdout</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">folded</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Training and hold-out rows do not add up to the whole dataset"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="HoldoutFit">
+<a class="viewcode-back" href="../../api.html#functions.final.HoldoutFit">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HoldoutFit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One model trained on all CV rows and its hold-out predictions.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        model_name: Registry name, e.g. ``"mlp_final"``.</span>
+<span class="sd">        model: The fitted pipeline.</span>
+<span class="sd">        y_pred: Predictions for the hold-out rows, in hold-out row order.</span>
+<span class="sd">        fit_time_s: Training time (one fit, :func:`time.perf_counter`).</span>
+<span class="sd">        predict_time_s: Time to predict all hold-out rows.</span>
+<span class="sd">        n_iter: Epochs run (MLPs only, else ``None``).</span>
+<span class="sd">        hit_max_iter: Whether training stopped at ``max_iter`` rather than by</span>
+<span class="sd">            early stopping (MLPs only, else ``None``).</span>
+<span class="sd">    """</span>
+
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">TransformedTargetRegressor</span>
+    <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">fit_time_s</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">predict_time_s</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">hit_max_iter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="fit_and_predict">
+<a class="viewcode-back" href="../../api.html#functions.final.fit_and_predict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fit_and_predict</span><span class="p">(</span><span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                    <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HoldoutFit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Train one model once on the training rows, then predict the hold-out once.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_name: Key of :data:`functions.models.MODELS`.</span>
+<span class="sd">        train: All cross-validation rows.</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+<span class="sd">        feature_set: Feature set to use.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`HoldoutFit`.</span>
+<span class="sd">    """</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">get_feature_columns</span><span class="p">(</span><span class="n">feature_set</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">build_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">[</span><span class="n">columns</span><span class="p">],</span> <span class="n">train</span><span class="p">[</span><span class="n">TARGET</span><span class="p">])</span>
+    <span class="n">fit_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">holdout</span><span class="p">[</span><span class="n">columns</span><span class="p">])</span>
+    <span class="n">predict_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+
+    <span class="n">estimator</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">regressor_</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">"regressor"</span><span class="p">]</span>
+    <span class="n">is_mlp</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLPRegressor</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">HoldoutFit</span><span class="p">(</span>
+        <span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">y_pred</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y_pred</span><span class="p">),</span>
+        <span class="n">fit_time_s</span><span class="o">=</span><span class="n">fit_time</span><span class="p">,</span>
+        <span class="n">predict_time_s</span><span class="o">=</span><span class="n">predict_time</span><span class="p">,</span>
+        <span class="n">n_iter</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">estimator</span><span class="o">.</span><span class="n">n_iter_</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_mlp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">hit_max_iter</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">estimator</span><span class="o">.</span><span class="n">n_iter_</span> <span class="o">&gt;=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">max_iter</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_mlp</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="as_result">
+<a class="viewcode-back" href="../../api.html#functions.final.as_result">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">as_result</span><span class="p">(</span><span class="n">fit</span><span class="p">:</span> <span class="n">HoldoutFit</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+              <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CVResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Wrap hold-out predictions as a CVResult so existing tools can use them.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fit: Output of :func:`fit_and_predict`.</span>
+<span class="sd">        train: The training rows (for the row count).</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+<span class="sd">        feature_set: Feature set used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A :class:`~functions.evaluate.CVResult` whose single "fold" is the</span>
+<span class="sd">        hold-out, labelled with the model's short name.</span>
+<span class="sd">    """</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"seed"</span><span class="p">:</span> <span class="n">TEST_SEED</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">:</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="s2">"n_train"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">train</span><span class="p">),</span> <span class="s2">"n_val"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">holdout</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">holdout</span><span class="p">[</span><span class="n">TARGET</span><span class="p">],</span> <span class="n">fit</span><span class="o">.</span><span class="n">y_pred</span><span class="p">),</span>
+        <span class="s2">"fit_time_s"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">fit_time_s</span><span class="p">,</span> <span class="s2">"predict_time_s"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">predict_time_s</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">CVResult</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">HOLDOUT_MODELS</span><span class="p">[</span><span class="n">fit</span><span class="o">.</span><span class="n">model_name</span><span class="p">],</span>
+        <span class="n">feature_set</span><span class="o">=</span><span class="n">feature_set</span><span class="p">,</span>
+        <span class="n">fold_scores</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">scores</span><span class="p">]),</span>
+        <span class="n">oof</span><span class="o">=</span><span class="n">concat_oof</span><span class="p">([</span><span class="n">oof_frame</span><span class="p">(</span><span class="n">TEST_SEED</span><span class="p">,</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">holdout</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">y_pred</span><span class="p">)]),</span>
+        <span class="n">coefficients</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"seed"</span><span class="p">,</span> <span class="s2">"fold"</span><span class="p">,</span> <span class="s2">"feature"</span><span class="p">,</span> <span class="s2">"effect_db_per_sd"</span><span class="p">]),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="holdout_metrics">
+<a class="viewcode-back" href="../../api.html#functions.final.holdout_metrics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">holdout_metrics</span><span class="p">(</span><span class="n">fits</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">HoldoutFit</span><span class="p">],</span> <span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Headline hold-out metrics, one row per model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fits: Outputs of :func:`fit_and_predict`.</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Columns ``model``, ``label``, ``selected``, ``rmse``, ``mae``,</span>
+<span class="sd">        ``r2``, ``bias`` (mean of measured − predicted, dB; positive means</span>
+<span class="sd">        the model is too low), ``n_setups``, ``n_rows``, ``fit_time_s``,</span>
+<span class="sd">        ``predict_time_s``, ``n_iter`` and ``hit_max_iter``.</span>
+<span class="sd">    """</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fit</span> <span class="ow">in</span> <span class="n">fits</span><span class="p">:</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"model"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="s2">"label"</span><span class="p">:</span> <span class="n">HOLDOUT_MODELS</span><span class="p">[</span><span class="n">fit</span><span class="o">.</span><span class="n">model_name</span><span class="p">],</span>
+            <span class="s2">"selected"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">model_name</span> <span class="o">==</span> <span class="n">SELECTED_MODEL</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">compute_metrics</span><span class="p">(</span><span class="n">holdout</span><span class="p">[</span><span class="n">TARGET</span><span class="p">],</span> <span class="n">fit</span><span class="o">.</span><span class="n">y_pred</span><span class="p">),</span>
+            <span class="s2">"bias"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">holdout</span><span class="p">[</span><span class="n">TARGET</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="o">-</span> <span class="n">fit</span><span class="o">.</span><span class="n">y_pred</span><span class="p">)),</span>
+            <span class="s2">"n_setups"</span><span class="p">:</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">(),</span>
+            <span class="s2">"n_rows"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">holdout</span><span class="p">),</span>
+            <span class="s2">"fit_time_s"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">fit_time_s</span><span class="p">,</span>
+            <span class="s2">"predict_time_s"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">predict_time_s</span><span class="p">,</span>
+            <span class="s2">"n_iter"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">n_iter</span><span class="p">,</span>
+            <span class="s2">"hit_max_iter"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">hit_max_iter</span><span class="p">,</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="holdout_breakdown">
+<a class="viewcode-back" href="../../api.html#functions.final.holdout_breakdown">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">holdout_breakdown</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CVResult</span><span class="p">],</span> <span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Hold-out RMSE by chord, velocity, angle band and frequency band.</span>
+
+<span class="sd">    Reuses :func:`functions.evaluate.oof_rmse_breakdown` and adds how many</span>
+<span class="sd">    hold-out setups fall in each group.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        results: Model name -&gt; :func:`as_result` output.</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Columns ``model``, ``breakdown``, ``group``, ``n_setups``, ``n``</span>
+<span class="sd">        (rows) and ``rmse``.</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">bd</span> <span class="o">=</span> <span class="n">oof_rmse_breakdown</span><span class="p">(</span><span class="n">result</span><span class="p">)[[</span><span class="s2">"breakdown"</span><span class="p">,</span> <span class="s2">"group"</span><span class="p">,</span> <span class="s2">"n"</span><span class="p">,</span> <span class="s2">"rmse"</span><span class="p">]]</span>
+        <span class="n">oof</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">oof</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">setup_id</span><span class="o">=</span><span class="n">holdout</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">oof</span><span class="p">[</span><span class="s2">"row"</span><span class="p">],</span> <span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+        <span class="n">setups</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+            <span class="n">oof</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"n_setups"</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="s2">"group"</span><span class="p">})</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">breakdown</span><span class="o">=</span><span class="n">col</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">BREAKDOWN_COLUMNS</span>
+        <span class="p">])</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">setups</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">"breakdown"</span><span class="p">,</span> <span class="s2">"group"</span><span class="p">])</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span><span class="p">[[</span><span class="s2">"model"</span><span class="p">,</span> <span class="s2">"breakdown"</span><span class="p">,</span> <span class="s2">"group"</span><span class="p">,</span> <span class="s2">"n_setups"</span><span class="p">,</span> <span class="s2">"n"</span><span class="p">,</span> <span class="s2">"rmse"</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="holdout_setups">
+<a class="viewcode-back" href="../../api.html#functions.final.holdout_setups">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">holdout_setups</span><span class="p">(</span><span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The hold-out setups and how many rows (frequencies) each has.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per setup: :data:`SETUP_INFO` plus ``n_rows``, ordered by</span>
+<span class="sd">        chord, velocity and angle.</span>
+<span class="sd">    """</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">holdout</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">chord_length_m</span><span class="o">=</span><span class="p">(</span><span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span> <span class="n">velocity_mps</span><span class="o">=</span><span class="p">(</span><span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span>
+        <span class="n">attack_angle_deg</span><span class="o">=</span><span class="p">(</span><span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span> <span class="n">disp_thickness_m</span><span class="o">=</span><span class="p">(</span><span class="s2">"disp_thickness_m"</span><span class="p">,</span> <span class="s2">"first"</span><span class="p">),</span>
+        <span class="n">n_rows</span><span class="o">=</span><span class="p">(</span><span class="s2">"spl_db"</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">info</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="setup_rmse">
+<a class="viewcode-back" href="../../api.html#functions.final.setup_rmse">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_rmse</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CVResult</span><span class="p">],</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""RMSE and bias of every hold-out setup for every model, ranked worst first.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        results: Model name -&gt; :func:`as_result` output.</span>
+<span class="sd">        data: The dataset.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Long table: ``model``, ``rank`` (1 = worst for that model) and the</span>
+<span class="sd">        columns of :func:`functions.evaluate.per_setup_rmse`.</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">per_setup_rmse</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">"rmse_sd_seeds"</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"rank"</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"model"</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="paired_setups">
+<a class="viewcode-back" href="../../api.html#functions.final.paired_setups">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_setups</span><span class="p">(</span><span class="n">setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">model_a</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_b</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Per-setup RMSE difference ``model_a − model_b`` on identical setups.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        setups: Output of :func:`setup_rmse`.</span>
+<span class="sd">        model_a: First model (e.g. the final MLP).</span>
+<span class="sd">        model_b: Model it is compared with.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per setup with ``rmse_a``, ``rmse_b`` and ``rmse_diff``</span>
+<span class="sd">        (negative means ``model_a`` was better), plus ``comparison``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the two models were not scored on the same setups.</span>
+<span class="sd">    """</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">setups</span><span class="p">[</span><span class="n">setups</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">==</span> <span class="n">model_a</span><span class="p">]</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)[</span><span class="s2">"rmse"</span><span class="p">]</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">setups</span><span class="p">[</span><span class="n">setups</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">==</span> <span class="n">model_b</span><span class="p">]</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)[</span><span class="s2">"rmse"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_a</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">model_b</span><span class="si">}</span><span class="s2"> were not scored on the same setups"</span><span class="p">)</span>
+    <span class="n">paired</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"rmse_a"</span><span class="p">:</span> <span class="n">a</span><span class="p">,</span> <span class="s2">"rmse_b"</span><span class="p">:</span> <span class="n">b</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">index</span><span class="p">]})</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">=</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_a"</span><span class="p">]</span> <span class="o">-</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_b"</span><span class="p">]</span>
+    <span class="n">paired</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"comparison"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_a</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">model_b</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">paired</span></div>
+
+
+
+<div class="viewcode-block" id="paired_summary">
+<a class="viewcode-back" href="../../api.html#functions.final.paired_summary">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">paired_summary</span><span class="p">(</span><span class="n">paired</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Mean ± SD of the per-setup differences and the number of wins.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paired: Output of :func:`paired_setups`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``comparison``, ``n_setups``, ``mean_diff``, ``sd_diff``,</span>
+<span class="sd">        ``a_wins`` and ``b_wins`` (setups where that model's RMSE was lower).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"comparison"</span><span class="p">:</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"comparison"</span><span class="p">]</span><span class="o">.</span><span class="n">iat</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">"n_setups"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">paired</span><span class="p">),</span>
+        <span class="s2">"mean_diff"</span><span class="p">:</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+        <span class="s2">"sd_diff"</span><span class="p">:</span> <span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+        <span class="s2">"a_wins"</span><span class="p">:</span> <span class="nb">int</span><span class="p">((</span><span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+        <span class="s2">"b_wins"</span><span class="p">:</span> <span class="nb">int</span><span class="p">((</span><span class="n">paired</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="cv_estimates">
+<a class="viewcode-back" href="../../api.html#functions.final.cv_estimates">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cv_estimates</span><span class="p">(</span><span class="n">tuning_summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">cv_summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                 <span class="n">inner_grid</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Each model's cross-validation RMSE estimate, read from saved results.</span>
+
+<span class="sd">    * Final MLP: nested-CV outer-fold mean ± SD (``tuning_summary.csv``).</span>
+<span class="sd">      This scores the whole tuning procedure on unseen setups.</span>
+<span class="sd">    * Linear: repeated grouped CV mean ± SD (``cv_summary.csv``).</span>
+<span class="sd">    * Runner-up MLP: it has no outer-fold estimate of its own, so its mean</span>
+<span class="sd">      **inner**-CV RMSE (``tuning_inner_grid.csv``, averaged over all seeds</span>
+<span class="sd">      and outer folds) is used, with the SD over outer folds. It is labelled</span>
+<span class="sd">      as an inner-CV estimate: inner scores were used for selection and are</span>
+<span class="sd">      slightly optimistic.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tuning_summary: Contents of ``results/tuning_summary.csv``.</span>
+<span class="sd">        cv_summary: Contents of ``results/cv_summary.csv``.</span>
+<span class="sd">        inner_grid: Contents of ``results/tuning_inner_grid.csv``.</span>
+<span class="sd">        feature_set: Feature set of the models.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per model: ``model``, ``estimate``, ``cv_rmse``, ``cv_sd`` and</span>
+<span class="sd">        ``n_folds``.</span>
+<span class="sd">    """</span>
+    <span class="n">tuned</span> <span class="o">=</span> <span class="n">tuning_summary</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"feature_set"</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">feature_set</span><span class="p">]</span>
+    <span class="n">linear</span> <span class="o">=</span> <span class="n">cv_summary</span><span class="p">[(</span><span class="n">cv_summary</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"linear"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">cv_summary</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span> <span class="o">==</span> <span class="n">feature_set</span><span class="p">)]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">inner_grid</span><span class="p">[(</span><span class="n">inner_grid</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span> <span class="o">==</span> <span class="n">feature_set</span><span class="p">)</span>
+                      <span class="o">&amp;</span> <span class="p">(</span><span class="n">inner_grid</span><span class="p">[</span><span class="s2">"hidden_layer_sizes"</span><span class="p">]</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">RUNNER_UP_MLP</span><span class="p">[</span><span class="s2">"hidden_layer_sizes"</span><span class="p">]))</span>
+                      <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">inner_grid</span><span class="p">[</span><span class="s2">"alpha"</span><span class="p">],</span> <span class="n">RUNNER_UP_MLP</span><span class="p">[</span><span class="s2">"alpha"</span><span class="p">])]</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+        <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"estimate"</span><span class="p">:</span> <span class="s2">"repeated grouped CV"</span><span class="p">,</span>
+         <span class="s2">"cv_rmse"</span><span class="p">:</span> <span class="n">linear</span><span class="p">[</span><span class="s2">"rmse"</span><span class="p">],</span> <span class="s2">"cv_sd"</span><span class="p">:</span> <span class="n">linear</span><span class="p">[</span><span class="s2">"rmse_std"</span><span class="p">],</span> <span class="s2">"n_folds"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">linear</span><span class="p">[</span><span class="s2">"n_folds"</span><span class="p">])},</span>
+        <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">RUNNER_UP_MODEL_NAME</span><span class="p">,</span> <span class="s2">"estimate"</span><span class="p">:</span> <span class="s2">"inner CV (selection score)"</span><span class="p">,</span>
+         <span class="s2">"cv_rmse"</span><span class="p">:</span> <span class="n">grid</span><span class="p">[</span><span class="s2">"mean_inner_rmse"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="s2">"cv_sd"</span><span class="p">:</span> <span class="n">grid</span><span class="p">[</span><span class="s2">"mean_inner_rmse"</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+         <span class="s2">"n_folds"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)},</span>
+        <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">FINAL_MODEL_NAME</span><span class="p">,</span> <span class="s2">"estimate"</span><span class="p">:</span> <span class="s2">"nested CV (outer folds)"</span><span class="p">,</span>
+         <span class="s2">"cv_rmse"</span><span class="p">:</span> <span class="n">tuned</span><span class="p">[</span><span class="s2">"rmse_mean"</span><span class="p">],</span> <span class="s2">"cv_sd"</span><span class="p">:</span> <span class="n">tuned</span><span class="p">[</span><span class="s2">"rmse_sd_folds"</span><span class="p">],</span> <span class="s2">"n_folds"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">tuned</span><span class="p">[</span><span class="s2">"n_folds"</span><span class="p">])},</span>
+    <span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_acceptance">
+<a class="viewcode-back" href="../../api.html#functions.final.evaluate_acceptance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_acceptance</span><span class="p">(</span><span class="n">paired_cv</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">tuning_summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+                        <span class="n">physics_summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Evaluate every acceptance criterion for the selected (final) model.</span>
+
+<span class="sd">    Thresholds come unchanged from :mod:`functions.acceptance`. Only the</span>
+<span class="sd">    final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paired_cv: Contents of ``results/tuning_paired_vs_linear.csv``.</span>
+<span class="sd">        tuning_summary: Contents of ``results/tuning_summary.csv``.</span>
+<span class="sd">        physics_summary: Contents of ``results/physics_speed_order_summary.csv``.</span>
+<span class="sd">        metrics: Output of :func:`holdout_metrics`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The acceptance table with every criterion PASS or FAIL.</span>
+<span class="sd">    """</span>
+    <span class="n">rmse</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)[</span><span class="s2">"rmse"</span><span class="p">]</span>
+    <span class="n">mlp</span> <span class="o">=</span> <span class="n">physics_summary</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"mlp"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">acceptance_table</span><span class="p">(</span>
+        <span class="n">paired_cv</span><span class="p">,</span> <span class="n">tuning_summary</span><span class="p">,</span>
+        <span class="n">physics_pair_fraction</span><span class="o">=</span><span class="n">mlp</span><span class="p">[</span><span class="s2">"pairs_correct"</span><span class="p">]</span> <span class="o">/</span> <span class="n">mlp</span><span class="p">[</span><span class="s2">"pairs_scored"</span><span class="p">],</span>
+        <span class="n">holdout</span><span class="o">=</span><span class="p">{</span><span class="s2">"mlp_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="n">SELECTED_MODEL</span><span class="p">]),</span> <span class="s2">"linear_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">])},</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="predictions_table">
+<a class="viewcode-back" href="../../api.html#functions.final.predictions_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">predictions_table</span><span class="p">(</span><span class="n">holdout</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">fits</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">HoldoutFit</span><span class="p">],</span>
+                      <span class="n">feature_set</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Row-level hold-out predictions of every model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        holdout: The hold-out rows.</span>
+<span class="sd">        fits: Outputs of :func:`fit_and_predict`.</span>
+<span class="sd">        feature_set: Feature set used (its columns are included as inputs).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per hold-out measurement: ``row``, ``setup_id``, the input</span>
+<span class="sd">        columns, ``measured_spl_db`` and ``pred_&lt;model&gt;`` for each model.</span>
+<span class="sd">    """</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">get_feature_columns</span><span class="p">(</span><span class="n">feature_set</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">holdout</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"row"</span><span class="p">,</span> <span class="n">holdout</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">table</span><span class="p">[</span><span class="s2">"measured_spl_db"</span><span class="p">]</span> <span class="o">=</span> <span class="n">holdout</span><span class="p">[</span><span class="n">TARGET</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">fit</span> <span class="ow">in</span> <span class="n">fits</span><span class="p">:</span>
+        <span class="n">table</span><span class="p">[</span><span class="sa">f</span><span class="s2">"pred_</span><span class="si">{</span><span class="n">fit</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">y_pred</span>
+    <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exploration.html">Data exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

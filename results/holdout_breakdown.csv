@@ -1,0 +1,55 @@
+model,breakdown,group,n_setups,n,rmse
+linear,chord_length_m,0.0254,3,40,7.519886515804535
+linear,chord_length_m,0.0508,3,41,4.0324652088542035
+linear,chord_length_m,0.1016,3,37,4.454753672051041
+linear,chord_length_m,0.1524,2,31,4.3231263568442
+linear,chord_length_m,0.2286,3,45,3.342363933125
+linear,chord_length_m,0.3048,2,33,3.4896367166721687
+linear,velocity_mps,31.7,4,58,4.714969022637594
+linear,velocity_mps,39.6,3,44,3.9850091921931208
+linear,velocity_mps,55.5,3,37,6.569654741458414
+linear,velocity_mps,71.3,6,88,4.212781033571609
+linear,angle_band,0,1,18,3.6301341003556176
+linear,angle_band,0-5,6,86,4.016950211574631
+linear,angle_band,5-10,6,77,4.74917171708703
+linear,angle_band,>15,3,46,6.2297462263260925
+linear,frequency_band,200-500 Hz,13,40,7.607501165203569
+linear,frequency_band,630-1600 Hz,16,80,4.138385281858369
+linear,frequency_band,2-5 kHz,16,75,3.3760233618469306
+linear,frequency_band,6.3-20 kHz,13,32,4.35519152765101
+mlp_runner_up,chord_length_m,0.0254,3,40,2.7414453460411927
+mlp_runner_up,chord_length_m,0.0508,3,41,3.796426459646796
+mlp_runner_up,chord_length_m,0.1016,3,37,2.083693677481686
+mlp_runner_up,chord_length_m,0.1524,2,31,1.5968464998085379
+mlp_runner_up,chord_length_m,0.2286,3,45,1.9640741165552487
+mlp_runner_up,chord_length_m,0.3048,2,33,1.1019939673299548
+mlp_runner_up,velocity_mps,31.7,4,58,2.272424278413746
+mlp_runner_up,velocity_mps,39.6,3,44,1.8268749739217167
+mlp_runner_up,velocity_mps,55.5,3,37,2.8143416154751892
+mlp_runner_up,velocity_mps,71.3,6,88,2.623089505027911
+mlp_runner_up,angle_band,0,1,18,1.3140163491624186
+mlp_runner_up,angle_band,0-5,6,86,1.402832434442315
+mlp_runner_up,angle_band,5-10,6,77,2.28985761709936
+mlp_runner_up,angle_band,>15,3,46,4.013130114367788
+mlp_runner_up,frequency_band,200-500 Hz,13,40,3.505272706215313
+mlp_runner_up,frequency_band,630-1600 Hz,16,80,2.075129230122555
+mlp_runner_up,frequency_band,2-5 kHz,16,75,2.15392182009845
+mlp_runner_up,frequency_band,6.3-20 kHz,13,32,2.242931443821833
+mlp_final,chord_length_m,0.0254,3,40,3.3576833437818983
+mlp_final,chord_length_m,0.0508,3,41,3.845860520724682
+mlp_final,chord_length_m,0.1016,3,37,2.290592890049692
+mlp_final,chord_length_m,0.1524,2,31,1.6532330918892397
+mlp_final,chord_length_m,0.2286,3,45,1.7704894320910831
+mlp_final,chord_length_m,0.3048,2,33,1.6820870058252437
+mlp_final,velocity_mps,31.7,4,58,2.511771215961724
+mlp_final,velocity_mps,39.6,3,44,2.002251465168533
+mlp_final,velocity_mps,55.5,3,37,3.3504072738810304
+mlp_final,velocity_mps,71.3,6,88,2.6393357651167686
+mlp_final,angle_band,0,1,18,1.9324376881476277
+mlp_final,angle_band,0-5,6,86,1.5669834755105323
+mlp_final,angle_band,5-10,6,77,2.4650622790409478
+mlp_final,angle_band,>15,3,46,4.23338081390054
+mlp_final,frequency_band,200-500 Hz,13,40,3.8596732889422785
+mlp_final,frequency_band,630-1600 Hz,16,80,2.360080258892762
+mlp_final,frequency_band,2-5 kHz,16,75,2.3159637864227514
+mlp_final,frequency_band,6.3-20 kHz,13,32,1.9914646502317448

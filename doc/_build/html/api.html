@@ -953,7 +953,7 @@ added to the same scatter, where more hues stop being distinguishable.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_results.plot_predicted_vs_measured">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_predicted_vs_measured</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_predicted_vs_measured"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_predicted_vs_measured" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_predicted_vs_measured</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title_note</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_predicted_vs_measured"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_predicted_vs_measured" title="Link to this definition">¶</a></dt>
 <dd><p>Scatter OOF predicted SPL against measured SPL, one panel per result.</p>
 <p>Points on the dashed y = x line are perfect predictions. A cloud flatter
 than the line means the model shrinks extremes towards the mean.</p>
@@ -962,6 +962,11 @@ than the line means the model shrinks extremes towards the mean.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> – CV seed whose OOF predictions are shown.</p></li>
+<li><p><strong>colours</strong> – Series colours in result order (default
+<a class="reference internal" href="#functions.plot_results.SERIES_COLOURS" title="functions.plot_results.SERIES_COLOURS"><code class="xref py py-data docutils literal notranslate"><span class="pre">SERIES_COLOURS</span></code></a>), so a model can keep its usual colour
+whatever its position.</p></li>
+<li><p><strong>title_note</strong> – Text in brackets after each panel’s RMSE (default
+<code class="docutils literal notranslate"><span class="pre">&quot;seed</span> <span class="pre">&lt;seed&gt;&quot;</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -992,11 +997,16 @@ systematic curve shows spectral shape the model cannot represent.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_results.plot_rmse_breakdown">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_rmse_breakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_rmse_breakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_rmse_breakdown" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_rmse_breakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_rmse_breakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_rmse_breakdown" title="Link to this definition">¶</a></dt>
 <dd><p>Grouped bars of OOF RMSE for each subgroup, one panel per breakdown.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Outputs of <a class="reference internal" href="#functions.evaluate.cross_validate" title="functions.evaluate.cross_validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.cross_validate()</span></code></a>.</p></li>
+<li><p><strong>colours</strong> – Series colours in result order (default
+<a class="reference internal" href="#functions.plot_results.SERIES_COLOURS" title="functions.plot_results.SERIES_COLOURS"><code class="xref py py-data docutils literal notranslate"><span class="pre">SERIES_COLOURS</span></code></a>), so a model can keep its usual colour
+whatever its position.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The figure (not shown or saved).</p>
@@ -1043,7 +1053,7 @@ three panels show what a good, typical and poor prediction looks like.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_results.plot_setup_spectra">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_setup_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_setup_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_setup_spectra" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">functions.plot_results.</span></span><span class="sig-name descname"><span class="pre">plot_setup_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">titles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_results.html#plot_setup_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_results.plot_setup_spectra" title="Link to this definition">¶</a></dt>
 <dd><p>Measured and predicted spectra for chosen setups, one panel each.</p>
 <p>Each panel is one wind-tunnel setup: SPL against frequency, with the
 measured spectrum in black and each model’s out-of-fold prediction in
@@ -1059,6 +1069,9 @@ tuned-MLP equivalent), in colour order.</p></li>
 <li><p><strong>setup_ids</strong> – Setups to draw, in panel order.</p></li>
 <li><p><strong>titles</strong> – Optional panel titles (default: the setup’s conditions).</p></li>
 <li><p><strong>ncols</strong> – Panels per row.</p></li>
+<li><p><strong>colours</strong> – Series colours in result order (default
+<a class="reference internal" href="#functions.plot_results.SERIES_COLOURS" title="functions.plot_results.SERIES_COLOURS"><code class="xref py py-data docutils literal notranslate"><span class="pre">SERIES_COLOURS</span></code></a>), so a model can keep its usual colour
+whatever its position.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2642,6 +2655,485 @@ speeds, each from a different chord.</p>
 </dd></dl>
 
 </section>
+<section id="module-functions.final">
+<span id="final-hold-out-evaluation"></span><h2>Final hold-out evaluation<a class="headerlink" href="#module-functions.final" title="Link to this heading">¶</a></h2>
+<p>Building blocks for the single final hold-out evaluation (<code class="docutils literal notranslate"><span class="pre">run_final.py</span></code>).</p>
+<p>The test hold-out (<code class="docutils literal notranslate"><span class="pre">fold</span> <span class="pre">==</span> <span class="pre">TEST_FOLD</span></code>) is used here for the first and only
+time. Three models are trained once on <strong>all</strong> cross-validation rows and then
+predict the hold-out rows once:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mlp_final</span></code> (<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_MLP</span></code></a>): the selected model;
+the acceptance criteria apply to it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mlp_runner_up</span></code> (<a class="reference internal" href="#functions.models.RUNNER_UP_MLP" title="functions.models.RUNNER_UP_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.RUNNER_UP_MLP</span></code></a>): a cheaper
+alternative, reported for comparison only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">linear</span></code>: the baseline.</p></li>
+</ul>
+<p>All three use <a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_FEATURE_SET</span></code></a> and are built by
+<a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.build_model()</span></code></a>, so no setting is retyped and all
+scaling is fitted on the training rows only.</p>
+<p>Hold-out predictions are stored in the same out-of-fold table format as the
+cross-validation results (<a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">functions.evaluate.CVResult</span></code></a>, with
+<code class="docutils literal notranslate"><span class="pre">seed</span> <span class="pre">=</span> <span class="pre">TEST_SEED</span></code> and <code class="docutils literal notranslate"><span class="pre">fold</span> <span class="pre">=</span> <span class="pre">TEST_FOLD</span></code>), so the existing breakdown and
+plotting functions work on them unchanged.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.final.HOLDOUT_MODELS">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">HOLDOUT_MODELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">'linear',</span> <span class="pre">'mlp_final':</span> <span class="pre">'final</span> <span class="pre">MLP',</span> <span class="pre">'mlp_runner_up':</span> <span class="pre">'runner-up</span> <span class="pre">MLP'}</span></em><a class="headerlink" href="#functions.final.HOLDOUT_MODELS" title="Link to this definition">¶</a></dt>
+<dd><p>Models evaluated on the hold-out, in report order, with short labels.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.final.SELECTED_MODEL">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">SELECTED_MODEL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mlp_final'</span></em><a class="headerlink" href="#functions.final.SELECTED_MODEL" title="Link to this definition">¶</a></dt>
+<dd><p>The selected model; the only one assessed against the acceptance criteria.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.final.SETUP_INFO">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">SETUP_INFO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['setup_id',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'disp_thickness_m']</span></em><a class="headerlink" href="#functions.final.SETUP_INFO" title="Link to this definition">¶</a></dt>
+<dd><p>Columns describing a hold-out setup.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.split_train_holdout">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">split_train_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/final.html#split_train_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.split_train_holdout" title="Link to this definition">¶</a></dt>
+<dd><p>Split the dataset into all cross-validation rows and the hold-out rows.</p>
+<p>The test hold-out depends only on <code class="docutils literal notranslate"><span class="pre">TEST_SEED</span></code>, not on the CV seed, so
+the default <a class="reference internal" href="#functions.make_folds.assign_folds" title="functions.make_folds.assign_folds"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.make_folds.assign_folds()</span></code></a> call gives it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – Dataset with physics features.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(train,</span> <span class="pre">holdout)</span></code>, both with <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> and <code class="docutils literal notranslate"><span class="pre">fold</span></code> columns.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – If the split fails <a class="reference internal" href="#functions.final.check_split" title="functions.final.check_split"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_split()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.check_split">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">check_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/final.html#check_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.check_split" title="Link to this definition">¶</a></dt>
+<dd><p>Refuse to continue unless the train/hold-out split is clean.</p>
+<p>Checks that no setup is in both parts, that the hold-out has exactly the
+rows and setups <a class="reference internal" href="#functions.make_folds.assign_folds" title="functions.make_folds.assign_folds"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.make_folds.assign_folds()</span></code></a> marked as test,
+and that every row is in one part or the other. These are raised errors,
+not <code class="docutils literal notranslate"><span class="pre">assert</span></code> statements, so they cannot be switched off.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train</strong> – Training rows.</p></li>
+<li><p><strong>holdout</strong> – Hold-out rows.</p></li>
+<li><p><strong>folded</strong> – The full output of <code class="docutils literal notranslate"><span class="pre">assign_folds</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – Describing the first problem found.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="functions.final.HoldoutFit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">HoldoutFit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransformedTargetRegressor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict_time_s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hit_max_iter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/functions/final.html#HoldoutFit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.HoldoutFit" title="Link to this definition">¶</a></dt>
+<dd><p>One model trained on all CV rows and its hold-out predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> (<em>str</em>) – Registry name, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;mlp_final&quot;</span></code>.</p></li>
+<li><p><strong>model</strong> (<em>sklearn.compose._target.TransformedTargetRegressor</em>) – The fitted pipeline.</p></li>
+<li><p><strong>y_pred</strong> (<em>numpy.ndarray</em>) – Predictions for the hold-out rows, in hold-out row order.</p></li>
+<li><p><strong>fit_time_s</strong> (<em>float</em>) – Training time (one fit, <code class="xref py py-func docutils literal notranslate"><span class="pre">time.perf_counter()</span></code>).</p></li>
+<li><p><strong>predict_time_s</strong> (<em>float</em>) – Time to predict all hold-out rows.</p></li>
+<li><p><strong>n_iter</strong> (<em>int</em><em> | </em><em>None</em>) – Epochs run (MLPs only, else <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p></li>
+<li><p><strong>hit_max_iter</strong> (<em>bool</em><em> | </em><em>None</em>) – Whether training stopped at <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> rather than by
+early stopping (MLPs only, else <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.fit_and_predict">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">fit_and_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><span class="pre">HoldoutFit</span></a></span></span><a class="reference internal" href="_modules/functions/final.html#fit_and_predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.fit_and_predict" title="Link to this definition">¶</a></dt>
+<dd><p>Train one model once on the training rows, then predict the hold-out once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
+<li><p><strong>train</strong> – All cross-validation rows.</p></li>
+<li><p><strong>holdout</strong> – The hold-out rows.</p></li>
+<li><p><strong>feature_set</strong> – Feature set to use.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><code class="xref py py-class docutils literal notranslate"><span class="pre">HoldoutFit</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.as_result">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">as_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><span class="pre">HoldoutFit</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></span><a class="reference internal" href="_modules/functions/final.html#as_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.as_result" title="Link to this definition">¶</a></dt>
+<dd><p>Wrap hold-out predictions as a CVResult so existing tools can use them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fit</strong> – Output of <a class="reference internal" href="#functions.final.fit_and_predict" title="functions.final.fit_and_predict"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_and_predict()</span></code></a>.</p></li>
+<li><p><strong>train</strong> – The training rows (for the row count).</p></li>
+<li><p><strong>holdout</strong> – The hold-out rows.</p></li>
+<li><p><strong>feature_set</strong> – Feature set used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CVResult</span></code></a> whose single “fold” is the
+hold-out, labelled with the model’s short name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.holdout_metrics">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">holdout_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><span class="pre">HoldoutFit</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#holdout_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.holdout_metrics" title="Link to this definition">¶</a></dt>
+<dd><p>Headline hold-out metrics, one row per model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fits</strong> – Outputs of <a class="reference internal" href="#functions.final.fit_and_predict" title="functions.final.fit_and_predict"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_and_predict()</span></code></a>.</p></li>
+<li><p><strong>holdout</strong> – The hold-out rows.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Columns <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">label</span></code>, <code class="docutils literal notranslate"><span class="pre">selected</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">mae</span></code>,
+<code class="docutils literal notranslate"><span class="pre">r2</span></code>, <code class="docutils literal notranslate"><span class="pre">bias</span></code> (mean of measured − predicted, dB; positive means
+the model is too low), <code class="docutils literal notranslate"><span class="pre">n_setups</span></code>, <code class="docutils literal notranslate"><span class="pre">n_rows</span></code>, <code class="docutils literal notranslate"><span class="pre">fit_time_s</span></code>,
+<code class="docutils literal notranslate"><span class="pre">predict_time_s</span></code>, <code class="docutils literal notranslate"><span class="pre">n_iter</span></code> and <code class="docutils literal notranslate"><span class="pre">hit_max_iter</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.holdout_breakdown">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">holdout_breakdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#holdout_breakdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.holdout_breakdown" title="Link to this definition">¶</a></dt>
+<dd><p>Hold-out RMSE by chord, velocity, angle band and frequency band.</p>
+<p>Reuses <a class="reference internal" href="#functions.evaluate.oof_rmse_breakdown" title="functions.evaluate.oof_rmse_breakdown"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.oof_rmse_breakdown()</span></code></a> and adds how many
+hold-out setups fall in each group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Model name -&gt; <a class="reference internal" href="#functions.final.as_result" title="functions.final.as_result"><code class="xref py py-func docutils literal notranslate"><span class="pre">as_result()</span></code></a> output.</p></li>
+<li><p><strong>holdout</strong> – The hold-out rows.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Columns <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">breakdown</span></code>, <code class="docutils literal notranslate"><span class="pre">group</span></code>, <code class="docutils literal notranslate"><span class="pre">n_setups</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>
+(rows) and <code class="docutils literal notranslate"><span class="pre">rmse</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.holdout_setups">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">holdout_setups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#holdout_setups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.holdout_setups" title="Link to this definition">¶</a></dt>
+<dd><p>The hold-out setups and how many rows (frequencies) each has.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>holdout</strong> – The hold-out rows.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#functions.final.SETUP_INFO" title="functions.final.SETUP_INFO"><code class="xref py py-data docutils literal notranslate"><span class="pre">SETUP_INFO</span></code></a> plus <code class="docutils literal notranslate"><span class="pre">n_rows</span></code>, ordered by
+chord, velocity and angle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>One row per setup</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.setup_rmse">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">setup_rmse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#setup_rmse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.setup_rmse" title="Link to this definition">¶</a></dt>
+<dd><p>RMSE and bias of every hold-out setup for every model, ranked worst first.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – Model name -&gt; <a class="reference internal" href="#functions.final.as_result" title="functions.final.as_result"><code class="xref py py-func docutils literal notranslate"><span class="pre">as_result()</span></code></a> output.</p></li>
+<li><p><strong>data</strong> – The dataset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">rank</span></code> (1 = worst for that model) and the
+columns of <a class="reference internal" href="#functions.evaluate.per_setup_rmse" title="functions.evaluate.per_setup_rmse"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.per_setup_rmse()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Long table</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.paired_setups">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">paired_setups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#paired_setups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.paired_setups" title="Link to this definition">¶</a></dt>
+<dd><p>Per-setup RMSE difference <code class="docutils literal notranslate"><span class="pre">model_a</span> <span class="pre">−</span> <span class="pre">model_b</span></code> on identical setups.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>setups</strong> – Output of <a class="reference internal" href="#functions.final.setup_rmse" title="functions.final.setup_rmse"><code class="xref py py-func docutils literal notranslate"><span class="pre">setup_rmse()</span></code></a>.</p></li>
+<li><p><strong>model_a</strong> – First model (e.g. the final MLP).</p></li>
+<li><p><strong>model_b</strong> – Model it is compared with.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One row per setup with <code class="docutils literal notranslate"><span class="pre">rmse_a</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse_b</span></code> and <code class="docutils literal notranslate"><span class="pre">rmse_diff</span></code>
+(negative means <code class="docutils literal notranslate"><span class="pre">model_a</span></code> was better), plus <code class="docutils literal notranslate"><span class="pre">comparison</span></code>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If the two models were not scored on the same setups.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.paired_summary">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">paired_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paired</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/final.html#paired_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.paired_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Mean ± SD of the per-setup differences and the number of wins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>paired</strong> – Output of <a class="reference internal" href="#functions.final.paired_setups" title="functions.final.paired_setups"><code class="xref py py-func docutils literal notranslate"><span class="pre">paired_setups()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">comparison</span></code>, <code class="docutils literal notranslate"><span class="pre">n_setups</span></code>, <code class="docutils literal notranslate"><span class="pre">mean_diff</span></code>, <code class="docutils literal notranslate"><span class="pre">sd_diff</span></code>,
+<code class="docutils literal notranslate"><span class="pre">a_wins</span></code> and <code class="docutils literal notranslate"><span class="pre">b_wins</span></code> (setups where that model’s RMSE was lower).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.cv_estimates">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">cv_estimates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inner_grid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#cv_estimates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.cv_estimates" title="Link to this definition">¶</a></dt>
+<dd><p>Each model’s cross-validation RMSE estimate, read from saved results.</p>
+<ul class="simple">
+<li><p>Final MLP: nested-CV outer-fold mean ± SD (<code class="docutils literal notranslate"><span class="pre">tuning_summary.csv</span></code>).
+This scores the whole tuning procedure on unseen setups.</p></li>
+<li><p>Linear: repeated grouped CV mean ± SD (<code class="docutils literal notranslate"><span class="pre">cv_summary.csv</span></code>).</p></li>
+<li><p>Runner-up MLP: it has no outer-fold estimate of its own, so its mean
+<strong>inner</strong>-CV RMSE (<code class="docutils literal notranslate"><span class="pre">tuning_inner_grid.csv</span></code>, averaged over all seeds
+and outer folds) is used, with the SD over outer folds. It is labelled
+as an inner-CV estimate: inner scores were used for selection and are
+slightly optimistic.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>cv_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/cv_summary.csv</span></code>.</p></li>
+<li><p><strong>inner_grid</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_inner_grid.csv</span></code>.</p></li>
+<li><p><strong>feature_set</strong> – Feature set of the models.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">estimate</span></code>, <code class="docutils literal notranslate"><span class="pre">cv_rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">cv_sd</span></code> and
+<code class="docutils literal notranslate"><span class="pre">n_folds</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>One row per model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.evaluate_acceptance">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">evaluate_acceptance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paired_cv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#evaluate_acceptance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.evaluate_acceptance" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate every acceptance criterion for the selected (final) model.</p>
+<p>Thresholds come unchanged from <a class="reference internal" href="#module-functions.acceptance" title="functions.acceptance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.acceptance</span></code></a>. Only the
+final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paired_cv</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>.</p></li>
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>physics_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_summary.csv</span></code>.</p></li>
+<li><p><strong>metrics</strong> – Output of <a class="reference internal" href="#functions.final.holdout_metrics" title="functions.final.holdout_metrics"><code class="xref py py-func docutils literal notranslate"><span class="pre">holdout_metrics()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The acceptance table with every criterion PASS or FAIL.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.final.predictions_table">
+<span class="sig-prename descclassname"><span class="pre">functions.final.</span></span><span class="sig-name descname"><span class="pre">predictions_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><span class="pre">HoldoutFit</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/final.html#predictions_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.final.predictions_table" title="Link to this definition">¶</a></dt>
+<dd><p>Row-level hold-out predictions of every model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>holdout</strong> – The hold-out rows.</p></li>
+<li><p><strong>fits</strong> – Outputs of <a class="reference internal" href="#functions.final.fit_and_predict" title="functions.final.fit_and_predict"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_and_predict()</span></code></a>.</p></li>
+<li><p><strong>feature_set</strong> – Feature set used (its columns are included as inputs).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">setup_id</span></code>, the input
+columns, <code class="docutils literal notranslate"><span class="pre">measured_spl_db</span></code> and <code class="docutils literal notranslate"><span class="pre">pred_&lt;model&gt;</span></code> for each model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>One row per hold-out measurement</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.plot_final">Figure comparing each model’s cross-validation estimate with its hold-out RMSE.</p>
+<p>The other hold-out figures reuse <a class="reference internal" href="#module-functions.plot_results" title="functions.plot_results"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_results</span></code></a>. Colours
+follow the rest of the project: linear blue, final MLP orange, and the
+runner-up MLP the third series colour (<a class="reference internal" href="#functions.plot_final.HOLDOUT_COLOURS" title="functions.plot_final.HOLDOUT_COLOURS"><code class="xref py py-data docutils literal notranslate"><span class="pre">HOLDOUT_COLOURS</span></code></a>).</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_final.HOLDOUT_COLOURS">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_final.</span></span><span class="sig-name descname"><span class="pre">HOLDOUT_COLOURS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">'#2a78d6',</span> <span class="pre">'mlp_final':</span> <span class="pre">'#eb6834',</span> <span class="pre">'mlp_runner_up':</span> <span class="pre">'#1baf7a'}</span></em><a class="headerlink" href="#functions.plot_final.HOLDOUT_COLOURS" title="Link to this definition">¶</a></dt>
+<dd><p>Colour of each model in the hold-out figures.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_final.plot_cv_vs_holdout">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_final.</span></span><span class="sig-name descname"><span class="pre">plot_cv_vs_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estimates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_final.html#plot_cv_vs_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_final.plot_cv_vs_holdout" title="Link to this definition">¶</a></dt>
+<dd><p>CV mean ± fold SD (error bar) and hold-out RMSE (point) for each model.</p>
+<p>If a model generalised as cross-validation predicted, its hold-out point
+lies within (or near) its CV error bar.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>estimates</strong> – Output of <a class="reference internal" href="#functions.final.cv_estimates" title="functions.final.cv_estimates"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.cv_estimates()</span></code></a>.</p></li>
+<li><p><strong>metrics</strong> – Output of <a class="reference internal" href="#functions.final.holdout_metrics" title="functions.final.holdout_metrics"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.holdout_metrics()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-run_final">The single final evaluation on the test hold-out.</p>
+<p><strong>Run this once.</strong> The test hold-out (<code class="docutils literal notranslate"><span class="pre">fold</span> <span class="pre">==</span> <span class="pre">TEST_FOLD</span></code>, about 15% of the
+wind-tunnel setups, chosen with <code class="docutils literal notranslate"><span class="pre">TEST_SEED</span> <span class="pre">=</span> <span class="pre">41</span></code> and stratified on chord)
+was never used for training, tuning, model selection or any analysis before
+this script. Here three models are trained once on all cross-validation rows
+and predict the hold-out once:</p>
+<ul class="simple">
+<li><p>the <strong>final MLP</strong> (<code class="docutils literal notranslate"><span class="pre">FINAL_MLP</span></code>): the selected model. The acceptance
+criteria apply to it.</p></li>
+<li><p>the <strong>runner-up MLP</strong> (<code class="docutils literal notranslate"><span class="pre">RUNNER_UP_MLP</span></code>): a cheaper alternative, reported
+for comparison only.</p></li>
+<li><p><strong>linear</strong> least squares: the baseline.</p></li>
+</ul>
+<p><strong>The selected model does not change because of these results.</strong> Model
+selection was finished using nested cross-validation only. If the runner-up
+scores better on the hold-out, that is reported, but the final MLP stays the
+selected model: choosing a model <em>because</em> it did well on the hold-out would
+turn the hold-out into another round of model selection, and it would no
+longer be an honest estimate of performance on unseen data. For the same
+reason, nothing is re-tuned, no threshold changes, and there is no second run
+to “improve” the numbers. If a criterion fails, it is reported as FAIL.</p>
+<p>To make the once-only rule visible, the script refuses to run if
+<code class="docutils literal notranslate"><span class="pre">results/holdout_metrics.csv</span></code> already exists, unless <code class="docutils literal notranslate"><span class="pre">--force</span></code> is given:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_final</span><span class="o">.</span><span class="n">py</span>            <span class="c1"># about 10 seconds</span>
+<span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_final</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">force</span>    <span class="c1"># only to regenerate identical results</span>
+</pre></div>
+</div>
+<p>Because every model has a fixed <code class="docutils literal notranslate"><span class="pre">random_state</span></code> and the same training rows,
+a forced re-run reproduces the same numbers; it cannot change the outcome.</p>
+<p>Writes to <code class="docutils literal notranslate"><span class="pre">results/</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_metrics.csv</span></code>: RMSE, MAE, R², bias, timings and epochs per model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_breakdown.csv</span></code>: RMSE by chord, velocity, angle and frequency band.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_setups.csv</span></code>: the hold-out setups (chord, velocity, angle, rows).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_setup_rmse.csv</span></code>: RMSE per hold-out setup and model, ranked.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_paired.csv</span></code>: per-setup differences, final MLP − linear and final
+MLP − runner-up.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_predictions.csv</span></code>: every hold-out row with each model’s prediction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_vs_cv.csv</span></code>: each model’s CV estimate next to its hold-out RMSE.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">acceptance.csv</span></code>: every acceptance criterion, now PASS or FAIL.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">holdout_run_info.txt</span></code>: when and with what code and settings it was run.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">final_models/*.joblib</span></code>: the three trained models.</p></li>
+</ul>
+<p>Rounded tables and PNG + PDF figures go to <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code>.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_final.GUARD_FILE">
+<span class="sig-prename descclassname"><span class="pre">run_final.</span></span><span class="sig-name descname"><span class="pre">GUARD_FILE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'holdout_metrics.csv'</span></em><a class="headerlink" href="#run_final.GUARD_FILE" title="Link to this definition">¶</a></dt>
+<dd><p>File whose existence means the hold-out has already been evaluated.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_final.parse_args">
+<span class="sig-prename descclassname"><span class="pre">run_final.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="reference internal" href="_modules/run_final.html#parse_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_final.parse_args" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the <code class="docutils literal notranslate"><span class="pre">--force</span></code> option.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>argv</strong> – Arguments to parse; <code class="docutils literal notranslate"><span class="pre">None</span></code> reads the command line.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Namespace with <code class="docutils literal notranslate"><span class="pre">force</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_final.run_info_text">
+<span class="sig-prename descclassname"><span class="pre">run_final.</span></span><span class="sig-name descname"><span class="pre">run_info_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/run_final.html#run_info_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_final.run_info_text" title="Link to this definition">¶</a></dt>
+<dd><p>Describe when and how the hold-out evaluation was run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fits</strong> – The <a class="reference internal" href="#functions.final.HoldoutFit" title="functions.final.HoldoutFit"><code class="xref py py-class docutils literal notranslate"><span class="pre">functions.final.HoldoutFit</span></code></a> objects.</p></li>
+<li><p><strong>train</strong> – Training rows.</p></li>
+<li><p><strong>holdout</strong> – Hold-out rows.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Plain text for <code class="docutils literal notranslate"><span class="pre">holdout_run_info.txt</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_final.write_doc_tables">
+<span class="sig-prename descclassname"><span class="pre">run_final.</span></span><span class="sig-name descname"><span class="pre">write_doc_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estimates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acceptance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakdown</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paired_stats</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_final.html#write_doc_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_final.write_doc_tables" title="Link to this definition">¶</a></dt>
+<dd><p>Write rounded hold-out tables for the HTML results page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metrics</strong> – Output of <a class="reference internal" href="#functions.final.holdout_metrics" title="functions.final.holdout_metrics"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.holdout_metrics()</span></code></a>.</p></li>
+<li><p><strong>estimates</strong> – CV estimates joined with hold-out RMSE.</p></li>
+<li><p><strong>acceptance</strong> – The evaluated acceptance table.</p></li>
+<li><p><strong>breakdown</strong> – Output of <a class="reference internal" href="#functions.final.holdout_breakdown" title="functions.final.holdout_breakdown"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.holdout_breakdown()</span></code></a>.</p></li>
+<li><p><strong>setups</strong> – Output of <a class="reference internal" href="#functions.final.holdout_setups" title="functions.final.holdout_setups"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.holdout_setups()</span></code></a>.</p></li>
+<li><p><strong>paired_stats</strong> – Rows of <a class="reference internal" href="#functions.final.paired_summary" title="functions.final.paired_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.final.paired_summary()</span></code></a>.</p></li>
+<li><p><strong>doc_dir</strong> – Destination directory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_final.main">
+<span class="sig-prename descclassname"><span class="pre">run_final.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/doc/generated')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/run_final.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_final.main" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate the three models on the hold-out once and save everything.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>argv</strong> – Command-line arguments (<code class="docutils literal notranslate"><span class="pre">None</span></code> reads the real ones).</p></li>
+<li><p><strong>results_dir</strong> – Where results go (a temporary folder in the tests).</p></li>
+<li><p><strong>doc_dir</strong> – Where doc tables and figures go.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>0 on success, 1 if it refused to run because results already exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="module-functions.profiling">
 <span id="performance-profiling"></span><h2>Performance profiling<a class="headerlink" href="#module-functions.profiling" title="Link to this heading">¶</a></h2>
 <p>Runtime, memory, profiler and FLOP analysis of model training and prediction.</p>
@@ -3239,6 +3731,7 @@ interactive inspection rather than the HTML page.</p>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.tuning">MLP tuning (nested cross-validation)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.error_analysis">Error analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.acceptance">Robustness, physics check and acceptance criteria</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.final">Final hold-out evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.profiling">Performance profiling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.plot_spl_distribution">Exploratory plots</a></li>
 </ul>
