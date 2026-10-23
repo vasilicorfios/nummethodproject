@@ -3014,29 +3014,15 @@ lies within (or near) its CV error bar.</p>
 </dl>
 </dd></dl>
 
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.plot_final.RESIDUAL_BIN_DB">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_final.</span></span><span class="sig-name descname"><span class="pre">RESIDUAL_BIN_DB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#functions.plot_final.RESIDUAL_BIN_DB" title="Link to this definition">¶</a></dt>
-<dd><p>Width (dB) of the measured-SPL bins used for the mean-residual line.</p>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.plot_final.RESIDUAL_BIN_MIN_ROWS">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_final.</span></span><span class="sig-name descname"><span class="pre">RESIDUAL_BIN_MIN_ROWS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#functions.plot_final.RESIDUAL_BIN_MIN_ROWS" title="Link to this definition">¶</a></dt>
-<dd><p>Minimum rows in a bin for its mean residual to be drawn.</p>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_final.plot_holdout_residuals">
 <span class="sig-prename descclassname"><span class="pre">functions.plot_final.</span></span><span class="sig-name descname"><span class="pre">plot_holdout_residuals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_final.html#plot_holdout_residuals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_final.plot_holdout_residuals" title="Link to this definition">¶</a></dt>
 <dd><p>Residual (measured − predicted) against measured SPL on the hold-out.</p>
 <p>One panel per model, all on the same axes. Points above zero are rows
 where the model predicted too low; below zero, too high. A model with no
-systematic error would scatter evenly around zero at every SPL. The black
-line is the mean residual in <a class="reference internal" href="#functions.plot_final.RESIDUAL_BIN_DB" title="functions.plot_final.RESIDUAL_BIN_DB"><code class="xref py py-data docutils literal notranslate"><span class="pre">RESIDUAL_BIN_DB</span></code></a>-wide bins of measured
-SPL (bins with fewer than <a class="reference internal" href="#functions.plot_final.RESIDUAL_BIN_MIN_ROWS" title="functions.plot_final.RESIDUAL_BIN_MIN_ROWS"><code class="xref py py-data docutils literal notranslate"><span class="pre">RESIDUAL_BIN_MIN_ROWS</span></code></a> rows are left out),
-so a trend, such as over-predicting quiet rows and under-predicting loud
-ones, stands out.</p>
+systematic error would scatter evenly around zero at every SPL; a tilt in
+the cloud shows a trend, such as over-predicting quiet rows and
+under-predicting loud ones.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

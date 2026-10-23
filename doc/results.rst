@@ -753,23 +753,21 @@ Results
 .. figure:: generated/holdout_residuals.png
    :width: 100%
    :alt: Three panels of residual (measured minus predicted) against measured
-         SPL on the hold-out, for linear, the runner-up MLP and the final MLP,
-         with a black line of mean residual per 2 dB bin.
+         SPL on the hold-out, for linear, the runner-up MLP and the final MLP.
 
    Residual (measured − predicted) against measured SPL on the hold-out.
-   Above zero, the model predicted too low; below zero, too high. The black
-   line is the mean residual in 2 dB bins of measured SPL. Some upward slope
-   is expected for any imperfect model: rows that happen to be measured very
-   loud or very quiet tend to be ones where the prediction fell short. A
-   flatter line means less systematic error.
+   Above zero, the model predicted too low; below zero, too high. Some
+   upward tilt is expected for any imperfect model: rows that happen to be
+   measured very loud or very quiet tend to be ones where the prediction fell
+   short. A flatter, narrower cloud means less systematic error.
 
-* **Linear has a strong systematic trend.** It predicts quiet rows too loud
-  (by up to about 9 dB) and loud rows too quiet (by about 6 dB): it pulls
-  every prediction towards the average.
-* **Both MLPs are much flatter.** The final MLP sits slightly below zero over
-  most of the range, meaning it predicts a little too loud, consistent with
-  its −1.0 dB bias. Only for the loudest rows (above about 131 dB) does it
-  predict too low. The runner-up stays closer to zero.
+* **Linear has a strong systematic trend.** Its cloud tilts steeply upward:
+  it predicts quiet rows too loud and loud rows too quiet, pulling every
+  prediction towards the average.
+* **Both MLPs are much flatter and narrower.** The final MLP's points lie
+  mostly slightly below zero, meaning it predicts a little too loud,
+  consistent with its −1.0 dB bias. Only the loudest rows sit above zero.
+  The runner-up's points are spread more evenly around zero.
 
 .. figure:: generated/holdout_spectra.png
    :width: 100%
