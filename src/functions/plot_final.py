@@ -59,3 +59,59 @@ def plot_cv_vs_holdout(estimates: pd.DataFrame, metrics: pd.DataFrame) -> Figure
     ax.grid(axis="y", visible=False)
     ax.legend(frameon=False, fontsize=8, labelcolor=INK_SECONDARY, loc="lower right")
     return fig
+
+
+#: Width (dB) of the measured-SPL bins used for the mean-residual line.
+RESIDUAL_BIN_DB = 2.0
+
+#: Minimum rows in a bin for its mean residual to be drawn.
+RESIDUAL_BIN_MIN_ROWS = 5
+
+
+def plot_holdout_residuals(predictions: pd.DataFrame, labels: dict[str, str]) -> Figure:
+    """Residual (measured − predicted) against measured SPL on the hold-out.
+
+    One panel per model, all on the same axes. Points above zero are rows
+    where the model predicted too low; below zero, too high. A model with no
+    systematic error would scatter evenly around zero at every SPL. The black
+    line is the mean residual in :data:`RESIDUAL_BIN_DB`-wide bins of measured
+    SPL (bins with fewer than :data:`RESIDUAL_BIN_MIN_ROWS` rows are left out),
+    so a trend, such as over-predicting quiet rows and under-predicting loud
+    ones, stands out.
+
+    Args:
+        predictions: Contents of ``results/holdout_predictions.csv``: a
+            ``measured_spl_db`` column and one ``pred_<model>`` column per model.
+        labels: Model name -> panel title, in panel order.
+
+    Returns:
+        The figure (not shown or saved).
+    """
+    measured = predictions["measured_spl_db"]
+    residuals = {m: measured - predictions[f"pred_{m}"] for m in labels}
+    limit = max(r.abs().max() for r in residuals.values()) * 1.05
+    edges = np.arange(np.floor(measured.min()), measured.max() + RESIDUAL_BIN_DB, RESIDUAL_BIN_DB)
+    bins = pd.cut(measured, edges, include_lowest=True)
+
+    fig, axes = plt.subplots(1, len(labels), figsize=(4.6 * len(labels), 4.2), sharex=True,
+                             sharey=True, squeeze=False, layout="constrained")
+    fig.set_facecolor(SURFACE)
+    for ax, (model, label) in zip(axes[0], labels.items()):
+        _style(ax)
+        r = residuals[model]
+        ax.axhline(0, color=INK_SECONDARY, linewidth=1)
+        ax.scatter(measured, r, s=12, alpha=0.6, color=HOLDOUT_COLOURS[model], edgecolors="none")
+        # Mean residual per SPL bin, drawn only where the bin has enough rows.
+        grouped = r.groupby(bins, observed=True).agg(["mean", "size"])
+        grouped = grouped[grouped["size"] >= RESIDUAL_BIN_MIN_ROWS]
+        centres = [interval.mid for interval in grouped.index]
+        ax.plot(centres, grouped["mean"], color=INK, linewidth=2, marker="o", markersize=3.5,
+                label=f"mean residual per {RESIDUAL_BIN_DB:g} dB bin")
+        rmse = float(np.sqrt(np.mean(r ** 2)))
+        ax.set_title(f"{label}   RMSE {rmse:.2f} dB, bias {r.mean():+.2f} dB",
+                     fontsize=10, loc="left")
+        ax.set_ylim(-limit, limit)
+        ax.set_xlabel("Measured SPL (dB)")
+    axes[0, 0].set_ylabel("Residual, measured − predicted (dB)")
+    axes[0, 0].legend(frameon=False, fontsize=8, labelcolor=INK_SECONDARY, loc="lower left")
+    return fig

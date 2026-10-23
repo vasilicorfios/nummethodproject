@@ -173,3 +173,17 @@ def test_full_script_on_a_stand_in_fold(data, tmp_path, monkeypatch):
     assert not acceptance["result"].str.startswith("pending").any()
     # A second run without --force is refused.
     assert run_final.main([], results_dir=tmp_path, doc_dir=tmp_path / "doc") == 1
+
+
+def test_holdout_residual_plot(tmp_path):
+    """The residual figure draws one panel per model from a predictions table."""
+    from functions.plot_final import plot_holdout_residuals
+    rng = np.random.default_rng(0)
+    measured = rng.uniform(105, 140, 60)
+    predictions = pd.DataFrame({"measured_spl_db": measured,
+                                **{f"pred_{m}": measured + rng.normal(0, 2, 60)
+                                   for m in final.HOLDOUT_MODELS}})
+    fig = plot_holdout_residuals(predictions, {m: m for m in final.HOLDOUT_MODELS})
+    assert len(fig.axes) == 3
+    paths = save_png_pdf(fig, tmp_path, "residuals")
+    assert all(p.stat().st_size > 0 for p in paths)
