@@ -1934,24 +1934,45 @@ and the final MLP (same axes).</span><a class="headerlink" href="#id41" title="L
 </figcaption>
 </figure>
 <figure class="align-default" id="id42">
+<a class="reference internal image-reference" href="_images/holdout_residuals.png"><img alt="Three panels of residual (measured minus predicted) against measured SPL on the hold-out, for linear, the runner-up MLP and the final MLP, with a black line of mean residual per 2 dB bin." src="_images/holdout_residuals.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Residual (measured − predicted) against measured SPL on the hold-out.
+Above zero, the model predicted too low; below zero, too high. The black
+line is the mean residual in 2 dB bins of measured SPL. Some upward slope
+is expected for any imperfect model: rows that happen to be measured very
+loud or very quiet tend to be ones where the prediction fell short. A
+flatter line means less systematic error.</span><a class="headerlink" href="#id42" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p><strong>Linear has a strong systematic trend.</strong> It predicts quiet rows too loud
+(by up to about 9 dB) and loud rows too quiet (by about 6 dB): it pulls
+every prediction towards the average.</p></li>
+<li><p><strong>Both MLPs are much flatter.</strong> The final MLP sits slightly below zero over
+most of the range, meaning it predicts a little too loud, consistent with
+its −1.0 dB bias. Only for the loudest rows (above about 131 dB) does it
+predict too low. The runner-up stays closer to zero.</p></li>
+</ul>
+<figure class="align-default" id="id43">
 <a class="reference internal image-reference" href="_images/holdout_spectra.png"><img alt="Sixteen panels of SPL against frequency, one per hold-out setup, with measured points and lines for the three models." src="_images/holdout_spectra.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Every hold-out setup: measured spectrum (black) and the predictions of
-linear (blue), the runner-up (green) and the final MLP (orange).</span><a class="headerlink" href="#id42" title="Link to this image">¶</a></p>
+linear (blue), the runner-up (green) and the final MLP (orange).</span><a class="headerlink" href="#id43" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id43">
+<figure class="align-default" id="id44">
 <a class="reference internal image-reference" href="_images/holdout_rmse_breakdown.png"><img alt="Grouped bars of hold-out RMSE by chord, velocity, angle band and frequency band for the three models." src="_images/holdout_rmse_breakdown.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Hold-out RMSE by chord, velocity, angle band and frequency band. With
 only 16 setups, each group holds just a few setups, so these bars are
-much noisier than the cross-validation breakdown.</span><a class="headerlink" href="#id43" title="Link to this image">¶</a></p>
+much noisier than the cross-validation breakdown.</span><a class="headerlink" href="#id44" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id44">
-<caption><span class="caption-text">Hold-out RMSE by group (setups and rows per group)</span><a class="headerlink" href="#id44" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id45">
+<caption><span class="caption-text">Hold-out RMSE by group (setups and rows per group)</span><a class="headerlink" href="#id45" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Grouped by</p></th>
 <th class="head"><p>Group</p></th>

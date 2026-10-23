@@ -110,6 +110,9 @@ Final hold-out evaluation
 .. automodule:: run_final
    :members:
 
+.. automodule:: plot_holdout_residuals
+   :members:
+
 Performance profiling
 ---------------------
 
