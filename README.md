@@ -69,6 +69,7 @@ Run every command from the project root. Later scripts read results written by e
 | `python src/run_shift_tests.py` | Robustness: leave one chord / one velocity out, final MLP (3 seeds) vs linear | about 1 min |
 | `python src/run_physics_check.py` | Physics check (faster flow is louder) on out-of-fold predictions, then the acceptance criteria table | about 5 s |
 | `python src/run_final.py` | **Run once.** Final hold-out evaluation of linear, runner-up and final MLP, and the acceptance criteria (refuses to overwrite without `--force`) | about 10 s |
+| `python src/run_verification.py` | Manufactured-solution checks: linear solver on an exact linear law, final MLP on y = sin(x) (with a linear negative control) | a few seconds |
 | `python src/plot_holdout_residuals.py` | Residual vs measured SPL plot for the three models, drawn from the saved hold-out predictions (no re-run) | a few seconds |
 | `python -m pytest --html=test/test_report.html --self-contained-html` | Runs the tests and writes the HTML test report | about 50 s |
 

@@ -1,6 +1,15 @@
 API reference
 =============
 
+Verification (manufactured solutions)
+-------------------------------------
+
+.. automodule:: functions.verification
+   :members:
+
+.. automodule:: run_verification
+   :members:
+
 Data loading
 ------------
 

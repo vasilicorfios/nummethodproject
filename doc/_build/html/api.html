@@ -34,6 +34,231 @@
             
   <section id="api-reference">
 <h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
+<section id="module-functions.verification">
+<span id="verification-manufactured-solutions"></span><h2>Verification (manufactured solutions)<a class="headerlink" href="#module-functions.verification" title="Link to this heading">¶</a></h2>
+<p>Manufactured-solution checks: is each model implemented correctly?</p>
+<p>A <strong>manufactured solution</strong> is made-up data generated from a formula whose
+answer is known exactly. If the code is implemented correctly, the model must
+recover that answer. This checks the <em>implementation</em> (verification), as
+opposed to how well the model predicts real noise data (validation).</p>
+<p>Both checks use the real model pipelines from <a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.build_model()</span></code></a>,
+including the input and target scaling, so the whole chain is verified, not just
+the estimator inside it.</p>
+<ul class="simple">
+<li><p><strong>Linear least squares</strong> (<a class="reference internal" href="#functions.verification.check_linear" title="functions.verification.check_linear"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_linear()</span></code></a>): data from
+<code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">x1</span> <span class="pre">−</span> <span class="pre">5</span> <span class="pre">x2</span></code> with no noise, with the two inputs about 10⁸ apart
+in scale (like Reynolds and Strouhal numbers). An exact solver must recover
+the coefficients and reproduce <code class="docutils literal notranslate"><span class="pre">y</span></code> to round-off.</p></li>
+<li><p><strong>MLP</strong> (<a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_sine()</span></code></a>): 200 evenly spaced points of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">sin(x)</span></code>
+on [0, 2π]. A correctly implemented network should learn this smooth
+non-linear curve to a small error, and it is scored on points <strong>between</strong>
+the training points, so it must have learned the curve, not memorised the
+points. The linear model is run on the same data as a <strong>negative
+control</strong>: it cannot represent a sine, so it must fail. That shows the test
+is able to fail.</p></li>
+</ul>
+<p>The MLP pass marks (<a class="reference internal" href="#functions.verification.SINE_MAX_RMSE" title="functions.verification.SINE_MAX_RMSE"><code class="xref py py-data docutils literal notranslate"><span class="pre">SINE_MAX_RMSE</span></code></a>, <a class="reference internal" href="#functions.verification.SINE_MIN_R2" title="functions.verification.SINE_MIN_R2"><code class="xref py py-data docutils literal notranslate"><span class="pre">SINE_MIN_R2</span></code></a>) were set
+after a first measurement, with a safety margin. They test that the network
+learns a smooth non-linear function, not that it reproduces it exactly: the
+final MLP’s strong L2 penalty (<code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">=</span> <span class="pre">1</span></code>) and early stopping deliberately
+smooth the fit. The largest error occurs at the ends of the range, where a
+network has data on one side only, so no pass mark is set on the maximum
+error.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.LINEAR_INTERCEPT">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">LINEAR_INTERCEPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></em><a class="headerlink" href="#functions.verification.LINEAR_INTERCEPT" title="Link to this definition">¶</a></dt>
+<dd><p>intercept and coefficients of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">x1</span> <span class="pre">−</span> <span class="pre">5</span> <span class="pre">x2</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Manufactured linear law</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.N_POINTS">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">N_POINTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">200</span></em><a class="headerlink" href="#functions.verification.N_POINTS" title="Link to this definition">¶</a></dt>
+<dd><p>Number of points in each manufactured dataset.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.LINEAR_MAX_REL_ERROR">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">LINEAR_MAX_REL_ERROR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></em><a class="headerlink" href="#functions.verification.LINEAR_MAX_REL_ERROR" title="Link to this definition">¶</a></dt>
+<dd><p>largest allowed relative error in the recovered coefficients.
+Round-off with inputs 10⁸ apart in scale is about 1e-9, so 1e-6 is strict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Linear check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.SINE_MAX_RMSE">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">SINE_MAX_RMSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#functions.verification.SINE_MAX_RMSE" title="Link to this definition">¶</a></dt>
+<dd><p>largest allowed RMSE between training points (10% of the
+sine’s amplitude of 1).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MLP check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.SINE_MIN_R2">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">SINE_MIN_R2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.98</span></em><a class="headerlink" href="#functions.verification.SINE_MIN_R2" title="Link to this definition">¶</a></dt>
+<dd><p>smallest allowed R² between training points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MLP check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.verification.CONTROL_MIN_RMSE">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">CONTROL_MIN_RMSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></em><a class="headerlink" href="#functions.verification.CONTROL_MIN_RMSE" title="Link to this definition">¶</a></dt>
+<dd><p>the linear model must have at least this RMSE on the
+sine, i.e. clearly fail.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Negative control</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.verification.manufactured_linear">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">manufactured_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/verification.html#manufactured_linear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.manufactured_linear" title="Link to this definition">¶</a></dt>
+<dd><p>Noise-free data from the known linear law, inputs on very different scales.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> – Number of points.</p></li>
+<li><p><strong>seed</strong> – Seed for drawing the inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>inputs <code class="docutils literal notranslate"><span class="pre">x1</span></code> in [0, 10⁶] and <code class="docutils literal notranslate"><span class="pre">x2</span></code> in [0, 10⁻²], and exact <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(X,</span> <span class="pre">y)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.verification.check_linear">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">check_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/functions/verification.html#check_linear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.check_linear" title="Link to this definition">¶</a></dt>
+<dd><p>Fit the linear pipeline to the manufactured law and measure the recovery.</p>
+<p>The raw coefficients are recovered from the scaled model with
+<code class="docutils literal notranslate"><span class="pre">beta_j</span> <span class="pre">=</span> <span class="pre">coef_effect_j</span> <span class="pre">/</span> <span class="pre">sigma_j</span></code> (see
+<a class="reference internal" href="#functions.models.coefficient_effects" title="functions.models.coefficient_effects"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.coefficient_effects()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> – Number of points.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">max_coef_rel_error</span></code>, <code class="docutils literal notranslate"><span class="pre">max_abs_pred_error</span></code> (in units of
+<code class="docutils literal notranslate"><span class="pre">y</span></code>), the recovered coefficients and <code class="docutils literal notranslate"><span class="pre">passed</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.verification.manufactured_sine">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">manufactured_sine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/verification.html#manufactured_sine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.manufactured_sine" title="Link to this definition">¶</a></dt>
+<dd><p>Training points and in-between test points of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">sin(x)</span></code> on [0, 2π].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> – Number of evenly spaced training points.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(X_train,</span> <span class="pre">y_train,</span> <span class="pre">X_between,</span> <span class="pre">y_between)</span></code>. The “between” points
+are a fine grid on the same range with the training points removed,
+so the model is scored where it never saw data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.verification.check_sine">
+<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">check_sine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mlp_final'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/functions/verification.html#check_sine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.check_sine" title="Link to this definition">¶</a></dt>
+<dd><p>Fit a model to the manufactured sine and score it between the points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
+<li><p><strong>n</strong> – Number of training points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">train_rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code> and <code class="docutils literal notranslate"><span class="pre">r2</span></code> (between the training points),
+<code class="docutils literal notranslate"><span class="pre">max_error</span></code> and the <code class="docutils literal notranslate"><span class="pre">x</span></code> where it occurs, <code class="docutils literal notranslate"><span class="pre">n_iter</span></code> (epochs, for
+MLPs), <code class="docutils literal notranslate"><span class="pre">passed</span></code> (MLP pass marks met), and the <code class="docutils literal notranslate"><span class="pre">x</span></code>/<code class="docutils literal notranslate"><span class="pre">prediction</span></code>
+arrays for plotting.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-run_verification">Entry point for the manufactured-solution verification checks.</p>
+<p>Runs the linear and MLP manufactured-solution checks
+(<a class="reference internal" href="#module-functions.verification" title="functions.verification"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.verification</span></code></a>) and saves a table and a figure for the HTML
+results page. These checks use made-up data only; the airfoil dataset and
+the test hold-out are not involved:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_verification</span><span class="o">.</span><span class="n">py</span>    <span class="c1"># a few seconds</span>
+</pre></div>
+</div>
+<p>Writes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">results/verification.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">doc/generated/verification.csv</span></code>: one
+row per check, with value, pass mark and PASS/FAIL.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/verification_sine.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: the MLP sine check.</p></li>
+</ul>
+<dl class="py function">
+<dt class="sig sig-object py" id="run_verification.verification_table">
+<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">verification_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/run_verification.html#verification_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.verification_table" title="Link to this definition">¶</a></dt>
+<dd><p>One row per verification check, with value, pass mark and result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>linear</strong> – Output of <a class="reference internal" href="#functions.verification.check_linear" title="functions.verification.check_linear"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_linear()</span></code></a>.</p></li>
+<li><p><strong>mlp</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for the final MLP.</p></li>
+<li><p><strong>control</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for linear.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Columns <code class="docutils literal notranslate"><span class="pre">check</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">quantity</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">pass_mark</span></code>
+and <code class="docutils literal notranslate"><span class="pre">result</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_verification.plot_sine_check">
+<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">plot_sine_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/run_verification.html#plot_sine_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.plot_sine_check" title="Link to this definition">¶</a></dt>
+<dd><p>Sine fit (left) and the MLP’s error along x (right).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mlp</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for the final MLP.</p></li>
+<li><p><strong>control</strong> – The same for linear (the negative control).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure (not shown or saved).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_verification.main">
+<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_verification.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.main" title="Link to this definition">¶</a></dt>
+<dd><p>Run the checks, print the table and save the outputs.</p>
+</dd></dl>
+
+</section>
 <section id="module-functions.data_loader">
 <span id="data-loading"></span><h2>Data loading<a class="headerlink" href="#module-functions.data_loader" title="Link to this heading">¶</a></h2>
 <p>Load the NASA/UCI Airfoil Self-Noise dataset.</p>
@@ -3759,6 +3984,7 @@ interactive inspection rather than the HTML page.</p>
 <li class="toctree-l1"><a class="reference internal" href="exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.verification">Verification (manufactured solutions)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.make_folds">Data split</a></li>

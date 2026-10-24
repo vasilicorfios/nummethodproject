@@ -52,6 +52,7 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
 </div>
@@ -102,6 +103,10 @@
 </li>
       <li><a href="api.html#functions.acceptance.C3_MAX_RMSE_DB">C3_MAX_RMSE_DB (in module functions.acceptance)</a>
 </li>
+      <li><a href="api.html#functions.verification.check_linear">check_linear() (in module functions.verification)</a>
+</li>
+      <li><a href="api.html#functions.verification.check_sine">check_sine() (in module functions.verification)</a>
+</li>
       <li><a href="api.html#functions.final.check_split">check_split() (in module functions.final)</a>
 </li>
       <li><a href="api.html#functions.models.coefficient_effects">coefficient_effects() (in module functions.models)</a>
@@ -121,6 +126,8 @@
       <li><a href="api.html#functions.evaluate.compute_metrics">compute_metrics() (in module functions.evaluate)</a>
 </li>
       <li><a href="api.html#functions.evaluate.concat_oof">concat_oof() (in module functions.evaluate)</a>
+</li>
+      <li><a href="api.html#functions.verification.CONTROL_MIN_RMSE">CONTROL_MIN_RMSE (in module functions.verification)</a>
 </li>
       <li><a href="api.html#functions.evaluate.cross_validate">cross_validate() (in module functions.evaluate)</a>
 </li>
@@ -369,6 +376,13 @@
         <li><a href="api.html#module-functions.tuning">module</a>
 </li>
       </ul></li>
+      <li>
+    functions.verification
+
+      <ul>
+        <li><a href="api.html#module-functions.verification">module</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -443,8 +457,12 @@
 </li>
       <li><a href="api.html#functions.profiling.linear_flop_estimate">linear_flop_estimate() (in module functions.profiling)</a>
 </li>
+      <li><a href="api.html#functions.verification.LINEAR_INTERCEPT">LINEAR_INTERCEPT (in module functions.verification)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.verification.LINEAR_MAX_REL_ERROR">LINEAR_MAX_REL_ERROR (in module functions.verification)</a>
+</li>
       <li><a href="api.html#functions.data_loader.load_airfoil_data">load_airfoil_data() (in module functions.data_loader)</a>
 </li>
       <li><a href="api.html#run_error_analysis.load_tuned_mlp">load_tuned_mlp() (in module run_error_analysis)</a>
@@ -476,8 +494,14 @@
 </li>
         <li><a href="api.html#run_tuning.main">(in module run_tuning)</a>
 </li>
+        <li><a href="api.html#run_verification.main">(in module run_verification)</a>
+</li>
       </ul></li>
       <li><a href="api.html#functions.models.ModelSpec.make">make (functions.models.ModelSpec attribute)</a>
+</li>
+      <li><a href="api.html#functions.verification.manufactured_linear">manufactured_linear() (in module functions.verification)</a>
+</li>
+      <li><a href="api.html#functions.verification.manufactured_sine">manufactured_sine() (in module functions.verification)</a>
 </li>
       <li><a href="api.html#functions.physics_checks.MIN_SPEEDS">MIN_SPEEDS (in module functions.physics_checks)</a>
 </li>
@@ -561,6 +585,8 @@
 </li>
         <li><a href="api.html#module-functions.tuning">functions.tuning</a>
 </li>
+        <li><a href="api.html#module-functions.verification">functions.verification</a>
+</li>
         <li><a href="api.html#module-plot_holdout_residuals">plot_holdout_residuals</a>
 </li>
         <li><a href="api.html#module-run_cv">run_cv</a>
@@ -576,6 +602,8 @@
         <li><a href="api.html#module-run_shift_tests">run_shift_tests</a>
 </li>
         <li><a href="api.html#module-run_tuning">run_tuning</a>
+</li>
+        <li><a href="api.html#module-run_verification">run_verification</a>
 </li>
       </ul></li>
   </ul></td>
@@ -596,9 +624,11 @@
 </li>
       <li><a href="api.html#functions.profiling.ProfileResult.n_iter">n_iter (functions.profiling.ProfileResult attribute)</a>
 </li>
+      <li><a href="api.html#run_tuning.N_LOSS_CURVE_FOLDS">N_LOSS_CURVE_FOLDS (in module run_tuning)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#run_tuning.N_LOSS_CURVE_FOLDS">N_LOSS_CURVE_FOLDS (in module run_tuning)</a>
+      <li><a href="api.html#functions.verification.N_POINTS">N_POINTS (in module functions.verification)</a>
 </li>
       <li><a href="api.html#functions.profiling.N_PROFILE_LINES">N_PROFILE_LINES (in module functions.profiling)</a>
 </li>
@@ -692,8 +722,6 @@
 </li>
       <li><a href="api.html#functions.plot_results.plot_example_spectra">plot_example_spectra() (in module functions.plot_results)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     plot_holdout_residuals
 
@@ -701,6 +729,8 @@
         <li><a href="api.html#module-plot_holdout_residuals">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.plot_final.plot_holdout_residuals">plot_holdout_residuals() (in module functions.plot_final)</a>
 </li>
       <li><a href="api.html#functions.plot_tuning.plot_inner_grid_heatmap">plot_inner_grid_heatmap() (in module functions.plot_tuning)</a>
@@ -720,6 +750,8 @@
       <li><a href="api.html#functions.plot_results.plot_setup_spectra">plot_setup_spectra() (in module functions.plot_results)</a>
 </li>
       <li><a href="api.html#functions.plot_robustness.plot_shift_tests">plot_shift_tests() (in module functions.plot_robustness)</a>
+</li>
+      <li><a href="api.html#run_verification.plot_sine_check">plot_sine_check() (in module run_verification)</a>
 </li>
       <li><a href="api.html#functions.plot_robustness.plot_speed_order">plot_speed_order() (in module functions.plot_robustness)</a>
 </li>
@@ -822,6 +854,13 @@
         <li><a href="api.html#module-run_tuning">module</a>
 </li>
       </ul></li>
+      <li>
+    run_verification
+
+      <ul>
+        <li><a href="api.html#module-run_verification">module</a>
+</li>
+      </ul></li>
       <li><a href="api.html#functions.models.RUNNER_UP_MLP">RUNNER_UP_MLP (in module functions.models)</a>
 </li>
   </ul></td>
@@ -858,10 +897,10 @@
 </li>
       <li><a href="api.html#functions.final.SETUP_INFO">SETUP_INFO (in module functions.final)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.make_folds.SETUP_KEYS">SETUP_KEYS (in module functions.make_folds)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.final.setup_rmse">setup_rmse() (in module functions.final)</a>
 </li>
       <li><a href="api.html#functions.shift_tests.SHIFT_COLUMNS">SHIFT_COLUMNS (in module functions.shift_tests)</a>
@@ -871,6 +910,10 @@
       <li><a href="api.html#functions.plot_robustness.SHIFT_TITLES">SHIFT_TITLES (in module functions.plot_robustness)</a>
 </li>
       <li><a href="api.html#functions.shift_tests.SHIFTS">SHIFTS (in module functions.shift_tests)</a>
+</li>
+      <li><a href="api.html#functions.verification.SINE_MAX_RMSE">SINE_MAX_RMSE (in module functions.verification)</a>
+</li>
+      <li><a href="api.html#functions.verification.SINE_MIN_R2">SINE_MIN_R2 (in module functions.verification)</a>
 </li>
       <li><a href="api.html#functions.error_analysis.spectral_peaks">spectral_peaks() (in module functions.error_analysis)</a>
 </li>
@@ -911,6 +954,14 @@
       <li><a href="api.html#functions.tuning.tuned_result_from_saved">tuned_result_from_saved() (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.tuning.TuningResult">TuningResult (class in functions.tuning)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#run_verification.verification_table">verification_table() (in module run_verification)</a>
 </li>
   </ul></td>
 </tr></table>

@@ -1,0 +1,7 @@
+check,model,quantity,value,pass_mark,result
+Linear law y = 3 + 2x1 - 5x2,linear,largest relative coefficient error,2.1e-09,<= 1e-06,PASS
+Linear law y = 3 + 2x1 - 5x2,linear,largest prediction error,5.3e-10,(round-off),
+"y = sin(x), 200 points",final MLP,RMSE between training points,0.065,<= 0.1,PASS
+"y = sin(x), 200 points",final MLP,R² between training points,0.9915,>= 0.98,PASS
+"y = sin(x), 200 points",final MLP,largest error (at x = 6.28),0.225,(reported only),
+"y = sin(x), negative control",linear,RMSE between training points (must fail),0.442,>= 0.3,PASS

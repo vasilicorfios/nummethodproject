@@ -46,6 +46,67 @@ Models so far
 Feature sets: **A** = the five raw inputs; **B** = A + log10 frequency,
 Strouhal number and chord Reynolds number.
 
+Verification: manufactured-solution tests
+-----------------------------------------
+
+Before trusting any result, each model's implementation was checked on a
+**manufactured solution**: made-up data from a formula whose answer is known
+exactly. This tests whether the code computes what it should
+(verification). How well the model predicts real airfoil noise
+(validation) is a separate question, covered by the rest of this page.
+
+Both checks run the real model pipelines (``build_model``), including the
+input and target scaling, so the whole chain is verified, not just the
+estimator inside it. They are part of the test suite
+(``test/test_verification.py``), and ``python src/run_verification.py``
+produces the table and figure below.
+
+* **Linear least squares.** 200 points of ``y = 3 + 2 x1 − 5 x2``, with no
+  noise and with ``x1`` and ``x2`` about 10⁸ apart in scale (like Reynolds
+  and Strouhal numbers). A correct solver must recover the coefficients and
+  reproduce ``y`` up to floating-point round-off.
+* **MLP.** 200 evenly spaced points of ``y = sin(x)`` on [0, 2π], fitted with
+  the frozen final MLP (``FINAL_MLP``). A correctly implemented network should
+  learn this smooth non-linear curve. It is scored on points **between** the
+  training points, so it has to learn the curve rather than memorise the
+  points.
+* **Negative control.** The linear model is run on the same sine data. It
+  cannot represent a curve, so it must fail; this shows the MLP test is
+  capable of failing.
+
+.. csv-table:: Manufactured-solution checks
+   :file: generated/verification.csv
+   :header-rows: 1
+
+.. figure:: generated/verification_sine.png
+   :width: 100%
+   :alt: Left, sin(x) with the 200 training points, the final MLP's fit and
+         the linear control. Right, the final MLP's error along x.
+
+   Left: the manufactured solution ``y = sin(x)``, its 200 training points,
+   the final MLP's fit and the linear control. Right: the final MLP's error
+   between the training points.
+
+* **The linear solver is exact to round-off.** It recovers the coefficients
+  to a relative error of about 10⁻⁹, despite inputs 10⁸ apart in scale.
+* **The final MLP learns the sine.** RMSE is 0.065 between the training
+  points (6.5% of the sine's amplitude), with R² = 0.99, so it passes. The
+  linear control fails clearly (RMSE 0.44).
+* **The MLP's error is largest at the two ends of the range** (about 0.2),
+  where the network only has data on one side. In the middle it stays within
+  about ±0.1.
+* **The fit is made of short straight segments**, visible as slight kinks.
+  That is expected, because the ReLU activation builds curves from straight
+  pieces.
+* **The MLP's fit is deliberately smooth, not exact.** The final model's
+  strong L2 penalty (alpha = 1) and early stopping trade exactness for
+  smoothness, which suits noisy measured data. So this check confirms the
+  network learns smooth non-linear relationships correctly; it is not
+  expected to hit zero error.
+* **The pass marks** (MLP RMSE ≤ 0.10 and R² ≥ 0.98; control RMSE ≥ 0.30)
+  were set after a first measurement, with a safety margin, and are recorded
+  in ``functions.verification``.
+
 Overall accuracy
 ----------------
 
