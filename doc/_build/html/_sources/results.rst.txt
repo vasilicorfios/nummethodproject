@@ -508,6 +508,27 @@ Where along the spectrum the errors are
   held out in turn, the model has almost no examples to learn their height
   from.
 
+Tonal peaks and MLP error
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: generated/tonal_peaks_mlp_error_B.png
+   :width: 85%
+   :alt: Peak prominence against log10 chord Reynolds number for the 90
+         cross-validation setups, coloured by the tuned MLP's setup RMSE.
+
+   The same axes as the tonal-peaks plot on the exploration page, for the 90
+   cross-validation setups, with each dot coloured by the tuned MLP's
+   out-of-fold RMSE for that setup (darker = larger error).
+
+* **Spikier spectra tend to be predicted worse.** The rank correlation
+  between peak prominence and MLP setup RMSE is 0.31, a moderate link. The 4
+  strongly tonal setups have a median RMSE of 4.5 dB, against 1.7 dB for the
+  26 setups whose peaks stand less than 5 dB proud.
+* **Tonal peaks are not the only cause.** A few large errors occur on
+  spectra with modest peaks, such as the 0.0508 m chord at 19.7° (about
+  4.6 dB prominence, 4.5 dB RMSE), where the model puts the peak in the wrong
+  place rather than missing its height.
+
 Runtime, memory and FLOPs
 -------------------------
 

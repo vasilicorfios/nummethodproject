@@ -62,7 +62,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">linregress</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">angle_band</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
 
 <span class="c1">#: A peak must stand this many dB above the lower of its two neighbouring</span>
@@ -278,6 +278,55 @@
          <span class="s2">"median_frequency_share"</span><span class="p">:</span> <span class="n">g</span><span class="p">[</span><span class="s2">"frequency_share"</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">()}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="tonal_table">
+<a class="viewcode-back" href="../../api.html#functions.error_analysis.tonal_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tonal_table</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">include_holdout</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Peak prominence and chord Reynolds number of every setup's spectrum.</span>
+
+<span class="sd">    The prominence of a peak is how far it stands above its surroundings:</span>
+<span class="sd">    its height above the higher of the lowest points on either side before a</span>
+<span class="sd">    taller peak (:func:`scipy.signal.find_peaks`). For each setup the most</span>
+<span class="sd">    prominent interior peak is used, with no minimum, so every setup appears.</span>
+<span class="sd">    A spectrum with no interior peak (it only rises or only falls) gets 0 dB.</span>
+<span class="sd">    Narrow, very prominent peaks are the tonal noise that the models find</span>
+<span class="sd">    hardest.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: Dataset with physics features (for the Reynolds number).</span>
+<span class="sd">        include_holdout: Include the test hold-out setups. Leave False for</span>
+<span class="sd">            any analysis of model results; True is only for describing the</span>
+<span class="sd">            whole dataset (exploration).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        One row per setup: ``setup_id``, chord, velocity, angle,</span>
+<span class="sd">        ``angle_band``, ``reynolds``, ``log10_reynolds``, ``prominence_db``</span>
+<span class="sd">        and ``peak_hz`` (NaN when there is no interior peak).</span>
+<span class="sd">    """</span>
+    <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">rows_used</span> <span class="o">=</span> <span class="n">folded</span> <span class="k">if</span> <span class="n">include_holdout</span> <span class="k">else</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">setup_id</span><span class="p">,</span> <span class="n">spectrum</span> <span class="ow">in</span> <span class="n">rows_used</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">):</span>
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"frequency_hz"</span><span class="p">)</span>
+        <span class="n">index</span><span class="p">,</span> <span class="n">props</span> <span class="o">=</span> <span class="n">find_peaks</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="s2">"spl_db"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">prominence</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="n">spectrum</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">has_peak</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s2">"prominences"</span><span class="p">])]</span> <span class="k">if</span> <span class="n">has_peak</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"setup_id"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">setup_id</span><span class="p">),</span>
+            <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"chord_length_m"</span><span class="p">],</span>
+            <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">],</span>
+            <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">],</span>
+            <span class="s2">"reynolds"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"reynolds"</span><span class="p">],</span>
+            <span class="s2">"prominence_db"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s2">"prominences"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">if</span> <span class="n">has_peak</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"peak_hz"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">if</span> <span class="n">has_peak</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+        <span class="p">})</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">table</span><span class="p">[</span><span class="s2">"log10_reynolds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"reynolds"</span><span class="p">])</span>
+    <span class="n">table</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">angle_band</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">table</span></div>
 
 </pre></div>
 

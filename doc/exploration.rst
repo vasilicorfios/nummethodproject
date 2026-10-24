@@ -65,3 +65,21 @@ the spectra share a similar shape once frequency is scaled this way. The
 relationship is still curved, so even with this feature a linear model
 cannot fit it fully. Reynolds number, like chord and velocity, shows
 vertical bands with a wide SPL spread in each.
+
+Tonal peaks
+-----------
+
+.. figure:: generated/explore_tonal_peaks.png
+   :width: 85%
+   :alt: Peak prominence against log10 chord Reynolds number, one dot per
+         setup, coloured and shaped by angle-of-attack band.
+
+   Each dot is one setup (one measured spectrum): how far its biggest peak
+   stands above its surroundings (peak prominence), against log10 of the
+   chord Reynolds number. Colour and marker show the angle band.
+
+Some spectra have a narrow tonal peak standing well above the broadband
+level. All four strongly tonal setups (prominence of 15 dB or more) have the
+smallest chord (0.0254 m), an angle of 17.4–22.2° and a Reynolds number of
+at most 1.2 × 10⁵. In general, prominence falls as the Reynolds number rises:
+the median is about 10 dB below log10(Re) = 5.2, but about 6 dB above 5.6.

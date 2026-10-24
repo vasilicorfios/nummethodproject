@@ -53,6 +53,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearSegmentedColormap</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.figure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Figure</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">PEAK_PROMINENCE_DB</span><span class="p">,</span> <span class="n">TONAL_PROMINENCE_DB</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">ANGLE_BAND_LABELS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">INK</span><span class="p">,</span> <span class="n">INK_SECONDARY</span><span class="p">,</span> <span class="n">MUTED</span><span class="p">,</span> <span class="n">SERIES_COLOURS</span><span class="p">,</span> <span class="n">SURFACE</span><span class="p">,</span> <span class="n">_style</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">RMSE_CMAP</span>
@@ -235,6 +237,87 @@
             <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="n">side</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
                  <span class="n">label</span><span class="o">=</span><span class="s2">"Residual, measured − predicted (dB)</span><span class="se">\n</span><span class="s2">red: model too low, blue: too high"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+
+<span class="c1">#: Ordinal blue ramp for the angle bands (light = small angle, dark = large),</span>
+<span class="c1">#: with well-separated steps. The lightest still stands out from white.</span>
+<span class="n">ANGLE_BAND_COLOURS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"#86b6ef"</span><span class="p">,</span> <span class="s2">"#3987e5"</span><span class="p">,</span> <span class="s2">"#256abf"</span><span class="p">,</span> <span class="s2">"#184f95"</span><span class="p">,</span> <span class="s2">"#0d366b"</span><span class="p">]</span>
+
+<span class="c1">#: A different marker per angle band, so bands can be told apart without</span>
+<span class="c1">#: relying on shade alone (e.g. in greyscale print).</span>
+<span class="n">ANGLE_BAND_MARKERS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"o"</span><span class="p">,</span> <span class="s2">"s"</span><span class="p">,</span> <span class="s2">"^"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">,</span> <span class="s2">"v"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tonal_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Shared look of the tonal plots: reference lines, labels and limits."""</span>
+    <span class="n">_style</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="p">((</span><span class="n">PEAK_PROMINENCE_DB</span><span class="p">,</span> <span class="s2">"peak threshold"</span><span class="p">),</span> <span class="p">(</span><span class="n">TONAL_PROMINENCE_DB</span><span class="p">,</span> <span class="s2">"strongly tonal"</span><span class="p">)):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">MUTED</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">"--"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Pinned to the left edge of the plot area (axes x = 0.01), where the</span>
+        <span class="c1"># lines are clear of dots, and drawn above them so it is never hidden.</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> dB)"</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_yaxis_transform</span><span class="p">(),</span>
+                <span class="n">va</span><span class="o">=</span><span class="s2">"bottom"</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"left"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">INK_SECONDARY</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"log10(chord Reynolds number)"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"Peak prominence (dB)"</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="s2">"prominence_db"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mf">1.08</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="plot_tonal_by_angle">
+<a class="viewcode-back" href="../../api.html#functions.plot_error_analysis.plot_tonal_by_angle">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_tonal_by_angle</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Peak prominence against log10(Reynolds number), coloured by angle band.</span>
+
+<span class="sd">    Each dot is one setup. Prominence is how far the spectrum's biggest peak</span>
+<span class="sd">    stands above its surroundings. Angles are grouped into the bands of</span>
+<span class="sd">    :data:`functions.evaluate.ANGLE_BAND_LABELS` (0° on its own), because 27</span>
+<span class="sd">    separate angles would be too many colours to tell apart.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table: Output of :func:`functions.error_analysis.tonal_table`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The figure (not shown or saved).</span>
+<span class="sd">    """</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">),</span> <span class="n">layout</span><span class="o">=</span><span class="s2">"constrained"</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="n">SURFACE</span><span class="p">)</span>
+    <span class="n">_tonal_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">colour</span><span class="p">,</span> <span class="n">marker</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ANGLE_BAND_LABELS</span><span class="p">,</span> <span class="n">ANGLE_BAND_COLOURS</span><span class="p">,</span> <span class="n">ANGLE_BAND_MARKERS</span><span class="p">):</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="n">table</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">]</span> <span class="o">==</span> <span class="n">label</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="s2">"log10_reynolds"</span><span class="p">],</span> <span class="n">part</span><span class="p">[</span><span class="s2">"prominence_db"</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colour</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span>
+                   <span class="n">edgecolors</span><span class="o">=</span><span class="n">SURFACE</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">° (n=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># Upper right is empty; the most tonal setups are at the upper left.</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"Angle of attack"</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">title_fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+              <span class="n">labelcolor</span><span class="o">=</span><span class="n">INK_SECONDARY</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">"upper right"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+
+<div class="viewcode-block" id="plot_tonal_by_error">
+<a class="viewcode-back" href="../../api.html#functions.plot_error_analysis.plot_tonal_by_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_tonal_by_error</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Figure</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Peak prominence against log10(Reynolds number), coloured by model error.</span>
+
+<span class="sd">    Same axes as :func:`plot_tonal_by_angle`, with each setup coloured by</span>
+<span class="sd">    the model's out-of-fold RMSE for that setup (darker = larger error).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table: :func:`functions.error_analysis.tonal_table` output merged</span>
+<span class="sd">            with a per-setup ``rmse`` column.</span>
+<span class="sd">        label: Model name for the colour-bar label.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The figure (not shown or saved).</span>
+<span class="sd">    """</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">),</span> <span class="n">layout</span><span class="o">=</span><span class="s2">"constrained"</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">set_facecolor</span><span class="p">(</span><span class="n">SURFACE</span><span class="p">)</span>
+    <span class="n">_tonal_axes</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+    <span class="c1"># Draw the worst setups last so they are not hidden under others.</span>
+    <span class="n">ordered</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"rmse"</span><span class="p">)</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">ordered</span><span class="p">[</span><span class="s2">"log10_reynolds"</span><span class="p">],</span> <span class="n">ordered</span><span class="p">[</span><span class="s2">"prominence_db"</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">ordered</span><span class="p">[</span><span class="s2">"rmse"</span><span class="p">],</span>
+                        <span class="n">cmap</span><span class="o">=</span><span class="n">RMSE_CMAP</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="n">SURFACE</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> setup RMSE (dB)"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">fig</span></div>
 
 </pre></div>
