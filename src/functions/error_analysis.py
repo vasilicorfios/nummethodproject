@@ -29,7 +29,7 @@ import pandas as pd
 from scipy.signal import find_peaks
 from scipy.stats import linregress
 
-from functions.evaluate import CVResult
+from functions.evaluate import CVResult, angle_band
 from functions.make_folds import TEST_FOLD, assign_folds
 
 #: A peak must stand this many dB above the lower of its two neighbouring
@@ -231,3 +231,49 @@ def peak_error_summary(shares: pd.DataFrame, peaks: pd.DataFrame,
          "median_frequency_share": g["frequency_share"].median()}
         for name, g in groups.items()
     ])
+
+
+def tonal_table(data: pd.DataFrame, include_holdout: bool = False) -> pd.DataFrame:
+    """Peak prominence and chord Reynolds number of every setup's spectrum.
+
+    The prominence of a peak is how far it stands above its surroundings:
+    its height above the higher of the lowest points on either side before a
+    taller peak (:func:`scipy.signal.find_peaks`). For each setup the most
+    prominent interior peak is used, with no minimum, so every setup appears.
+    A spectrum with no interior peak (it only rises or only falls) gets 0 dB.
+    Narrow, very prominent peaks are the tonal noise that the models find
+    hardest.
+
+    Args:
+        data: Dataset with physics features (for the Reynolds number).
+        include_holdout: Include the test hold-out setups. Leave False for
+            any analysis of model results; True is only for describing the
+            whole dataset (exploration).
+
+    Returns:
+        One row per setup: ``setup_id``, chord, velocity, angle,
+        ``angle_band``, ``reynolds``, ``log10_reynolds``, ``prominence_db``
+        and ``peak_hz`` (NaN when there is no interior peak).
+    """
+    folded = assign_folds(data)
+    rows_used = folded if include_holdout else folded[folded["fold"] != TEST_FOLD]
+    rows = []
+    for setup_id, spectrum in rows_used.groupby("setup_id"):
+        spectrum = spectrum.sort_values("frequency_hz")
+        index, props = find_peaks(spectrum["spl_db"].to_numpy(), prominence=0)
+        first = spectrum.iloc[0]
+        has_peak = len(index) > 0
+        k = index[np.argmax(props["prominences"])] if has_peak else None
+        rows.append({
+            "setup_id": int(setup_id),
+            "chord_length_m": first["chord_length_m"],
+            "velocity_mps": first["velocity_mps"],
+            "attack_angle_deg": first["attack_angle_deg"],
+            "reynolds": first["reynolds"],
+            "prominence_db": float(props["prominences"].max()) if has_peak else 0.0,
+            "peak_hz": float(spectrum["frequency_hz"].iloc[k]) if has_peak else np.nan,
+        })
+    table = pd.DataFrame(rows)
+    table["log10_reynolds"] = np.log10(table["reynolds"])
+    table["angle_band"] = angle_band(table["attack_angle_deg"])
+    return table

@@ -38,8 +38,11 @@ Writes, for each feature set ``<fs>``:
 * ``results/peak_error_share_<fs>.csv``: per-setup share of error at the peak.
 * ``doc/generated/peak_scaling_<fs>.csv`` and ``peak_error_share_<fs>.csv``:
   rounded tables for the docs.
-* ``doc/generated/error_map_<fs>``, ``peak_scaling_<fs>`` and
-  ``residual_heatmap_<fs>`` (``.png`` and ``.pdf``): the figures.
+* ``doc/generated/error_map_<fs>``, ``peak_scaling_<fs>``,
+  ``residual_heatmap_<fs>`` and ``tonal_peaks_mlp_error_<fs>`` (``.png`` and
+  ``.pdf``): the figures.
+* ``results/tonal_peaks_<fs>.csv``: peak prominence, Reynolds number and MLP
+  setup RMSE for every CV setup.
 """
 
 import argparse
@@ -55,8 +58,14 @@ from functions.error_analysis import (
     peak_scaling_fit,
     residual_matrix,
     spectral_peaks,
+    tonal_table,
 )
-from functions.plot_error_analysis import plot_error_map, plot_peak_scaling, plot_residual_heatmap
+from functions.plot_error_analysis import (
+    plot_error_map,
+    plot_peak_scaling,
+    plot_residual_heatmap,
+    plot_tonal_by_error,
+)
 from functions.plot_results import plot_setup_spectra
 from functions.plot_tuning import save_png_pdf
 from functions.evaluate import CVResult
@@ -231,6 +240,14 @@ def run_extra_analyses(data: pd.DataFrame, linear: CVResult, mlp: CVResult,
     fig = plot_residual_heatmap([(linear_label, residual_matrix(linear, data)),
                                  (mlp_label, residual_matrix(mlp, data))], data, peaks)
     save_png_pdf(fig, DOC_TABLES_DIR, f"residual_heatmap_{fs}")
+
+    # 4. Does the MLP struggle more on spectra with a prominent (tonal) peak?
+    tonal = tonal_table(data).merge(mlp_setups[["setup_id", "rmse"]], on="setup_id")
+    tonal.to_csv(RESULTS_DIR / f"tonal_peaks_{fs}.csv", index=False)
+    save_png_pdf(plot_tonal_by_error(tonal, "Tuned MLP (out-of-fold)"), DOC_TABLES_DIR,
+                 f"tonal_peaks_mlp_error_{fs}")
+    print(f"Peak prominence vs MLP setup RMSE ({fs}): Spearman rank correlation "
+          f"{tonal['prominence_db'].corr(tonal['rmse'], method='spearman'):.2f}")
 
 
 def main(argv: list[str] | None = None) -> None:

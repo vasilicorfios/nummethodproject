@@ -18,11 +18,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from functions.data_loader import load_airfoil_data
+from functions.error_analysis import tonal_table
 from functions.physics_features import add_physics_features
 from functions.plot_spl_by_chord_length import plot_spl_by_chord_length
 from functions.plot_spl_distribution import plot_spl_distribution
 from functions.plot_spl_vs_features import plot_spl_vs_features
+from functions.plot_error_analysis import plot_tonal_by_angle
 from functions.plot_spl_vs_physics_features import plot_spl_vs_physics_features
+from functions.plot_tuning import save_png_pdf
 
 #: Directory for figures included by the Sphinx data page
 #: (``doc/exploration.rst``): ``<project root>/doc/generated``.
@@ -42,8 +45,10 @@ def save_explore_figures(df: pd.DataFrame, out_dir: Path = DOC_FIGURES_DIR) -> l
 
     Returns:
         Paths of the files written: ``explore_spl_distribution.png``,
-        ``explore_spl_vs_features.png`` and
-        ``explore_spl_vs_physics_features.png``.
+        ``explore_spl_vs_features.png``,
+        ``explore_spl_vs_physics_features.png``, and
+        ``explore_tonal_peaks.png`` / ``.pdf`` (peak prominence against
+        Reynolds number by angle band, for every setup).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     figures = {
@@ -58,6 +63,9 @@ def save_explore_figures(df: pd.DataFrame, out_dir: Path = DOC_FIGURES_DIR) -> l
         # Close each figure so it is not shown twice when main() re-draws.
         plt.close(fig)
         written.append(path)
+    # Tonal peaks, one dot per setup. Saved as PDF too, for the report.
+    written += save_png_pdf(plot_tonal_by_angle(tonal_table(df, include_holdout=True)),
+                            out_dir, "explore_tonal_peaks")
     return written
 
 

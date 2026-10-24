@@ -27,14 +27,17 @@ def test_rejects_non_positive_bin_width(raw_data):
 
 
 def test_explore_figures_written_and_closed(data, tmp_path):
-    """Every docs figure is saved as a PNG and no figure is left open."""
+    """Every docs figure is saved (the tonal plot also as PDF) and no figure is left open."""
     before = len(plt.get_fignums())
     paths = save_explore_figures(data, tmp_path)
     assert {p.name for p in paths} == {
         "explore_spl_distribution.png",
         "explore_spl_vs_features.png",
         "explore_spl_vs_physics_features.png",
+        "explore_tonal_peaks.png",
+        "explore_tonal_peaks.pdf",
     }
     for path in paths:
-        assert path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+        expected = b"\x89PNG\r\n\x1a\n" if path.suffix == ".png" else b"%PDF"
+        assert path.read_bytes()[:len(expected)] == expected
     assert len(plt.get_fignums()) == before

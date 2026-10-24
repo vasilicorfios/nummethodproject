@@ -20,6 +20,8 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 
+from functions.error_analysis import PEAK_PROMINENCE_DB, TONAL_PROMINENCE_DB
+from functions.evaluate import ANGLE_BAND_LABELS
 from functions.make_folds import TEST_FOLD, assign_folds
 from functions.plot_results import INK, INK_SECONDARY, MUTED, SERIES_COLOURS, SURFACE, _style
 from functions.plot_tuning import RMSE_CMAP
@@ -194,4 +196,79 @@ def plot_residual_heatmap(matrices: list[tuple[str, pd.DataFrame]], data: pd.Dat
             ax.spines[side].set_visible(False)
     fig.colorbar(image, ax=list(axes[0]), shrink=0.6,
                  label="Residual, measured − predicted (dB)\nred: model too low, blue: too high")
+    return fig
+
+
+#: Ordinal blue ramp for the angle bands (light = small angle, dark = large),
+#: with well-separated steps. The lightest still stands out from white.
+ANGLE_BAND_COLOURS = ["#86b6ef", "#3987e5", "#256abf", "#184f95", "#0d366b"]
+
+#: A different marker per angle band, so bands can be told apart without
+#: relying on shade alone (e.g. in greyscale print).
+ANGLE_BAND_MARKERS = ["o", "s", "^", "D", "v"]
+
+
+def _tonal_axes(ax, table: pd.DataFrame) -> None:
+    """Shared look of the tonal plots: reference lines, labels and limits."""
+    _style(ax)
+    for level, text in ((PEAK_PROMINENCE_DB, "peak threshold"), (TONAL_PROMINENCE_DB, "strongly tonal")):
+        ax.axhline(level, color=MUTED, linestyle="--", linewidth=1)
+        # Pinned to the left edge of the plot area (axes x = 0.01), where the
+        # lines are clear of dots, and drawn above them so it is never hidden.
+        ax.text(0.01, level, f"{text} ({level:g} dB)", transform=ax.get_yaxis_transform(),
+                va="bottom", ha="left", fontsize=8, color=INK_SECONDARY, zorder=5)
+    ax.set_xlabel("log10(chord Reynolds number)")
+    ax.set_ylabel("Peak prominence (dB)")
+    ax.set_ylim(0, table["prominence_db"].max() * 1.08)
+
+
+def plot_tonal_by_angle(table: pd.DataFrame) -> Figure:
+    """Peak prominence against log10(Reynolds number), coloured by angle band.
+
+    Each dot is one setup. Prominence is how far the spectrum's biggest peak
+    stands above its surroundings. Angles are grouped into the bands of
+    :data:`functions.evaluate.ANGLE_BAND_LABELS` (0° on its own), because 27
+    separate angles would be too many colours to tell apart.
+
+    Args:
+        table: Output of :func:`functions.error_analysis.tonal_table`.
+
+    Returns:
+        The figure (not shown or saved).
+    """
+    fig, ax = plt.subplots(figsize=(7.5, 4.6), layout="constrained")
+    fig.set_facecolor(SURFACE)
+    _tonal_axes(ax, table)
+    for label, colour, marker in zip(ANGLE_BAND_LABELS, ANGLE_BAND_COLOURS, ANGLE_BAND_MARKERS):
+        part = table[table["angle_band"] == label]
+        ax.scatter(part["log10_reynolds"], part["prominence_db"], s=48, color=colour, marker=marker,
+                   edgecolors=SURFACE, linewidths=1, label=f"{label}° (n={len(part)})", zorder=3)
+    # Upper right is empty; the most tonal setups are at the upper left.
+    ax.legend(title="Angle of attack", frameon=False, fontsize=8, title_fontsize=8,
+              labelcolor=INK_SECONDARY, loc="upper right")
+    return fig
+
+
+def plot_tonal_by_error(table: pd.DataFrame, label: str) -> Figure:
+    """Peak prominence against log10(Reynolds number), coloured by model error.
+
+    Same axes as :func:`plot_tonal_by_angle`, with each setup coloured by
+    the model's out-of-fold RMSE for that setup (darker = larger error).
+
+    Args:
+        table: :func:`functions.error_analysis.tonal_table` output merged
+            with a per-setup ``rmse`` column.
+        label: Model name for the colour-bar label.
+
+    Returns:
+        The figure (not shown or saved).
+    """
+    fig, ax = plt.subplots(figsize=(7.5, 4.6), layout="constrained")
+    fig.set_facecolor(SURFACE)
+    _tonal_axes(ax, table)
+    # Draw the worst setups last so they are not hidden under others.
+    ordered = table.sort_values("rmse")
+    points = ax.scatter(ordered["log10_reynolds"], ordered["prominence_db"], c=ordered["rmse"],
+                        cmap=RMSE_CMAP, s=45, edgecolors=SURFACE, linewidths=1, zorder=3)
+    fig.colorbar(points, ax=ax, label=f"{label} setup RMSE (dB)")
     return fig
