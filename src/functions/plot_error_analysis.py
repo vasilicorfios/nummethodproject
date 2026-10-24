@@ -217,13 +217,21 @@ def _tonal_axes(ax, table: pd.DataFrame) -> None:
         # lines are clear of dots, and drawn above them so it is never hidden.
         ax.text(0.01, level, f"{text} ({level:g} dB)", transform=ax.get_yaxis_transform(),
                 va="bottom", ha="left", fontsize=8, color=INK_SECONDARY, zorder=5)
-    ax.set_xlabel("log10(chord Reynolds number)")
+    # Reynolds number spans more than a decade, so it goes on a log axis, with
+    # the actual Reynolds numbers written on the ticks so they can be read off.
+    ax.set_xscale("log")
+    lo, hi = table["reynolds"].min() / 1.15, table["reynolds"].max() * 1.15
+    ax.set_xlim(lo, hi)
+    ticks = [t for t in (5e4, 1e5, 2e5, 5e5, 1e6, 2e6) if lo <= t <= hi]
+    ax.set_xticks(ticks, [f"{t:,.0f}" for t in ticks])
+    ax.xaxis.set_minor_formatter(plt.NullFormatter())
+    ax.set_xlabel("Chord Reynolds number (log scale)")
     ax.set_ylabel("Peak prominence (dB)")
     ax.set_ylim(0, table["prominence_db"].max() * 1.08)
 
 
 def plot_tonal_by_angle(table: pd.DataFrame) -> Figure:
-    """Peak prominence against log10(Reynolds number), coloured by angle band.
+    """Peak prominence against chord Reynolds number (log axis), coloured by angle band.
 
     Each dot is one setup. Prominence is how far the spectrum's biggest peak
     stands above its surroundings. Angles are grouped into the bands of
@@ -241,7 +249,7 @@ def plot_tonal_by_angle(table: pd.DataFrame) -> Figure:
     _tonal_axes(ax, table)
     for label, colour, marker in zip(ANGLE_BAND_LABELS, ANGLE_BAND_COLOURS, ANGLE_BAND_MARKERS):
         part = table[table["angle_band"] == label]
-        ax.scatter(part["log10_reynolds"], part["prominence_db"], s=48, color=colour, marker=marker,
+        ax.scatter(part["reynolds"], part["prominence_db"], s=48, color=colour, marker=marker,
                    edgecolors=SURFACE, linewidths=1, label=f"{label}° (n={len(part)})", zorder=3)
     # Upper right is empty; the most tonal setups are at the upper left.
     ax.legend(title="Angle of attack", frameon=False, fontsize=8, title_fontsize=8,
@@ -250,7 +258,7 @@ def plot_tonal_by_angle(table: pd.DataFrame) -> Figure:
 
 
 def plot_tonal_by_error(table: pd.DataFrame, label: str) -> Figure:
-    """Peak prominence against log10(Reynolds number), coloured by model error.
+    """Peak prominence against chord Reynolds number (log axis), coloured by model error.
 
     Same axes as :func:`plot_tonal_by_angle`, with each setup coloured by
     the model's out-of-fold RMSE for that setup (darker = larger error).
@@ -268,7 +276,7 @@ def plot_tonal_by_error(table: pd.DataFrame, label: str) -> Figure:
     _tonal_axes(ax, table)
     # Draw the worst setups last so they are not hidden under others.
     ordered = table.sort_values("rmse")
-    points = ax.scatter(ordered["log10_reynolds"], ordered["prominence_db"], c=ordered["rmse"],
+    points = ax.scatter(ordered["reynolds"], ordered["prominence_db"], c=ordered["rmse"],
                         cmap=RMSE_CMAP, s=45, edgecolors=SURFACE, linewidths=1, zorder=3)
     fig.colorbar(points, ax=ax, label=f"{label} setup RMSE (dB)")
     return fig

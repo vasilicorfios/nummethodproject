@@ -71,15 +71,16 @@ Tonal peaks
 
 .. figure:: generated/explore_tonal_peaks.png
    :width: 85%
-   :alt: Peak prominence against log10 chord Reynolds number, one dot per
-         setup, coloured and shaped by angle-of-attack band.
+   :alt: Peak prominence against chord Reynolds number on a log axis, one
+         dot per setup, coloured and shaped by angle-of-attack band.
 
    Each dot is one setup (one measured spectrum): how far its biggest peak
-   stands above its surroundings (peak prominence), against log10 of the
-   chord Reynolds number. Colour and marker show the angle band.
+   stands above its surroundings (peak prominence), against the chord
+   Reynolds number (log scale). Colour and marker show the angle band.
 
 Some spectra have a narrow tonal peak standing well above the broadband
 level. All four strongly tonal setups (prominence of 15 dB or more) have the
 smallest chord (0.0254 m), an angle of 17.4–22.2° and a Reynolds number of
-at most 1.2 × 10⁵. In general, prominence falls as the Reynolds number rises:
-the median is about 10 dB below log10(Re) = 5.2, but about 6 dB above 5.6.
+at most about 121,000. In general, prominence falls as the Reynolds number
+rises: the median is about 10 dB below Re ≈ 160,000, but about 6 dB above
+Re ≈ 400,000.

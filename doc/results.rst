@@ -513,7 +513,7 @@ Tonal peaks and MLP error
 
 .. figure:: generated/tonal_peaks_mlp_error_B.png
    :width: 85%
-   :alt: Peak prominence against log10 chord Reynolds number for the 90
+   :alt: Peak prominence against chord Reynolds number (log axis) for the 90
          cross-validation setups, coloured by the tuned MLP's setup RMSE.
 
    The same axes as the tonal-peaks plot on the exploration page, for the 90
