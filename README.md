@@ -4,14 +4,40 @@ MMA3001 Numerical Methods and Machine Learning project.
 
 This project predicts the noise an airfoil makes from its test conditions. The data is the NASA/UCI **Airfoil Self-Noise** dataset: 1,503 wind-tunnel measurements of NACA 0012 airfoils (Brooks, Pope & Marcolini, NASA RP-1218, 1989).
 
-- **Inputs:** frequency (Hz), angle of attack (deg), chord length (m), free-stream velocity (m/s) and suction-side displacement thickness (m). Feature set **B** adds log-frequency, Strouhal number and chord Reynolds number.
-- **Output:** scaled sound pressure level (SPL, dB).
-
 A linear least-squares baseline is compared with a neural network (MLP) tuned by nested cross-validation. The final model is checked by:
 - robustness shift tests;
 - a physics check;
 - acceptance criteria fixed in advance;
 - a single evaluation on a held-out test set.
+
+## Data
+
+Each row is one measurement: the sound pressure level at one frequency for one wind-tunnel setup (one chord, velocity and angle). There are 106 setups, each giving one noise spectrum of 8–19 frequencies.
+
+### Inputs and output (feature set A)
+
+| Quantity | Column | Unit | Range in the dataset | Distinct values | Role |
+|---|---|---|---|---|---|
+| Frequency | `frequency_hz` | Hz | 200 – 20,000 | 21 (1/3-octave band centres) | input |
+| Angle of attack | `attack_angle_deg` | deg | 0 – 22.2 | 27 | input |
+| Chord length | `chord_length_m` | m | 0.0254 – 0.3048 | 6 | input |
+| Free-stream velocity | `velocity_mps` | m/s | 31.7 – 71.3 | 4 | input |
+| Suction-side displacement thickness | `disp_thickness_m` | m | 0.000401 – 0.0584 | 105 | input |
+| Scaled sound pressure level (SPL) | `spl_db` | dB | 103.4 – 141.0 | continuous | **output** |
+
+### Physics-informed features (added in feature set B)
+
+Feature set **B** is the five inputs above plus three features computed from them (8 inputs in total). They are calculated row by row in `src/functions/physics_features.py`, so they never mix information between rows.
+
+| Feature | Column | Formula | Unit | Range in the dataset |
+|---|---|---|---|---|
+| Log frequency | `log_frequency` | log₁₀(f) | – (f in Hz) | 2.30 – 4.30 |
+| Strouhal number | `strouhal` | f · δ\* / U | dimensionless | 0.0083 – 9.29 |
+| Chord Reynolds number | `reynolds` | U · c / ν, with ν = 1.5 × 10⁻⁵ m²/s (air at about 20 °C) | dimensionless | 53,700 – 1,449,000 |
+
+Here f is the frequency, δ\* the displacement thickness, U the free-stream velocity and c the chord.
+
+The input ranges above are also the ranges the final model was trained on. Predictions outside them are refused (see [Predicting for new conditions](#predicting-for-new-conditions)).
 
 ## Results
 
