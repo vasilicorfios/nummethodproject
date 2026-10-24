@@ -37,8 +37,10 @@
 <span class="sd">with free-stream velocity, at fixed chord and angle, as the measurements and</span>
 <span class="sd">the physics do (:mod:`functions.physics_checks`). Only cross-validation rows</span>
 <span class="sd">are used; the test hold-out is never touched. It then evaluates the</span>
-<span class="sd">acceptance criteria fixed in :mod:`functions.acceptance`: those that need</span>
-<span class="sd">the hold-out are reported as pending::</span>
+<span class="sd">acceptance criteria fixed in :mod:`functions.acceptance`. Those that need</span>
+<span class="sd">the hold-out use the saved results of ``run_final.py`` if it has been run</span>
+<span class="sd">(the hold-out is never evaluated here), and are reported as pending</span>
+<span class="sd">otherwise::</span>
 
 <span class="sd">    python src/run_physics_check.py    # about 10 seconds</span>
 
@@ -57,12 +59,14 @@
 <span class="sd">* ``doc/generated/physics_speed_order.png`` and ``.pdf``: example groups.</span>
 <span class="sd">"""</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.acceptance</span><span class="w"> </span><span class="kn">import</span> <span class="n">acceptance_table</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.data_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_airfoil_data</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_validate</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FINAL_FEATURE_SET</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FINAL_FEATURE_SET</span><span class="p">,</span> <span class="n">FINAL_MODEL_NAME</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_checks</span><span class="w"> </span><span class="kn">import</span> <span class="n">group_levels</span><span class="p">,</span> <span class="n">speed_order_check</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_robustness</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_speed_order</span>
@@ -72,6 +76,29 @@
 
 <span class="c1">#: Number of example groups in the figure.</span>
 <span class="n">N_EXAMPLES</span> <span class="o">=</span> <span class="mi">4</span>
+
+
+<div class="viewcode-block" id="saved_holdout">
+<a class="viewcode-back" href="../api.html#run_physics_check.saved_holdout">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">saved_holdout</span><span class="p">(</span><span class="n">results_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read the saved hold-out RMSEs, if the hold-out has been evaluated.</span>
+
+<span class="sd">    This only reads ``holdout_metrics.csv`` written by ``run_final.py``; it</span>
+<span class="sd">    never evaluates the hold-out itself.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        results_dir: Folder holding the result files.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``{"mlp_rmse": ..., "linear_rmse": ...}`` for the selected final MLP</span>
+<span class="sd">        and linear, or ``None`` if the hold-out has not been run yet.</span>
+<span class="sd">    """</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">results_dir</span> <span class="o">/</span> <span class="s2">"holdout_metrics.csv"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">rmse</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)[</span><span class="s2">"rmse"</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"mlp_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="n">FINAL_MODEL_NAME</span><span class="p">]),</span> <span class="s2">"linear_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">])}</span></div>
+
 
 
 <div class="viewcode-block" id="example_groups">
@@ -171,12 +198,15 @@
     <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_speed_order</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">example_groups</span><span class="p">(</span><span class="n">groups</span><span class="p">)),</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span>
                  <span class="s2">"physics_speed_order"</span><span class="p">)</span>
 
-    <span class="c1"># Acceptance criteria (fixed before the hold-out run); hold-out ones stay pending.</span>
+    <span class="c1"># Acceptance criteria (fixed before the hold-out run). If the hold-out has</span>
+    <span class="c1"># already been evaluated, its saved results are included so this table</span>
+    <span class="c1"># never drops back to "pending"; otherwise the hold-out ones stay pending.</span>
     <span class="n">mlp_pairs</span> <span class="o">=</span> <span class="n">summary</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"mlp"</span><span class="p">]</span>
     <span class="n">acceptance</span> <span class="o">=</span> <span class="n">acceptance_table</span><span class="p">(</span>
         <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"tuning_paired_vs_linear.csv"</span><span class="p">),</span>
         <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"tuning_summary.csv"</span><span class="p">),</span>
         <span class="n">physics_pair_fraction</span><span class="o">=</span><span class="n">mlp_pairs</span><span class="p">[</span><span class="s2">"pairs_correct"</span><span class="p">]</span> <span class="o">/</span> <span class="n">mlp_pairs</span><span class="p">[</span><span class="s2">"pairs_scored"</span><span class="p">],</span>
+        <span class="n">holdout</span><span class="o">=</span><span class="n">saved_holdout</span><span class="p">(</span><span class="n">RESULTS_DIR</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="n">acceptance</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="s2">"acceptance.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">write_doc_tables</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">groups</span><span class="p">,</span> <span class="n">acceptance</span><span class="p">)</span>

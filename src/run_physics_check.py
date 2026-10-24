@@ -4,8 +4,10 @@ Checks whether the MLP's and linear model's out-of-fold predictions rise
 with free-stream velocity, at fixed chord and angle, as the measurements and
 the physics do (:mod:`functions.physics_checks`). Only cross-validation rows
 are used; the test hold-out is never touched. It then evaluates the
-acceptance criteria fixed in :mod:`functions.acceptance`: those that need
-the hold-out are reported as pending::
+acceptance criteria fixed in :mod:`functions.acceptance`. Those that need
+the hold-out use the saved results of ``run_final.py`` if it has been run
+(the hold-out is never evaluated here), and are reported as pending
+otherwise::
 
     python src/run_physics_check.py    # about 10 seconds
 
@@ -24,12 +26,14 @@ Writes:
 * ``doc/generated/physics_speed_order.png`` and ``.pdf``: example groups.
 """
 
+from pathlib import Path
+
 import pandas as pd
 
 from functions.acceptance import acceptance_table
 from functions.data_loader import load_airfoil_data
 from functions.evaluate import cross_validate
-from functions.models import FINAL_FEATURE_SET
+from functions.models import FINAL_FEATURE_SET, FINAL_MODEL_NAME
 from functions.physics_checks import group_levels, speed_order_check
 from functions.physics_features import add_physics_features
 from functions.plot_robustness import plot_speed_order
@@ -39,6 +43,26 @@ from run_cv import DOC_TABLES_DIR, RESULTS_DIR
 
 #: Number of example groups in the figure.
 N_EXAMPLES = 4
+
+
+def saved_holdout(results_dir: Path) -> dict[str, float] | None:
+    """Read the saved hold-out RMSEs, if the hold-out has been evaluated.
+
+    This only reads ``holdout_metrics.csv`` written by ``run_final.py``; it
+    never evaluates the hold-out itself.
+
+    Args:
+        results_dir: Folder holding the result files.
+
+    Returns:
+        ``{"mlp_rmse": ..., "linear_rmse": ...}`` for the selected final MLP
+        and linear, or ``None`` if the hold-out has not been run yet.
+    """
+    path = results_dir / "holdout_metrics.csv"
+    if not path.exists():
+        return None
+    rmse = pd.read_csv(path).set_index("model")["rmse"]
+    return {"mlp_rmse": float(rmse[FINAL_MODEL_NAME]), "linear_rmse": float(rmse["linear"])}
 
 
 def example_groups(groups: pd.DataFrame, n: int = N_EXAMPLES) -> list[tuple[float, float]]:
@@ -130,12 +154,15 @@ def main() -> None:
     save_png_pdf(plot_speed_order(levels, example_groups(groups)), DOC_TABLES_DIR,
                  "physics_speed_order")
 
-    # Acceptance criteria (fixed before the hold-out run); hold-out ones stay pending.
+    # Acceptance criteria (fixed before the hold-out run). If the hold-out has
+    # already been evaluated, its saved results are included so this table
+    # never drops back to "pending"; otherwise the hold-out ones stay pending.
     mlp_pairs = summary.set_index("model").loc["mlp"]
     acceptance = acceptance_table(
         pd.read_csv(RESULTS_DIR / "tuning_paired_vs_linear.csv"),
         pd.read_csv(RESULTS_DIR / "tuning_summary.csv"),
         physics_pair_fraction=mlp_pairs["pairs_correct"] / mlp_pairs["pairs_scored"],
+        holdout=saved_holdout(RESULTS_DIR),
     )
     acceptance.to_csv(RESULTS_DIR / "acceptance.csv", index=False)
     write_doc_tables(summary, groups, acceptance)

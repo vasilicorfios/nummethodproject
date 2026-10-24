@@ -114,3 +114,11 @@ def test_example_groups_put_mlp_failures_first(tmp_path):
     assert len(picks) == 3
     paths = save_png_pdf(plot_speed_order(levels, picks), tmp_path, "speed")
     assert all(p.stat().st_size > 0 for p in paths)
+
+
+def test_acceptance_keeps_saved_holdout_results(tmp_path):
+    """After the hold-out run, re-running the physics check must not reset C1b-C3 to pending."""
+    assert run_physics_check.saved_holdout(tmp_path) is None  # before the hold-out run
+    pd.DataFrame({"model": ["linear", "mlp_runner_up", "mlp_final"],
+                  "rmse": [4.762, 2.434, 2.630]}).to_csv(tmp_path / "holdout_metrics.csv", index=False)
+    assert run_physics_check.saved_holdout(tmp_path) == {"mlp_rmse": 2.630, "linear_rmse": 4.762}

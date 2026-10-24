@@ -3165,8 +3165,10 @@ reference RMSE.</p></li>
 with free-stream velocity, at fixed chord and angle, as the measurements and
 the physics do (<a class="reference internal" href="#module-functions.physics_checks" title="functions.physics_checks"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.physics_checks</span></code></a>). Only cross-validation rows
 are used; the test hold-out is never touched. It then evaluates the
-acceptance criteria fixed in <a class="reference internal" href="#module-functions.acceptance" title="functions.acceptance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.acceptance</span></code></a>: those that need
-the hold-out are reported as pending:</p>
+acceptance criteria fixed in <a class="reference internal" href="#module-functions.acceptance" title="functions.acceptance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.acceptance</span></code></a>. Those that need
+the hold-out use the saved results of <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code> if it has been run
+(the hold-out is never evaluated here), and are reported as pending
+otherwise:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_physics_check</span><span class="o">.</span><span class="n">py</span>    <span class="c1"># about 10 seconds</span>
 </pre></div>
 </div>
@@ -3187,6 +3189,23 @@ model’s order and pair results.</p></li>
 <dt class="sig sig-object py" id="run_physics_check.N_EXAMPLES">
 <span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">N_EXAMPLES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#run_physics_check.N_EXAMPLES" title="Link to this definition">¶</a></dt>
 <dd><p>Number of example groups in the figure.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="run_physics_check.saved_holdout">
+<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">saved_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_physics_check.html#saved_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_physics_check.saved_holdout" title="Link to this definition">¶</a></dt>
+<dd><p>Read the saved hold-out RMSEs, if the hold-out has been evaluated.</p>
+<p>This only reads <code class="docutils literal notranslate"><span class="pre">holdout_metrics.csv</span></code> written by <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code>; it
+never evaluates the hold-out itself.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>results_dir</strong> – Folder holding the result files.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{&quot;mlp_rmse&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;linear_rmse&quot;:</span> <span class="pre">...}</span></code> for the selected final MLP
+and linear, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the hold-out has not been run yet.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
