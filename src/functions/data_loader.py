@@ -20,6 +20,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from functions.input_checks import check_missing, validate_inputs
+
 #: Default location of the dataset: ``<project root>/data/airfoil_self_noise.xlsx``.
 DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "airfoil_self_noise.xlsx"
 
@@ -53,7 +55,9 @@ def load_airfoil_data(path: Path = DATA_PATH) -> pd.DataFrame:
 
     Reads the Excel file, drops the ``Source.Name`` column that Power Query
     style exports add (if present), and renames the remaining columns
-    according to :data:`COLUMN_RENAME`.
+    according to :data:`COLUMN_RENAME`. It then refuses missing values and
+    physically impossible inputs (see :mod:`functions.input_checks`); nothing
+    is imputed.
 
     Args:
         path: Location of the ``.xlsx`` file. Defaults to :data:`DATA_PATH`.
@@ -66,11 +70,21 @@ def load_airfoil_data(path: Path = DATA_PATH) -> pd.DataFrame:
 
     Raises:
         FileNotFoundError: If no file exists at ``path``.
+        functions.input_checks.MissingInputError: If a column or value is
+            missing.
+        functions.input_checks.InvalidInputError: If an input value is not a
+            number or is physically impossible.
     """
     df = pd.read_excel(path)
     # errors="ignore": the column only exists in some exports of the file.
     df = df.drop(columns=["Source.Name"], errors="ignore")
     df = df.rename(columns=COLUMN_RENAME)
+    # Refuse a damaged file rather than train on it: missing values (inputs or
+    # target) and impossible input values stop with an error, nothing is
+    # imputed. The range check is skipped here, because the allowed ranges
+    # are defined by this data.
+    check_missing(df, FEATURES + [TARGET])
+    validate_inputs(df, check_range=False)
     return df
 
 
