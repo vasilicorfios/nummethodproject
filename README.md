@@ -55,6 +55,19 @@ Python 3.10 was used. From the project root:
 pip install -r requirements.txt
 ```
 
+## Predicting for new conditions
+
+```python
+import pandas as pd
+from functions.predict import predict_spl   # run from src/, or add src/ to the path
+
+predict_spl(pd.DataFrame({"frequency_hz": [1000], "attack_angle_deg": [5.0],
+                          "chord_length_m": [0.1524], "velocity_mps": [55.5],
+                          "disp_thickness_m": [0.0028]}))   # about 131.5 dB
+```
+
+Inputs are checked first. Missing values, physically impossible values (zero or negative frequency, chord, velocity or thickness; negative angles) and values outside the trained range (frequency 200–20,000 Hz, angle 0–22.2°, chord 0.0254–0.3048 m, velocity 31.7–71.3 m/s) stop with an error naming the column and row. Nothing is imputed. See "Valid inputs" in the HTML docs (Usage page).
+
 ## Running the analysis
 
 Run every command from the project root. Later scripts read results written by earlier ones, so on a fresh clone run them in this order.

@@ -52,6 +52,7 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
@@ -103,22 +104,30 @@
 </li>
       <li><a href="api.html#functions.acceptance.C3_MAX_RMSE_DB">C3_MAX_RMSE_DB (in module functions.acceptance)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.check_in_range">check_in_range() (in module functions.input_checks)</a>
+</li>
       <li><a href="api.html#functions.verification.check_linear">check_linear() (in module functions.verification)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.check_missing">check_missing() (in module functions.input_checks)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.check_numeric">check_numeric() (in module functions.input_checks)</a>
 </li>
       <li><a href="api.html#functions.verification.check_sine">check_sine() (in module functions.verification)</a>
 </li>
       <li><a href="api.html#functions.final.check_split">check_split() (in module functions.final)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.check_valid">check_valid() (in module functions.input_checks)</a>
+</li>
       <li><a href="api.html#functions.models.coefficient_effects">coefficient_effects() (in module functions.models)</a>
 </li>
       <li><a href="api.html#functions.evaluate.coefficient_summary">coefficient_summary() (in module functions.evaluate)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.evaluate.CVResult.coefficients">coefficients (functions.evaluate.CVResult attribute)</a>
 </li>
       <li><a href="api.html#functions.data_loader.COLUMN_RENAME">COLUMN_RENAME (in module functions.data_loader)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#run_profile.compare">compare() (in module run_profile)</a>
 </li>
       <li><a href="api.html#run_profile.COMPARED">COMPARED (in module run_profile)</a>
@@ -186,6 +195,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.acceptance.FAIL">FAIL (in module functions.acceptance)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.FEATURE_RANGES">FEATURE_RANGES (in module functions.input_checks)</a>
+</li>
       <li><a href="api.html#functions.evaluate.CVResult.feature_set">feature_set (functions.evaluate.CVResult attribute)</a>
 
       <ul>
@@ -203,6 +214,8 @@
       <li><a href="api.html#functions.models.FINAL_MLP">FINAL_MLP (in module functions.models)</a>
 </li>
       <li><a href="api.html#functions.models.FINAL_MODEL_NAME">FINAL_MODEL_NAME (in module functions.models)</a>
+</li>
+      <li><a href="api.html#functions.predict.FINAL_MODEL_PATH">FINAL_MODEL_PATH (in module functions.predict)</a>
 </li>
       <li><a href="api.html#functions.final.fit_and_predict">fit_and_predict() (in module functions.final)</a>
 </li>
@@ -260,6 +273,13 @@
 
       <ul>
         <li><a href="api.html#module-functions.final">module</a>
+</li>
+      </ul></li>
+      <li>
+    functions.input_checks
+
+      <ul>
+        <li><a href="api.html#module-functions.input_checks">module</a>
 </li>
       </ul></li>
       <li>
@@ -356,6 +376,13 @@
 </li>
       </ul></li>
       <li>
+    functions.predict
+
+      <ul>
+        <li><a href="api.html#module-functions.predict">module</a>
+</li>
+      </ul></li>
+      <li>
     functions.profiling
 
       <ul>
@@ -429,15 +456,21 @@
 </li>
       <li><a href="api.html#functions.tuning.INNER_COLUMNS">INNER_COLUMNS (in module functions.tuning)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.tuning.INNER_CV_SEED">INNER_CV_SEED (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.tuning.TuningResult.inner_grid">inner_grid (functions.tuning.TuningResult attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#functions.tuning.inner_splitter">inner_splitter() (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.profiling.ProfileResult.input_bytes">input_bytes (functions.profiling.ProfileResult attribute)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.INPUT_COLUMNS">INPUT_COLUMNS (in module functions.input_checks)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.InputError">InputError</a>
+</li>
+      <li><a href="api.html#functions.input_checks.InvalidInputError">InvalidInputError</a>
 </li>
   </ul></td>
 </tr></table>
@@ -503,7 +536,11 @@
 </li>
       <li><a href="api.html#functions.verification.manufactured_sine">manufactured_sine() (in module functions.verification)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.MAX_ROWS_LISTED">MAX_ROWS_LISTED (in module functions.input_checks)</a>
+</li>
       <li><a href="api.html#functions.physics_checks.MIN_SPEEDS">MIN_SPEEDS (in module functions.physics_checks)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.MissingInputError">MissingInputError</a>
 </li>
       <li><a href="api.html#functions.plot_tuning.MLP_COLOUR">MLP_COLOUR (in module functions.plot_tuning)</a>
 </li>
@@ -553,6 +590,8 @@
 </li>
         <li><a href="api.html#module-functions.final">functions.final</a>
 </li>
+        <li><a href="api.html#module-functions.input_checks">functions.input_checks</a>
+</li>
         <li><a href="api.html#module-functions.make_folds">functions.make_folds</a>
 </li>
         <li><a href="api.html#module-functions.models">functions.models</a>
@@ -578,6 +617,8 @@
         <li><a href="api.html#module-functions.plot_spl_vs_physics_features">functions.plot_spl_vs_physics_features</a>
 </li>
         <li><a href="api.html#module-functions.plot_tuning">functions.plot_tuning</a>
+</li>
+        <li><a href="api.html#module-functions.predict">functions.predict</a>
 </li>
         <li><a href="api.html#module-functions.profiling">functions.profiling</a>
 </li>
@@ -642,6 +683,8 @@
 </li>
       <li><a href="api.html#functions.tuning.nested_cv">nested_cv() (in module functions.tuning)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.NON_NEGATIVE_COLUMNS">NON_NEGATIVE_COLUMNS (in module functions.input_checks)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -661,6 +704,8 @@
       <li><a href="api.html#functions.tuning.OUTER_COLUMNS">OUTER_COLUMNS (in module functions.tuning)</a>
 </li>
       <li><a href="api.html#functions.tuning.TuningResult.outer_scores">outer_scores (functions.tuning.TuningResult attribute)</a>
+</li>
+      <li><a href="api.html#functions.input_checks.OutOfRangeError">OutOfRangeError</a>
 </li>
   </ul></td>
 </tr></table>
@@ -763,7 +808,11 @@
 </li>
       <li><a href="api.html#functions.plot_spl_vs_physics_features.plot_spl_vs_physics_features">plot_spl_vs_physics_features() (in module functions.plot_spl_vs_physics_features)</a>
 </li>
+      <li><a href="api.html#functions.input_checks.POSITIVE_COLUMNS">POSITIVE_COLUMNS (in module functions.input_checks)</a>
+</li>
       <li><a href="api.html#functions.profiling.ProfileResult.predict_flops">predict_flops (functions.profiling.ProfileResult attribute)</a>
+</li>
+      <li><a href="api.html#functions.predict.predict_spl">predict_spl() (in module functions.predict)</a>
 </li>
       <li><a href="api.html#functions.profiling.ProfileResult.predict_time_min_s">predict_time_min_s (functions.profiling.ProfileResult attribute)</a>
 </li>
@@ -958,8 +1007,20 @@
   </ul></td>
 </tr></table>
 
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.input_checks.UNITS">UNITS (in module functions.input_checks)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#functions.input_checks.validate_inputs">validate_inputs() (in module functions.input_checks)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#run_verification.verification_table">verification_table() (in module run_verification)</a>
 </li>

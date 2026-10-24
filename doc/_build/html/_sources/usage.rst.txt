@@ -10,6 +10,94 @@ repository. Install the exact package versions used for the results (Python
 
     pip install -r requirements.txt
 
+Valid inputs
+------------
+
+The model predicts scaled sound pressure level (dB) from five inputs. Inputs
+are checked **before** any prediction (``functions.input_checks``). A problem
+stops the call with an error that names the column(s), row(s) and value(s);
+nothing is ever filled in or adjusted.
+
+.. list-table:: Accepted inputs (the range is the one the final model was trained on; both limits are allowed)
+   :header-rows: 1
+
+   * - Input (column)
+     - Unit
+     - Physically valid
+     - Accepted range
+   * - Frequency (``frequency_hz``)
+     - Hz
+     - > 0
+     - 200 – 20,000
+   * - Angle of attack (``attack_angle_deg``)
+     - deg
+     - ≥ 0
+     - 0 – 22.2
+   * - Chord length (``chord_length_m``)
+     - m
+     - > 0
+     - 0.0254 – 0.3048
+   * - Free-stream velocity (``velocity_mps``)
+     - m/s
+     - > 0
+     - 31.7 – 71.3
+   * - Suction-side displacement thickness (``disp_thickness_m``)
+     - m
+     - > 0
+     - 0.000401 – 0.0584
+
+**How bad inputs are handled**, in the order they are checked:
+
+1. **Missing** (``MissingInputError``): a required column is absent, or a
+   value is empty or NaN. The error lists every affected column and row.
+   Missing values are **not imputed**: any guess would produce a
+   confident-looking but meaningless prediction.
+2. **Invalid** (``InvalidInputError``): a value is not a number, or is
+   physically impossible.
+
+   * **Frequency, chord, velocity and displacement thickness** of zero or
+     less are impossible. They would also break the physics features:
+     ``log10(f)`` needs ``f > 0``, the Strouhal number ``f δ*/U`` divides by
+     the velocity, and the Reynolds number ``U c/ν`` needs a positive
+     velocity and chord.
+   * **Negative angles** are treated as invalid, not just out of range. The
+     NACA 0012 is symmetric, so a negative angle is the same flow mirrored,
+     but mirroring swaps the suction and pressure sides. The dataset only
+     gives the suction-side displacement thickness, so a negative angle
+     cannot be described correctly by these inputs.
+3. **Out of range** (``OutOfRangeError``): a physically valid value below the
+   smallest or above the largest value the model was trained on. These are
+   refused because predicting there would be extrapolating to a new setup,
+   whose noise may follow different physics. The shift tests on the results
+   page show the error rising sharply outside the training range.
+
+All three errors are ``ValueError`` subclasses (``InputError``), so they can
+be caught together. The same missing and invalid checks also run when the
+dataset is loaded, so a damaged data file is refused rather than trained on.
+
+**Limitation.** Each input is checked on its own. A combination of
+individually valid values that was never tested together, for example the
+largest chord at the highest angle (high angles were only tested on small
+chords), is accepted, even though it is also an extrapolation.
+
+**Predicting for new conditions** with the saved final model:
+
+.. code-block:: python
+
+    import pandas as pd
+    from functions.predict import predict_spl
+
+    inputs = pd.DataFrame({
+        "frequency_hz": [1000], "attack_angle_deg": [5.0], "chord_length_m": [0.1524],
+        "velocity_mps": [55.5], "disp_thickness_m": [0.0028],
+    })
+    predict_spl(inputs)   # array([131.46...]) dB
+
+    inputs.loc[0, "velocity_mps"] = 90.0
+    predict_spl(inputs)
+    # OutOfRangeError: Input outside the range the model was trained on (...):
+    # 'velocity_mps' must be within 31.7-71.3 m/s (got [90.0] at row(s) [0]).
+
 Loading the data
 ----------------
 

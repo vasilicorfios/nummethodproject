@@ -313,7 +313,9 @@ new names so units are never ambiguous downstream.</p>
 <dd><p>Load and clean the airfoil self-noise dataset.</p>
 <p>Reads the Excel file, drops the <code class="docutils literal notranslate"><span class="pre">Source.Name</span></code> column that Power Query
 style exports add (if present), and renames the remaining columns
-according to <a class="reference internal" href="#functions.data_loader.COLUMN_RENAME" title="functions.data_loader.COLUMN_RENAME"><code class="xref py py-data docutils literal notranslate"><span class="pre">COLUMN_RENAME</span></code></a>.</p>
+according to <a class="reference internal" href="#functions.data_loader.COLUMN_RENAME" title="functions.data_loader.COLUMN_RENAME"><code class="xref py py-data docutils literal notranslate"><span class="pre">COLUMN_RENAME</span></code></a>. It then refuses missing values and
+physically impossible inputs (see <a class="reference internal" href="#module-functions.input_checks" title="functions.input_checks"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.input_checks</span></code></a>); nothing
+is imputed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>path</strong> – Location of the <code class="docutils literal notranslate"><span class="pre">.xlsx</span></code> file. Defaults to <a class="reference internal" href="#functions.data_loader.DATA_PATH" title="functions.data_loader.DATA_PATH"><code class="xref py py-data docutils literal notranslate"><span class="pre">DATA_PATH</span></code></a>.</p>
@@ -325,7 +327,271 @@ according to <a class="reference internal" href="#functions.data_loader.COLUMN_R
 (target).</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>FileNotFoundError</strong> – If no file exists at <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>FileNotFoundError</strong> – If no file exists at <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p></li>
+<li><p><a class="reference internal" href="#functions.input_checks.MissingInputError" title="functions.input_checks.MissingInputError"><strong>functions.input_checks.MissingInputError</strong></a> – If a column or value is
+    missing.</p></li>
+<li><p><a class="reference internal" href="#functions.input_checks.InvalidInputError" title="functions.input_checks.InvalidInputError"><strong>functions.input_checks.InvalidInputError</strong></a> – If an input value is not a
+    number or is physically impossible.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-functions.input_checks">
+<span id="input-checks-and-prediction"></span><h2>Input checks and prediction<a class="headerlink" href="#module-functions.input_checks" title="Link to this heading">¶</a></h2>
+<p>Checks that refuse missing, invalid or out-of-range inputs before predicting.</p>
+<p>A prediction is only trustworthy for inputs like the ones the model was
+trained on. Instead of guessing, the checks below <strong>stop with an error</strong> that
+names the offending column(s), row(s) and value(s). Nothing is ever filled in
+(imputed) or silently clipped: a wrong guess would give a confident-looking
+but meaningless noise prediction.</p>
+<p>The checks run in this order (<a class="reference internal" href="#functions.input_checks.validate_inputs" title="functions.input_checks.validate_inputs"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate_inputs()</span></code></a>):</p>
+<ol class="arabic simple">
+<li><p><strong>Missing</strong> (<a class="reference internal" href="#functions.input_checks.MissingInputError" title="functions.input_checks.MissingInputError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MissingInputError</span></code></a>): a required column is absent, or
+a value is empty/NaN.</p></li>
+<li><p><strong>Invalid</strong> (<a class="reference internal" href="#functions.input_checks.InvalidInputError" title="functions.input_checks.InvalidInputError"><code class="xref py py-class docutils literal notranslate"><span class="pre">InvalidInputError</span></code></a>): a value is not a number, or is
+physically impossible:</p>
+<ul class="simple">
+<li><p>frequency, chord, velocity and displacement thickness must be
+<strong>greater than 0</strong>. Zero or negative values are impossible, and they would
+also break the physics-derived features: <code class="docutils literal notranslate"><span class="pre">log10(f)</span></code> needs <code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>,
+the Strouhal number <code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">δ*/U</span></code> divides by the velocity, and the Reynolds
+number <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">c</span> <span class="pre">/</span> <span class="pre">ν</span></code> needs a positive velocity and chord;</p></li>
+<li><p>the angle of attack must be <strong>0 or more</strong>. The NACA 0012 is symmetric,
+so a negative angle is in principle the same flow mirrored. It could be
+treated as merely out of range, but the dataset gives only the
+<em>suction-side</em> displacement thickness, so a negative angle (which swaps
+the suction and pressure sides) cannot be described correctly by these
+inputs. It is therefore treated as invalid.</p></li>
+</ul>
+</li>
+<li><p><strong>Out of range</strong> (<a class="reference internal" href="#functions.input_checks.OutOfRangeError" title="functions.input_checks.OutOfRangeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">OutOfRangeError</span></code></a>): a valid value outside the
+range the final model was trained on (<a class="reference internal" href="#functions.input_checks.FEATURE_RANGES" title="functions.input_checks.FEATURE_RANGES"><code class="xref py py-data docutils literal notranslate"><span class="pre">FEATURE_RANGES</span></code></a>, both the
+minimum and the maximum). Predicting there would be extrapolating to a new
+setup whose noise could follow different physics, for example a smaller
+chord with stronger tonal noise, or a higher speed. The shift tests showed
+the error grows sharply outside the training range.</p></li>
+</ol>
+<p><strong>What these checks do not catch.</strong> Each input is checked on its own. A
+combination of individually valid values that was never tested together (for
+example the largest chord at the highest angle) passes, even though it is
+also an extrapolation. See the “Valid inputs” section of the usage docs.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.input_checks</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_inputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">validate_inputs</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"frequency_hz"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000</span><span class="p">],</span> <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">2.0</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span> <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="p">[</span><span class="mf">50.0</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.002</span><span class="p">]}))</span>   
+<span class="go">InvalidInputError: Invalid input: 'attack_angle_deg' must be &gt;= 0 ...</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.INPUT_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">INPUT_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['frequency_hz',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m']</span></em><a class="headerlink" href="#functions.input_checks.INPUT_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>The five raw input columns a prediction needs (the same as
+<a class="reference internal" href="#functions.data_loader.FEATURES" title="functions.data_loader.FEATURES"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.data_loader.FEATURES</span></code></a>; a test keeps them in sync).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.POSITIVE_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">POSITIVE_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['frequency_hz',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m']</span></em><a class="headerlink" href="#functions.input_checks.POSITIVE_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Inputs that must be strictly greater than zero.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.NON_NEGATIVE_COLUMNS">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">NON_NEGATIVE_COLUMNS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['attack_angle_deg']</span></em><a class="headerlink" href="#functions.input_checks.NON_NEGATIVE_COLUMNS" title="Link to this definition">¶</a></dt>
+<dd><p>Inputs that may be zero but not negative.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.FEATURE_RANGES">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">FEATURE_RANGES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'attack_angle_deg':</span> <span class="pre">(0.0,</span> <span class="pre">22.2),</span> <span class="pre">'chord_length_m':</span> <span class="pre">(0.0254,</span> <span class="pre">0.3048),</span> <span class="pre">'disp_thickness_m':</span> <span class="pre">(0.000400682,</span> <span class="pre">0.0584113),</span> <span class="pre">'frequency_hz':</span> <span class="pre">(200.0,</span> <span class="pre">20000.0),</span> <span class="pre">'velocity_mps':</span> <span class="pre">(31.7,</span> <span class="pre">71.3)}</span></em><a class="headerlink" href="#functions.input_checks.FEATURE_RANGES" title="Link to this definition">¶</a></dt>
+<dd><p>(minimum, maximum) of each input over the rows the final model was trained
+on (all cross-validation rows). These equal the full dataset’s ranges; a
+test checks they match the data exactly.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.UNITS">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">UNITS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'attack_angle_deg':</span> <span class="pre">'deg',</span> <span class="pre">'chord_length_m':</span> <span class="pre">'m',</span> <span class="pre">'disp_thickness_m':</span> <span class="pre">'m',</span> <span class="pre">'frequency_hz':</span> <span class="pre">'Hz',</span> <span class="pre">'velocity_mps':</span> <span class="pre">'m/s'}</span></em><a class="headerlink" href="#functions.input_checks.UNITS" title="Link to this definition">¶</a></dt>
+<dd><p>Units, for readable error messages.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.input_checks.MAX_ROWS_LISTED">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">MAX_ROWS_LISTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#functions.input_checks.MAX_ROWS_LISTED" title="Link to this definition">¶</a></dt>
+<dd><p>At most this many offending rows are listed per column in a message.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="functions.input_checks.InputError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">InputError</span></span><a class="reference internal" href="_modules/functions/input_checks.html#InputError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.InputError" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for every input problem (a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>).</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="functions.input_checks.MissingInputError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">MissingInputError</span></span><a class="reference internal" href="_modules/functions/input_checks.html#MissingInputError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.MissingInputError" title="Link to this definition">¶</a></dt>
+<dd><p>A required column is absent, or a value is missing (empty or NaN).</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="functions.input_checks.InvalidInputError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">InvalidInputError</span></span><a class="reference internal" href="_modules/functions/input_checks.html#InvalidInputError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.InvalidInputError" title="Link to this definition">¶</a></dt>
+<dd><p>A value is not a number, or is physically impossible.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="functions.input_checks.OutOfRangeError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">OutOfRangeError</span></span><a class="reference internal" href="_modules/functions/input_checks.html#OutOfRangeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.OutOfRangeError" title="Link to this definition">¶</a></dt>
+<dd><p>A valid value lies outside the range the model was trained on.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.input_checks.check_missing">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">check_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['frequency_hz',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m']</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/input_checks.html#check_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.check_missing" title="Link to this definition">¶</a></dt>
+<dd><p>Stop if a required column is absent or any value is empty/NaN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Table of inputs, one row per prediction.</p></li>
+<li><p><strong>columns</strong> – Required columns.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#functions.input_checks.MissingInputError" title="functions.input_checks.MissingInputError"><strong>MissingInputError</strong></a> – Naming the absent columns, or every column with
+    missing values and the rows where they are missing.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.input_checks.check_numeric">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">check_numeric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['frequency_hz',</span> <span class="pre">'attack_angle_deg',</span> <span class="pre">'chord_length_m',</span> <span class="pre">'velocity_mps',</span> <span class="pre">'disp_thickness_m']</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/input_checks.html#check_numeric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.check_numeric" title="Link to this definition">¶</a></dt>
+<dd><p>Stop if a value is not a number; otherwise return the inputs as floats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Table of inputs with no missing values.</p></li>
+<li><p><strong>columns</strong> – Columns to check.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A copy of <code class="docutils literal notranslate"><span class="pre">inputs[columns]</span></code> with every value as a float.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#functions.input_checks.InvalidInputError" title="functions.input_checks.InvalidInputError"><strong>InvalidInputError</strong></a> – Naming each column and the rows with non-numbers.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.input_checks.check_valid">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">check_valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/input_checks.html#check_valid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.check_valid" title="Link to this definition">¶</a></dt>
+<dd><p>Stop if any value is physically impossible.</p>
+<p>Frequency, chord, velocity and displacement thickness must be &gt; 0;
+the angle of attack must be &gt;= 0 (see the module docstring for why
+negative angles are treated as invalid).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>inputs</strong> – Numeric inputs with no missing values.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#functions.input_checks.InvalidInputError" title="functions.input_checks.InvalidInputError"><strong>InvalidInputError</strong></a> – Naming each column, the rows and the bad values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.input_checks.check_in_range">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">check_in_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ranges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{'attack_angle_deg':</span> <span class="pre">(0.0,</span> <span class="pre">22.2),</span> <span class="pre">'chord_length_m':</span> <span class="pre">(0.0254,</span> <span class="pre">0.3048),</span> <span class="pre">'disp_thickness_m':</span> <span class="pre">(0.000400682,</span> <span class="pre">0.0584113),</span> <span class="pre">'frequency_hz':</span> <span class="pre">(200.0,</span> <span class="pre">20000.0),</span> <span class="pre">'velocity_mps':</span> <span class="pre">(31.7,</span> <span class="pre">71.3)}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/functions/input_checks.html#check_in_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.check_in_range" title="Link to this definition">¶</a></dt>
+<dd><p>Stop if any value is outside the range the model was trained on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Valid numeric inputs.</p></li>
+<li><p><strong>ranges</strong> – (minimum, maximum) per column; both ends are allowed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#functions.input_checks.OutOfRangeError" title="functions.input_checks.OutOfRangeError"><strong>OutOfRangeError</strong></a> – Naming each column, the rows, the values and the
+    allowed range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.input_checks.validate_inputs">
+<span class="sig-prename descclassname"><span class="pre">functions.input_checks.</span></span><span class="sig-name descname"><span class="pre">validate_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/input_checks.html#validate_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.input_checks.validate_inputs" title="Link to this definition">¶</a></dt>
+<dd><p>Run every check and return clean inputs, or stop with an error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Table with the columns in <a class="reference internal" href="#functions.input_checks.INPUT_COLUMNS" title="functions.input_checks.INPUT_COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">INPUT_COLUMNS</span></code></a> (extra
+columns are ignored), one row per prediction.</p></li>
+<li><p><strong>check_range</strong> – Also refuse values outside <a class="reference internal" href="#functions.input_checks.FEATURE_RANGES" title="functions.input_checks.FEATURE_RANGES"><code class="xref py py-data docutils literal notranslate"><span class="pre">FEATURE_RANGES</span></code></a>. Set
+to False only when loading the training data itself.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new table of the input columns as floats, with the original row
+labels. The input table is not modified.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference internal" href="#functions.input_checks.MissingInputError" title="functions.input_checks.MissingInputError"><strong>MissingInputError</strong></a> – A column or value is missing.</p></li>
+<li><p><a class="reference internal" href="#functions.input_checks.InvalidInputError" title="functions.input_checks.InvalidInputError"><strong>InvalidInputError</strong></a> – A value is not a number or is physically impossible.</p></li>
+<li><p><a class="reference internal" href="#functions.input_checks.OutOfRangeError" title="functions.input_checks.OutOfRangeError"><strong>OutOfRangeError</strong></a> – A value is outside the trained range.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-functions.predict">Predict SPL for new inputs with the final model, refusing bad inputs.</p>
+<p>This is the safe way to use the trained model on new conditions:
+<a class="reference internal" href="#functions.predict.predict_spl" title="functions.predict.predict_spl"><code class="xref py py-func docutils literal notranslate"><span class="pre">predict_spl()</span></code></a> first runs <a class="reference internal" href="#functions.input_checks.validate_inputs" title="functions.input_checks.validate_inputs"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.input_checks.validate_inputs()</span></code></a>
+(missing, invalid and out-of-range inputs stop with an error), then adds the
+physics features and predicts with the saved final MLP.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.predict</span><span class="w"> </span><span class="kn">import</span> <span class="n">predict_spl</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">predict_spl</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"frequency_hz"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000</span><span class="p">],</span> <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1524</span><span class="p">],</span> <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="p">[</span><span class="mf">55.5</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0028</span><span class="p">]}))</span>   
+<span class="go">array([131.46...])</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.predict.FINAL_MODEL_PATH">
+<span class="sig-prename descclassname"><span class="pre">functions.predict.</span></span><span class="sig-name descname"><span class="pre">FINAL_MODEL_PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results/final_models/mlp_final.joblib')</span></em><a class="headerlink" href="#functions.predict.FINAL_MODEL_PATH" title="Link to this definition">¶</a></dt>
+<dd><p>Where <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code> saved the trained final model.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.predict.predict_spl">
+<span class="sig-prename descclassname"><span class="pre">functions.predict.</span></span><span class="sig-name descname"><span class="pre">predict_spl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">WindowsPath('C:/Users/vasbr/OneDrive/Desktop/uni</span> <span class="pre">mech</span> <span class="pre">eng/2026s2/mma3001</span> <span class="pre">numerical</span> <span class="pre">methods</span> <span class="pre">and</span> <span class="pre">machine</span> <span class="pre">learning/mma3001project/nummethodproject/results/final_models/mlp_final.joblib')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/functions/predict.html#predict_spl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.predict.predict_spl" title="Link to this definition">¶</a></dt>
+<dd><p>Predict scaled SPL (dB) for each row of <code class="docutils literal notranslate"><span class="pre">inputs</span></code>.</p>
+<p>The inputs are checked <strong>before</strong> anything else, so a bad row stops the
+whole call with an error naming the problem; no prediction is made for any
+row in that case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – The five raw inputs (see
+<a class="reference internal" href="#functions.input_checks.INPUT_COLUMNS" title="functions.input_checks.INPUT_COLUMNS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.input_checks.INPUT_COLUMNS</span></code></a>), one row per prediction.</p></li>
+<li><p><strong>model</strong> – A fitted model; by default the saved final MLP is loaded.</p></li>
+<li><p><strong>model_path</strong> – Where to load the model from when <code class="docutils literal notranslate"><span class="pre">model</span></code> is None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Predicted SPL in dB, one value per input row.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#functions.input_checks.InputError" title="functions.input_checks.InputError"><strong>functions.input_checks.InputError</strong></a> – If any input is missing, invalid
+    or out of range.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3986,6 +4252,7 @@ interactive inspection rather than the HTML page.</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.verification">Verification (manufactured solutions)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-functions.input_checks">Input checks and prediction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.make_folds">Data split</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.feature_sets">Feature sets</a></li>

@@ -53,6 +53,8 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.input_checks</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_missing</span><span class="p">,</span> <span class="n">validate_inputs</span>
+
 <span class="c1">#: Default location of the dataset: ``&lt;project root&gt;/data/airfoil_self_noise.xlsx``.</span>
 <span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">"data"</span> <span class="o">/</span> <span class="s2">"airfoil_self_noise.xlsx"</span>
 
@@ -88,7 +90,9 @@
 
 <span class="sd">    Reads the Excel file, drops the ``Source.Name`` column that Power Query</span>
 <span class="sd">    style exports add (if present), and renames the remaining columns</span>
-<span class="sd">    according to :data:`COLUMN_RENAME`.</span>
+<span class="sd">    according to :data:`COLUMN_RENAME`. It then refuses missing values and</span>
+<span class="sd">    physically impossible inputs (see :mod:`functions.input_checks`); nothing</span>
+<span class="sd">    is imputed.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path: Location of the ``.xlsx`` file. Defaults to :data:`DATA_PATH`.</span>
@@ -101,11 +105,21 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        FileNotFoundError: If no file exists at ``path``.</span>
+<span class="sd">        functions.input_checks.MissingInputError: If a column or value is</span>
+<span class="sd">            missing.</span>
+<span class="sd">        functions.input_checks.InvalidInputError: If an input value is not a</span>
+<span class="sd">            number or is physically impossible.</span>
 <span class="sd">    """</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="c1"># errors="ignore": the column only exists in some exports of the file.</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"Source.Name"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">COLUMN_RENAME</span><span class="p">)</span>
+    <span class="c1"># Refuse a damaged file rather than train on it: missing values (inputs or</span>
+    <span class="c1"># target) and impossible input values stop with an error, nothing is</span>
+    <span class="c1"># imputed. The range check is skipped here, because the allowed ranges</span>
+    <span class="c1"># are defined by this data.</span>
+    <span class="n">check_missing</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">FEATURES</span> <span class="o">+</span> <span class="p">[</span><span class="n">TARGET</span><span class="p">])</span>
+    <span class="n">validate_inputs</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">check_range</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">df</span></div>
 
 

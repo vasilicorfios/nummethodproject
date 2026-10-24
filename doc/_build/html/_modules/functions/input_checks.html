@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>functions.input_checks &#8212; MMA3001 Numerical Methods Project  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for functions.input_checks</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Checks that refuse missing, invalid or out-of-range inputs before predicting.</span>
+
+<span class="sd">A prediction is only trustworthy for inputs like the ones the model was</span>
+<span class="sd">trained on. Instead of guessing, the checks below **stop with an error** that</span>
+<span class="sd">names the offending column(s), row(s) and value(s). Nothing is ever filled in</span>
+<span class="sd">(imputed) or silently clipped: a wrong guess would give a confident-looking</span>
+<span class="sd">but meaningless noise prediction.</span>
+
+<span class="sd">The checks run in this order (:func:`validate_inputs`):</span>
+
+<span class="sd">1. **Missing** (:class:`MissingInputError`): a required column is absent, or</span>
+<span class="sd">   a value is empty/NaN.</span>
+<span class="sd">2. **Invalid** (:class:`InvalidInputError`): a value is not a number, or is</span>
+<span class="sd">   physically impossible:</span>
+
+<span class="sd">   * frequency, chord, velocity and displacement thickness must be</span>
+<span class="sd">     **greater than 0**. Zero or negative values are impossible, and they would</span>
+<span class="sd">     also break the physics-derived features: ``log10(f)`` needs ``f &gt; 0``,</span>
+<span class="sd">     the Strouhal number ``f δ*/U`` divides by the velocity, and the Reynolds</span>
+<span class="sd">     number ``U c / ν`` needs a positive velocity and chord;</span>
+<span class="sd">   * the angle of attack must be **0 or more**. The NACA 0012 is symmetric,</span>
+<span class="sd">     so a negative angle is in principle the same flow mirrored. It could be</span>
+<span class="sd">     treated as merely out of range, but the dataset gives only the</span>
+<span class="sd">     *suction-side* displacement thickness, so a negative angle (which swaps</span>
+<span class="sd">     the suction and pressure sides) cannot be described correctly by these</span>
+<span class="sd">     inputs. It is therefore treated as invalid.</span>
+
+<span class="sd">3. **Out of range** (:class:`OutOfRangeError`): a valid value outside the</span>
+<span class="sd">   range the final model was trained on (:data:`FEATURE_RANGES`, both the</span>
+<span class="sd">   minimum and the maximum). Predicting there would be extrapolating to a new</span>
+<span class="sd">   setup whose noise could follow different physics, for example a smaller</span>
+<span class="sd">   chord with stronger tonal noise, or a higher speed. The shift tests showed</span>
+<span class="sd">   the error grows sharply outside the training range.</span>
+
+<span class="sd">**What these checks do not catch.** Each input is checked on its own. A</span>
+<span class="sd">combination of individually valid values that was never tested together (for</span>
+<span class="sd">example the largest chord at the highest angle) passes, even though it is</span>
+<span class="sd">also an extrapolation. See the "Valid inputs" section of the usage docs.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">    &gt;&gt;&gt; from functions.input_checks import validate_inputs</span>
+<span class="sd">    &gt;&gt;&gt; validate_inputs(pd.DataFrame({"frequency_hz": [1000], "attack_angle_deg": [-2.0],</span>
+<span class="sd">    ...     "chord_length_m": [0.1], "velocity_mps": [50.0],</span>
+<span class="sd">    ...     "disp_thickness_m": [0.002]}))   # doctest: +SKIP</span>
+<span class="sd">    InvalidInputError: Invalid input: 'attack_angle_deg' must be &gt;= 0 ...</span>
+<span class="sd">"""</span>
+
+<span class="c1"># Postponed annotations: the docs build mocks pandas.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="c1">#: The five raw input columns a prediction needs (the same as</span>
+<span class="c1">#: :data:`functions.data_loader.FEATURES`; a test keeps them in sync).</span>
+<span class="n">INPUT_COLUMNS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"frequency_hz"</span><span class="p">,</span>
+    <span class="s2">"attack_angle_deg"</span><span class="p">,</span>
+    <span class="s2">"chord_length_m"</span><span class="p">,</span>
+    <span class="s2">"velocity_mps"</span><span class="p">,</span>
+    <span class="s2">"disp_thickness_m"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1">#: Inputs that must be strictly greater than zero.</span>
+<span class="n">POSITIVE_COLUMNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">,</span> <span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">,</span> <span class="s2">"disp_thickness_m"</span><span class="p">]</span>
+
+<span class="c1">#: Inputs that may be zero but not negative.</span>
+<span class="n">NON_NEGATIVE_COLUMNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">]</span>
+
+<span class="c1">#: (minimum, maximum) of each input over the rows the final model was trained</span>
+<span class="c1">#: on (all cross-validation rows). These equal the full dataset's ranges; a</span>
+<span class="c1">#: test checks they match the data exactly.</span>
+<span class="n">FEATURE_RANGES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"frequency_hz"</span><span class="p">:</span> <span class="p">(</span><span class="mf">200.0</span><span class="p">,</span> <span class="mf">20000.0</span><span class="p">),</span>
+    <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">22.2</span><span class="p">),</span>
+    <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0254</span><span class="p">,</span> <span class="mf">0.3048</span><span class="p">),</span>
+    <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="p">(</span><span class="mf">31.7</span><span class="p">,</span> <span class="mf">71.3</span><span class="p">),</span>
+    <span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.000400682</span><span class="p">,</span> <span class="mf">0.0584113</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1">#: Units, for readable error messages.</span>
+<span class="n">UNITS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"frequency_hz"</span><span class="p">:</span> <span class="s2">"Hz"</span><span class="p">,</span>
+    <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="s2">"deg"</span><span class="p">,</span>
+    <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="s2">"m"</span><span class="p">,</span>
+    <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="s2">"m/s"</span><span class="p">,</span>
+    <span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="s2">"m"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1">#: At most this many offending rows are listed per column in a message.</span>
+<span class="n">MAX_ROWS_LISTED</span> <span class="o">=</span> <span class="mi">10</span>
+
+
+<div class="viewcode-block" id="InputError">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.InputError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InputError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Base class for every input problem (a ``ValueError``)."""</span></div>
+
+
+
+<div class="viewcode-block" id="MissingInputError">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.MissingInputError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MissingInputError</span><span class="p">(</span><span class="n">InputError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A required column is absent, or a value is missing (empty or NaN)."""</span></div>
+
+
+
+<div class="viewcode-block" id="InvalidInputError">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.InvalidInputError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InvalidInputError</span><span class="p">(</span><span class="n">InputError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A value is not a number, or is physically impossible."""</span></div>
+
+
+
+<div class="viewcode-block" id="OutOfRangeError">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.OutOfRangeError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OutOfRangeError</span><span class="p">(</span><span class="n">InputError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A valid value lies outside the range the model was trained on."""</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rows</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""List the row labels where ``mask`` is True (shortened if very long)."""</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+    <span class="n">shown</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">[:</span><span class="n">MAX_ROWS_LISTED</span><span class="p">])</span>
+    <span class="n">extra</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">-</span> <span class="n">MAX_ROWS_LISTED</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"row(s) [</span><span class="si">{</span><span class="n">shown</span><span class="si">}{</span><span class="sa">f</span><span class="s1">', ... and </span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s1"> more'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">extra</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">]"</span>
+
+
+<div class="viewcode-block" id="check_missing">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.check_missing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_missing</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">INPUT_COLUMNS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Stop if a required column is absent or any value is empty/NaN.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs: Table of inputs, one row per prediction.</span>
+<span class="sd">        columns: Required columns.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        MissingInputError: Naming the absent columns, or every column with</span>
+<span class="sd">            missing values and the rows where they are missing.</span>
+<span class="sd">    """</span>
+    <span class="n">absent</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">absent</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MissingInputError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Missing input column(s): </span><span class="si">{</span><span class="n">absent</span><span class="si">}</span><span class="s2">. Required: </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">' at </span><span class="si">{</span><span class="n">_rows</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MissingInputError</span><span class="p">(</span>
+            <span class="s2">"Missing value(s) (empty or NaN), which are not filled in: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="check_numeric">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.check_numeric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_numeric</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">INPUT_COLUMNS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Stop if a value is not a number; otherwise return the inputs as floats.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs: Table of inputs with no missing values.</span>
+<span class="sd">        columns: Columns to check.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A copy of ``inputs[columns]`` with every value as a float.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        InvalidInputError: Naming each column and the rows with non-numbers.</span>
+<span class="sd">    """</span>
+    <span class="n">converted</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
+    <span class="c1"># A value that was present but became NaN on conversion was not a number.</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="n">converted</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">inputs</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">' at </span><span class="si">{</span><span class="n">_rows</span><span class="p">(</span><span class="n">bad</span><span class="p">[</span><span class="n">c</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="n">bad</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidInputError</span><span class="p">(</span><span class="s2">"Invalid input, not a number: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">converted</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="check_valid">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.check_valid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_valid</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Stop if any value is physically impossible.</span>
+
+<span class="sd">    Frequency, chord, velocity and displacement thickness must be &gt; 0;</span>
+<span class="sd">    the angle of attack must be &gt;= 0 (see the module docstring for why</span>
+<span class="sd">    negative angles are treated as invalid).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs: Numeric inputs with no missing values.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        InvalidInputError: Naming each column, the rows and the bad values.</span>
+<span class="sd">    """</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">POSITIVE_COLUMNS</span><span class="p">:</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">' must be &gt; 0 (got </span><span class="si">{</span><span class="n">inputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bad</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="n">MAX_ROWS_LISTED</span><span class="p">]</span><span class="si">}</span><span class="s2"> "</span>
+                            <span class="sa">f</span><span class="s2">"at </span><span class="si">{</span><span class="n">_rows</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">}</span><span class="s2">); zero or negative values would also break "</span>
+                            <span class="s2">"log10(f), the Strouhal number or the Reynolds number"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">NON_NEGATIVE_COLUMNS</span><span class="p">:</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">' must be &gt;= 0 (got </span><span class="si">{</span><span class="n">inputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bad</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="n">MAX_ROWS_LISTED</span><span class="p">]</span><span class="si">}</span><span class="s2"> "</span>
+                            <span class="sa">f</span><span class="s2">"at </span><span class="si">{</span><span class="n">_rows</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">}</span><span class="s2">); negative angles swap the suction and pressure sides, "</span>
+                            <span class="s2">"and no pressure-side displacement thickness is available"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidInputError</span><span class="p">(</span><span class="s2">"Invalid input: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="check_in_range">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.check_in_range">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_in_range</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">ranges</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">FEATURE_RANGES</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Stop if any value is outside the range the model was trained on.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs: Valid numeric inputs.</span>
+<span class="sd">        ranges: (minimum, maximum) per column; both ends are allowed.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OutOfRangeError: Naming each column, the rows, the values and the</span>
+<span class="sd">            allowed range.</span>
+<span class="sd">    """</span>
+    <span class="n">problems</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ranges</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">bad</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">low</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">high</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bad</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">UNITS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+            <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">' must be within </span><span class="si">{</span><span class="n">low</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">high</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2"> "</span>
+                            <span class="sa">f</span><span class="s2">"(got </span><span class="si">{</span><span class="n">inputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bad</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="n">MAX_ROWS_LISTED</span><span class="p">]</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">_rows</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">OutOfRangeError</span><span class="p">(</span>
+            <span class="s2">"Input outside the range the model was trained on (refused: predicting there "</span>
+            <span class="s2">"would extrapolate to setups whose noise may follow different physics): "</span>
+            <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">problems</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"."</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="validate_inputs">
+<a class="viewcode-back" href="../../api.html#functions.input_checks.validate_inputs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_inputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">check_range</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Run every check and return clean inputs, or stop with an error.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs: Table with the columns in :data:`INPUT_COLUMNS` (extra</span>
+<span class="sd">            columns are ignored), one row per prediction.</span>
+<span class="sd">        check_range: Also refuse values outside :data:`FEATURE_RANGES`. Set</span>
+<span class="sd">            to False only when loading the training data itself.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A new table of the input columns as floats, with the original row</span>
+<span class="sd">        labels. The input table is not modified.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        MissingInputError: A column or value is missing.</span>
+<span class="sd">        InvalidInputError: A value is not a number or is physically impossible.</span>
+<span class="sd">        OutOfRangeError: A value is outside the trained range.</span>
+<span class="sd">    """</span>
+    <span class="n">check_missing</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">clean</span> <span class="o">=</span> <span class="n">check_numeric</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">check_valid</span><span class="p">(</span><span class="n">clean</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_range</span><span class="p">:</span>
+        <span class="n">check_in_range</span><span class="p">(</span><span class="n">clean</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">clean</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MMA3001 Numerical Methods Project</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exploration.html">Data exploration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

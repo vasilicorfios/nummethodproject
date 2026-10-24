@@ -17,6 +17,15 @@ Data loading
    :members:
    :undoc-members:
 
+Input checks and prediction
+---------------------------
+
+.. automodule:: functions.input_checks
+   :members:
+
+.. automodule:: functions.predict
+   :members:
+
 Physics features
 ----------------
 
