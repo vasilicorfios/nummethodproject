@@ -747,14 +747,16 @@ outcome was unknown when its threshold was set.
 The hold-out criteria (C1, C2, C3) were evaluated in the single final run; see
 `Final hold-out evaluation`_ below. All four criteria pass.
 
-**A criterion was removed.** The original file also had a criterion "C1a: the
-MLP beats linear in at least 13 of the 15 nested-CV folds". It was removed
-after the hold-out run because it was not blind: the nested-CV results (MLP
-better in 15 of 15 folds) were already known when its threshold was written,
-so it could not have failed. Removing it only takes away a criterion the model
-passed, so it does not flatter the verdict. The fold-by-fold comparison is
-still shown as supporting evidence (`Accuracy and comparison with linear`_),
-and the original file remains in the git history.
+**A criterion was removed (HARKing).** The original file also had a criterion
+"C1a: the MLP beats linear in at least 13 of the 15 nested-CV folds". C1a was
+not written blind: the nested-CV results (MLP better in 15 of 15 folds) were
+already known when its threshold was set, so it was HARKing (hypothesising
+after the results are known). It was therefore removed post-hoc, as it was not
+an honest test, and it was removed rather than counted towards validating the
+model. Removing it only takes away a criterion the model passed, so it does
+not flatter the verdict. The fold-by-fold comparison is still shown as
+supporting evidence (`Accuracy and comparison with linear`_), and the original
+file remains in the git history.
 
 .. csv-table:: Acceptance criteria (fixed before the hold-out evaluation)
    :file: generated/acceptance.csv

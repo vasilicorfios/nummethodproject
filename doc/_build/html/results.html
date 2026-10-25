@@ -1718,14 +1718,16 @@ outcome was unknown when its threshold was set.</p>
 </ul>
 <p>The hold-out criteria (C1, C2, C3) were evaluated in the single final run; see
 <a class="reference internal" href="#final-hold-out-evaluation">Final hold-out evaluation</a> below. All four criteria pass.</p>
-<p><strong>A criterion was removed.</strong> The original file also had a criterion “C1a: the
-MLP beats linear in at least 13 of the 15 nested-CV folds”. It was removed
-after the hold-out run because it was not blind: the nested-CV results (MLP
-better in 15 of 15 folds) were already known when its threshold was written,
-so it could not have failed. Removing it only takes away a criterion the model
-passed, so it does not flatter the verdict. The fold-by-fold comparison is
-still shown as supporting evidence (<a class="reference internal" href="#accuracy-and-comparison-with-linear">Accuracy and comparison with linear</a>),
-and the original file remains in the git history.</p>
+<p><strong>A criterion was removed (HARKing).</strong> The original file also had a criterion
+“C1a: the MLP beats linear in at least 13 of the 15 nested-CV folds”. C1a was
+not written blind: the nested-CV results (MLP better in 15 of 15 folds) were
+already known when its threshold was set, so it was HARKing (hypothesising
+after the results are known). It was therefore removed post-hoc, as it was not
+an honest test, and it was removed rather than counted towards validating the
+model. Removing it only takes away a criterion the model passed, so it does
+not flatter the verdict. The fold-by-fold comparison is still shown as
+supporting evidence (<a class="reference internal" href="#accuracy-and-comparison-with-linear">Accuracy and comparison with linear</a>), and the original
+file remains in the git history.</p>
 <table class="docutils align-default" id="id37">
 <caption><span class="caption-text">Acceptance criteria (fixed before the hold-out evaluation)</span><a class="headerlink" href="#id37" title="Link to this table">¶</a></caption>
 <thead>
