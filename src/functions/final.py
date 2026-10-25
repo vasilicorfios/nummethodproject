@@ -392,7 +392,10 @@ def evaluate_acceptance(paired_cv: pd.DataFrame, tuning_summary: pd.DataFrame,
     final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.
 
     Args:
-        paired_cv: Contents of ``results/tuning_paired_vs_linear.csv``.
+        paired_cv: Contents of ``results/tuning_paired_vs_linear.csv``. No
+            longer used, since the non-blind CV-fold criterion (C1a) was
+            removed; kept so ``run_final.py`` is unchanged after its single
+            hold-out run.
         tuning_summary: Contents of ``results/tuning_summary.csv``.
         physics_summary: Contents of ``results/physics_speed_order_summary.csv``.
         metrics: Output of :func:`holdout_metrics`.
@@ -403,7 +406,7 @@ def evaluate_acceptance(paired_cv: pd.DataFrame, tuning_summary: pd.DataFrame,
     rmse = metrics.set_index("model")["rmse"]
     mlp = physics_summary.set_index("model").loc["mlp"]
     return acceptance_table(
-        paired_cv, tuning_summary,
+        tuning_summary,
         physics_pair_fraction=mlp["pairs_correct"] / mlp["pairs_scored"],
         holdout={"mlp_rmse": float(rmse[SELECTED_MODEL]), "linear_rmse": float(rmse["linear"])},
     )

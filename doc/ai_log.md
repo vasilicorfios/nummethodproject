@@ -87,6 +87,11 @@ tests and documentation, ran them, and reported results.
   AI had added.
 - **Hold-out policy:** run once; the selected model does not change, even
   though the runner-up scored better on the hold-out.
+- **Removing a non-blind criterion:** after the hold-out run, the student
+  removed acceptance criterion C1a ("beats linear in at least 13 of 15 CV
+  folds") because its outcome was already known when it was set. The student
+  also checked in the git history that P1's threshold was committed before
+  the physics check existed.
 
 ## 4. AI errors found and corrected
 

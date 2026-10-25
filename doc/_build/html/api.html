@@ -2695,25 +2695,19 @@ worst for the MLP).</p>
 <p>Why fix them in advance? If the pass marks were chosen after seeing the
 hold-out score, it would always be possible to pick ones the model passes.
 Writing them down first, and committing this file on its own, makes the
-final check honest: the git history shows the thresholds existed before the
-hold-out was used.</p>
+final check honest: the git history (commit <code class="docutils literal notranslate"><span class="pre">82c1b0d</span></code>) shows the
+thresholds existed before the hold-out was used, and before the physics
+check had been written or run.</p>
 <p>All criteria concern the final MLP (<a class="reference internal" href="#functions.models.FINAL_MLP" title="functions.models.FINAL_MLP"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_MLP</span></code></a>) on
 <a class="reference internal" href="#functions.models.FINAL_FEATURE_SET" title="functions.models.FINAL_FEATURE_SET"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.FINAL_FEATURE_SET</span></code></a>, against the linear baseline on
-the same features. Some can be evaluated now from cross-validation results;
-the rest wait for the single final hold-out run.</p>
+the same features. Every criterion is a <strong>blind</strong> test: its outcome was
+unknown when its threshold was set.</p>
 <ul class="simple">
-<li><p><strong>C1 Beats the baseline.</strong></p>
-<ul>
-<li><p>C1a (now): the MLP has a lower RMSE than linear in at least
-<a class="reference internal" href="#functions.acceptance.C1_MIN_CV_FOLD_WINS" title="functions.acceptance.C1_MIN_CV_FOLD_WINS"><code class="xref py py-data docutils literal notranslate"><span class="pre">C1_MIN_CV_FOLD_WINS</span></code></a> of the 15 nested-CV outer folds
-(<code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>).</p></li>
-<li><p>C1b (hold-out): the MLP has a lower RMSE than linear on the hold-out.</p></li>
-</ul>
-</li>
+<li><p><strong>C1 Beats the baseline.</strong> The MLP has a lower RMSE than linear on the
+hold-out.</p></li>
 <li><p><strong>C2 Generalises.</strong> Hold-out RMSE ≤ nested-CV mean RMSE +
 <a class="reference internal" href="#functions.acceptance.C2_N_SD" title="functions.acceptance.C2_N_SD"><code class="xref py py-data docutils literal notranslate"><span class="pre">C2_N_SD</span></code></a> × the fold-to-fold SD (<code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>).
-The threshold is computed now; the check waits for the hold-out. A
-hold-out score far worse than the spread seen across CV folds would mean
+A hold-out score far worse than the spread seen across CV folds would mean
 the CV results were optimistic.</p></li>
 <li><p><strong>C3 Useful accuracy.</strong> Hold-out MLP RMSE ≤ <a class="reference internal" href="#functions.acceptance.C3_MAX_RMSE_DB" title="functions.acceptance.C3_MAX_RMSE_DB"><code class="xref py py-data docutils literal notranslate"><span class="pre">C3_MAX_RMSE_DB</span></code></a> dB.
 3 dB is about a factor of two in acoustic power, a change a listener
@@ -2723,22 +2717,20 @@ in the data.</p></li>
 <a class="reference internal" href="#functions.acceptance.P1_MIN_PAIR_FRACTION" title="functions.acceptance.P1_MIN_PAIR_FRACTION"><code class="xref py py-data docutils literal notranslate"><span class="pre">P1_MIN_PAIR_FRACTION</span></code></a> of speed pairs (same chord and angle),
 evaluated by <code class="docutils literal notranslate"><span class="pre">src/run_physics_check.py</span></code> on out-of-fold predictions.</p></li>
 </ul>
+<p><strong>Removed criterion (C1a).</strong> The original file also had “C1a: the MLP beats
+linear in at least 13 of the 15 nested-CV outer folds”. It was removed after
+the hold-out evaluation because it was <strong>not blind</strong>: the nested-CV results
+(MLP better in 15 of 15 folds) were already known when its threshold was
+written, so it could not have failed and was not an honest test. The fold
+comparison is still reported as supporting evidence on the results page, just
+not as an acceptance criterion. Removing it only takes away a criterion the
+model passed, so it does not make the final verdict more favourable. The
+original version is preserved in the git history.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.acceptance</span><span class="w"> </span><span class="kn">import</span> <span class="n">acceptance_table</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">acceptance_table</span><span class="p">(</span><span class="n">paired</span><span class="p">,</span> <span class="n">tuning_summary</span><span class="p">)</span>   
+<span class="gp">&gt;&gt;&gt; </span><span class="n">acceptance_table</span><span class="p">(</span><span class="n">tuning_summary</span><span class="p">,</span> <span class="n">physics_pair_fraction</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span>   
 </pre></div>
 </div>
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.acceptance.C1_MIN_CV_FOLD_WINS">
-<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">C1_MIN_CV_FOLD_WINS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#functions.acceptance.C1_MIN_CV_FOLD_WINS" title="Link to this definition">¶</a></dt>
-<dd><p>the MLP must beat linear in at least this many of the 15 CV folds.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>C1a</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="functions.acceptance.C2_N_SD">
 <span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">C2_N_SD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#functions.acceptance.C2_N_SD" title="Link to this definition">¶</a></dt>
@@ -2803,13 +2795,13 @@ evaluated by <code class="docutils literal notranslate"><span class="pre">src/ru
 
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.acceptance.acceptance_table">
-<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">acceptance_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paired</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_pair_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/acceptance.html#acceptance_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.acceptance.acceptance_table" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">functions.acceptance.</span></span><span class="sig-name descname"><span class="pre">acceptance_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tuning_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics_pair_fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_set</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'B'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/acceptance.html#acceptance_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.acceptance.acceptance_table" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate every criterion that can be evaluated with the results given.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>paired</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>.</p></li>
-<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
+<li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code> (for C2’s
+threshold).</p></li>
 <li><p><strong>physics_pair_fraction</strong> – Fraction of speed pairs the MLP orders
 correctly (from the physics check), or <code class="docutils literal notranslate"><span class="pre">None</span></code> if not run yet.</p></li>
 <li><p><strong>holdout</strong> – Hold-out results <code class="docutils literal notranslate"><span class="pre">{&quot;mlp_rmse&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;linear_rmse&quot;:</span> <span class="pre">...}</span></code>
@@ -2818,8 +2810,9 @@ in dB, or <code class="docutils literal notranslate"><span class="pre">None</spa
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>One row per criterion with <code class="docutils literal notranslate"><span class="pre">criterion</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>,
-<code class="docutils literal notranslate"><span class="pre">threshold</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">result</span></code> (PASS, FAIL or pending).</p>
+<dd class="field-even"><p>One row per criterion (C1, C2, C3, P1) with <code class="docutils literal notranslate"><span class="pre">criterion</span></code>,
+<code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">threshold</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code> and <code class="docutils literal notranslate"><span class="pre">result</span></code> (PASS, FAIL
+or pending).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3547,7 +3540,10 @@ final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>paired_cv</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>.</p></li>
+<li><p><strong>paired_cv</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>. No
+longer used, since the non-blind CV-fold criterion (C1a) was
+removed; kept so <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code> is unchanged after its single
+hold-out run.</p></li>
 <li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
 <li><p><strong>physics_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_summary.csv</span></code>.</p></li>
 <li><p><strong>metrics</strong> – Output of <a class="reference internal" href="#functions.final.holdout_metrics" title="functions.final.holdout_metrics"><code class="xref py py-func docutils literal notranslate"><span class="pre">holdout_metrics()</span></code></a>.</p></li>

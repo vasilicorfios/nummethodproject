@@ -1705,19 +1705,27 @@ of the score.</p></li>
 <section id="acceptance-criteria">
 <h2>Acceptance criteria<a class="headerlink" href="#acceptance-criteria" title="Link to this heading">¶</a></h2>
 <p>The criteria below were fixed in <code class="docutils literal notranslate"><span class="pre">src/functions/acceptance.py</span></code> and committed
-on their own <strong>before</strong> the hold-out evaluation, and before the shift tests
-and physics check were run, so the pass marks cannot have been chosen to suit
-the results.</p>
+on their own (commit <code class="docutils literal notranslate"><span class="pre">82c1b0d</span></code>) <strong>before</strong> the hold-out evaluation, and
+before the physics check had been written or run, so the pass marks cannot
+have been chosen to suit the results. Every criterion is <strong>blind</strong>: its
+outcome was unknown when its threshold was set.</p>
 <ul class="simple">
-<li><p><strong>C1</strong> The MLP beats linear in at least 13 of the 15 nested-CV folds, and on
-the hold-out.</p></li>
+<li><p><strong>C1</strong> The MLP beats linear on the hold-out.</p></li>
 <li><p><strong>C2</strong> Hold-out RMSE ≤ nested-CV mean + 2 × fold SD (2.365 + 2 × 0.227 =
 2.819 dB, set B).</p></li>
 <li><p><strong>C3</strong> Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.</p></li>
 <li><p><strong>P1</strong> The MLP gets the speed order right in at least 90% of speed pairs.</p></li>
 </ul>
-<p>The hold-out criteria (C1b, C2, C3) were evaluated in the single final run; see
-<a class="reference internal" href="#final-hold-out-evaluation">Final hold-out evaluation</a> below. All five criteria pass.</p>
+<p>The hold-out criteria (C1, C2, C3) were evaluated in the single final run; see
+<a class="reference internal" href="#final-hold-out-evaluation">Final hold-out evaluation</a> below. All four criteria pass.</p>
+<p><strong>A criterion was removed.</strong> The original file also had a criterion “C1a: the
+MLP beats linear in at least 13 of the 15 nested-CV folds”. It was removed
+after the hold-out run because it was not blind: the nested-CV results (MLP
+better in 15 of 15 folds) were already known when its threshold was written,
+so it could not have failed. Removing it only takes away a criterion the model
+passed, so it does not flatter the verdict. The fold-by-fold comparison is
+still shown as supporting evidence (<a class="reference internal" href="#accuracy-and-comparison-with-linear">Accuracy and comparison with linear</a>),
+and the original file remains in the git history.</p>
 <table class="docutils align-default" id="id37">
 <caption><span class="caption-text">Acceptance criteria (fixed before the hold-out evaluation)</span><a class="headerlink" href="#id37" title="Link to this table">¶</a></caption>
 <thead>
@@ -1729,31 +1737,25 @@ the hold-out.</p></li>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>C1a</p></td>
-<td><p>MLP beats linear in nested-CV outer folds</p></td>
-<td><p>&gt;= 13 of 15 folds</p></td>
-<td><p>15 of 15 folds</p></td>
-<td><p>PASS</p></td>
-</tr>
-<tr class="row-odd"><td><p>C1b</p></td>
+<tr class="row-even"><td><p>C1</p></td>
 <td><p>MLP RMSE &lt; linear RMSE on the hold-out</p></td>
 <td><p>MLP &lt; linear</p></td>
 <td><p>MLP 2.630 vs linear 4.762 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-even"><td><p>C2</p></td>
+<tr class="row-odd"><td><p>C2</p></td>
 <td><p>Hold-out RMSE &lt;= CV mean + 2 x fold SD</p></td>
 <td><p>&lt;= 2.819 dB</p></td>
 <td><p>2.630 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-odd"><td><p>C3</p></td>
+<tr class="row-even"><td><p>C3</p></td>
 <td><p>Hold-out MLP RMSE small enough to be useful</p></td>
 <td><p>&lt;= 3 dB</p></td>
 <td><p>2.630 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-even"><td><p>P1</p></td>
+<tr class="row-odd"><td><p>P1</p></td>
 <td><p>MLP predicts faster flow is louder (speed pairs)</p></td>
 <td><p>&gt;= 90% of pairs</p></td>
 <td><p>97.1%</p></td>
@@ -2006,31 +2008,25 @@ markers: its hold-out RMSE.</span><a class="headerlink" href="#id41" title="Link
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>C1a</p></td>
-<td><p>MLP beats linear in nested-CV outer folds</p></td>
-<td><p>&gt;= 13 of 15 folds</p></td>
-<td><p>15 of 15 folds</p></td>
-<td><p>PASS</p></td>
-</tr>
-<tr class="row-odd"><td><p>C1b</p></td>
+<tr class="row-even"><td><p>C1</p></td>
 <td><p>MLP RMSE &lt; linear RMSE on the hold-out</p></td>
 <td><p>MLP &lt; linear</p></td>
 <td><p>MLP 2.630 vs linear 4.762 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-even"><td><p>C2</p></td>
+<tr class="row-odd"><td><p>C2</p></td>
 <td><p>Hold-out RMSE &lt;= CV mean + 2 x fold SD</p></td>
 <td><p>&lt;= 2.819 dB</p></td>
 <td><p>2.630 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-odd"><td><p>C3</p></td>
+<tr class="row-even"><td><p>C3</p></td>
 <td><p>Hold-out MLP RMSE small enough to be useful</p></td>
 <td><p>&lt;= 3 dB</p></td>
 <td><p>2.630 dB</p></td>
 <td><p>PASS</p></td>
 </tr>
-<tr class="row-even"><td><p>P1</p></td>
+<tr class="row-odd"><td><p>P1</p></td>
 <td><p>MLP predicts faster flow is louder (speed pairs)</p></td>
 <td><p>&gt;= 90% of pairs</p></td>
 <td><p>97.1%</p></td>

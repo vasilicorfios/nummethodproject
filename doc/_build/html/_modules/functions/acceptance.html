@@ -36,25 +36,20 @@
 <span class="sd">Why fix them in advance? If the pass marks were chosen after seeing the</span>
 <span class="sd">hold-out score, it would always be possible to pick ones the model passes.</span>
 <span class="sd">Writing them down first, and committing this file on its own, makes the</span>
-<span class="sd">final check honest: the git history shows the thresholds existed before the</span>
-<span class="sd">hold-out was used.</span>
+<span class="sd">final check honest: the git history (commit ``82c1b0d``) shows the</span>
+<span class="sd">thresholds existed before the hold-out was used, and before the physics</span>
+<span class="sd">check had been written or run.</span>
 
 <span class="sd">All criteria concern the final MLP (:data:`functions.models.FINAL_MLP`) on</span>
 <span class="sd">:data:`functions.models.FINAL_FEATURE_SET`, against the linear baseline on</span>
-<span class="sd">the same features. Some can be evaluated now from cross-validation results;</span>
-<span class="sd">the rest wait for the single final hold-out run.</span>
+<span class="sd">the same features. Every criterion is a **blind** test: its outcome was</span>
+<span class="sd">unknown when its threshold was set.</span>
 
-<span class="sd">* **C1 Beats the baseline.**</span>
-
-<span class="sd">  * C1a (now): the MLP has a lower RMSE than linear in at least</span>
-<span class="sd">    :data:`C1_MIN_CV_FOLD_WINS` of the 15 nested-CV outer folds</span>
-<span class="sd">    (``results/tuning_paired_vs_linear.csv``).</span>
-<span class="sd">  * C1b (hold-out): the MLP has a lower RMSE than linear on the hold-out.</span>
-
+<span class="sd">* **C1 Beats the baseline.** The MLP has a lower RMSE than linear on the</span>
+<span class="sd">  hold-out.</span>
 <span class="sd">* **C2 Generalises.** Hold-out RMSE ≤ nested-CV mean RMSE +</span>
 <span class="sd">  :data:`C2_N_SD` × the fold-to-fold SD (``results/tuning_summary.csv``).</span>
-<span class="sd">  The threshold is computed now; the check waits for the hold-out. A</span>
-<span class="sd">  hold-out score far worse than the spread seen across CV folds would mean</span>
+<span class="sd">  A hold-out score far worse than the spread seen across CV folds would mean</span>
 <span class="sd">  the CV results were optimistic.</span>
 <span class="sd">* **C3 Useful accuracy.** Hold-out MLP RMSE ≤ :data:`C3_MAX_RMSE_DB` dB.</span>
 <span class="sd">  3 dB is about a factor of two in acoustic power, a change a listener</span>
@@ -64,9 +59,19 @@
 <span class="sd">  :data:`P1_MIN_PAIR_FRACTION` of speed pairs (same chord and angle),</span>
 <span class="sd">  evaluated by ``src/run_physics_check.py`` on out-of-fold predictions.</span>
 
+<span class="sd">**Removed criterion (C1a).** The original file also had "C1a: the MLP beats</span>
+<span class="sd">linear in at least 13 of the 15 nested-CV outer folds". It was removed after</span>
+<span class="sd">the hold-out evaluation because it was **not blind**: the nested-CV results</span>
+<span class="sd">(MLP better in 15 of 15 folds) were already known when its threshold was</span>
+<span class="sd">written, so it could not have failed and was not an honest test. The fold</span>
+<span class="sd">comparison is still reported as supporting evidence on the results page, just</span>
+<span class="sd">not as an acceptance criterion. Removing it only takes away a criterion the</span>
+<span class="sd">model passed, so it does not make the final verdict more favourable. The</span>
+<span class="sd">original version is preserved in the git history.</span>
+
 <span class="sd">Example:</span>
 <span class="sd">    &gt;&gt;&gt; from functions.acceptance import acceptance_table</span>
-<span class="sd">    &gt;&gt;&gt; acceptance_table(paired, tuning_summary)   # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; acceptance_table(tuning_summary, physics_pair_fraction=0.97)   # doctest: +SKIP</span>
 <span class="sd">"""</span>
 
 <span class="c1"># Postponed annotations: the docs build mocks pandas.</span>
@@ -75,9 +80,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FINAL_FEATURE_SET</span>
-
-<span class="c1">#: C1a: the MLP must beat linear in at least this many of the 15 CV folds.</span>
-<span class="n">C1_MIN_CV_FOLD_WINS</span> <span class="o">=</span> <span class="mi">13</span>
 
 <span class="c1">#: C2: allowed hold-out RMSE = CV mean + this many fold-to-fold SDs.</span>
 <span class="n">C2_N_SD</span> <span class="o">=</span> <span class="mf">2.0</span>
@@ -119,7 +121,6 @@
 <div class="viewcode-block" id="acceptance_table">
 <a class="viewcode-back" href="../../api.html#functions.acceptance.acceptance_table">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">acceptance_table</span><span class="p">(</span>
-    <span class="n">paired</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">tuning_summary</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">physics_pair_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">holdout</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -128,8 +129,8 @@
 <span class="w">    </span><span class="sd">"""Evaluate every criterion that can be evaluated with the results given.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        paired: Contents of ``results/tuning_paired_vs_linear.csv``.</span>
-<span class="sd">        tuning_summary: Contents of ``results/tuning_summary.csv``.</span>
+<span class="sd">        tuning_summary: Contents of ``results/tuning_summary.csv`` (for C2's</span>
+<span class="sd">            threshold).</span>
 <span class="sd">        physics_pair_fraction: Fraction of speed pairs the MLP orders</span>
 <span class="sd">            correctly (from the physics check), or ``None`` if not run yet.</span>
 <span class="sd">        holdout: Hold-out results ``{"mlp_rmse": ..., "linear_rmse": ...}``</span>
@@ -137,24 +138,16 @@
 <span class="sd">        feature_set: Feature set of the final model.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        One row per criterion with ``criterion``, ``description``,</span>
-<span class="sd">        ``threshold``, ``value`` and ``result`` (PASS, FAIL or pending).</span>
+<span class="sd">        One row per criterion (C1, C2, C3, P1) with ``criterion``,</span>
+<span class="sd">        ``description``, ``threshold``, ``value`` and ``result`` (PASS, FAIL</span>
+<span class="sd">        or pending).</span>
 <span class="sd">    """</span>
-    <span class="n">folds</span> <span class="o">=</span> <span class="n">paired</span><span class="p">[</span><span class="n">paired</span><span class="p">[</span><span class="s2">"feature_set"</span><span class="p">]</span> <span class="o">==</span> <span class="n">feature_set</span><span class="p">]</span>
-    <span class="n">wins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">folds</span><span class="p">[</span><span class="s2">"rmse_diff"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
     <span class="n">threshold_c2</span> <span class="o">=</span> <span class="n">c2_threshold</span><span class="p">(</span><span class="n">tuning_summary</span><span class="p">,</span> <span class="n">feature_set</span><span class="p">)</span>
     <span class="n">have_holdout</span> <span class="o">=</span> <span class="n">holdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">{</span>
-            <span class="s2">"criterion"</span><span class="p">:</span> <span class="s2">"C1a"</span><span class="p">,</span>
-            <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"MLP beats linear in nested-CV outer folds"</span><span class="p">,</span>
-            <span class="s2">"threshold"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"&gt;= </span><span class="si">{</span><span class="n">C1_MIN_CV_FOLD_WINS</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">folds</span><span class="p">)</span><span class="si">}</span><span class="s2"> folds"</span><span class="p">,</span>
-            <span class="s2">"value"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">wins</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">folds</span><span class="p">)</span><span class="si">}</span><span class="s2"> folds"</span><span class="p">,</span>
-            <span class="s2">"result"</span><span class="p">:</span> <span class="n">_verdict</span><span class="p">(</span><span class="n">wins</span> <span class="o">&gt;=</span> <span class="n">C1_MIN_CV_FOLD_WINS</span><span class="p">),</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">"criterion"</span><span class="p">:</span> <span class="s2">"C1b"</span><span class="p">,</span>
+            <span class="s2">"criterion"</span><span class="p">:</span> <span class="s2">"C1"</span><span class="p">,</span>
             <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"MLP RMSE &lt; linear RMSE on the hold-out"</span><span class="p">,</span>
             <span class="s2">"threshold"</span><span class="p">:</span> <span class="s2">"MLP &lt; linear"</span><span class="p">,</span>
             <span class="s2">"value"</span><span class="p">:</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"MLP </span><span class="si">{</span><span class="n">holdout</span><span class="p">[</span><span class="s1">'mlp_rmse'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> vs linear </span><span class="si">{</span><span class="n">holdout</span><span class="p">[</span><span class="s1">'linear_rmse'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> dB"</span>

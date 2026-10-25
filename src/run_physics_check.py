@@ -159,7 +159,6 @@ def main() -> None:
     # never drops back to "pending"; otherwise the hold-out ones stay pending.
     mlp_pairs = summary.set_index("model").loc["mlp"]
     acceptance = acceptance_table(
-        pd.read_csv(RESULTS_DIR / "tuning_paired_vs_linear.csv"),
         pd.read_csv(RESULTS_DIR / "tuning_summary.csv"),
         physics_pair_fraction=mlp_pairs["pairs_correct"] / mlp_pairs["pairs_scored"],
         holdout=saved_holdout(RESULTS_DIR),

@@ -463,7 +463,10 @@
 <span class="sd">    final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        paired_cv: Contents of ``results/tuning_paired_vs_linear.csv``.</span>
+<span class="sd">        paired_cv: Contents of ``results/tuning_paired_vs_linear.csv``. No</span>
+<span class="sd">            longer used, since the non-blind CV-fold criterion (C1a) was</span>
+<span class="sd">            removed; kept so ``run_final.py`` is unchanged after its single</span>
+<span class="sd">            hold-out run.</span>
 <span class="sd">        tuning_summary: Contents of ``results/tuning_summary.csv``.</span>
 <span class="sd">        physics_summary: Contents of ``results/physics_speed_order_summary.csv``.</span>
 <span class="sd">        metrics: Output of :func:`holdout_metrics`.</span>
@@ -474,7 +477,7 @@
     <span class="n">rmse</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)[</span><span class="s2">"rmse"</span><span class="p">]</span>
     <span class="n">mlp</span> <span class="o">=</span> <span class="n">physics_summary</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"mlp"</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">acceptance_table</span><span class="p">(</span>
-        <span class="n">paired_cv</span><span class="p">,</span> <span class="n">tuning_summary</span><span class="p">,</span>
+        <span class="n">tuning_summary</span><span class="p">,</span>
         <span class="n">physics_pair_fraction</span><span class="o">=</span><span class="n">mlp</span><span class="p">[</span><span class="s2">"pairs_correct"</span><span class="p">]</span> <span class="o">/</span> <span class="n">mlp</span><span class="p">[</span><span class="s2">"pairs_scored"</span><span class="p">],</span>
         <span class="n">holdout</span><span class="o">=</span><span class="p">{</span><span class="s2">"mlp_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="n">SELECTED_MODEL</span><span class="p">]),</span> <span class="s2">"linear_rmse"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">rmse</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">])},</span>
     <span class="p">)</span></div>

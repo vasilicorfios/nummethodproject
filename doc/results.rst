@@ -733,19 +733,28 @@ Acceptance criteria
 -------------------
 
 The criteria below were fixed in ``src/functions/acceptance.py`` and committed
-on their own **before** the hold-out evaluation, and before the shift tests
-and physics check were run, so the pass marks cannot have been chosen to suit
-the results.
+on their own (commit ``82c1b0d``) **before** the hold-out evaluation, and
+before the physics check had been written or run, so the pass marks cannot
+have been chosen to suit the results. Every criterion is **blind**: its
+outcome was unknown when its threshold was set.
 
-* **C1** The MLP beats linear in at least 13 of the 15 nested-CV folds, and on
-  the hold-out.
+* **C1** The MLP beats linear on the hold-out.
 * **C2** Hold-out RMSE ≤ nested-CV mean + 2 × fold SD (2.365 + 2 × 0.227 =
   2.819 dB, set B).
 * **C3** Hold-out RMSE ≤ 3.0 dB, about a factor of two in acoustic power.
 * **P1** The MLP gets the speed order right in at least 90% of speed pairs.
 
-The hold-out criteria (C1b, C2, C3) were evaluated in the single final run; see
-`Final hold-out evaluation`_ below. All five criteria pass.
+The hold-out criteria (C1, C2, C3) were evaluated in the single final run; see
+`Final hold-out evaluation`_ below. All four criteria pass.
+
+**A criterion was removed.** The original file also had a criterion "C1a: the
+MLP beats linear in at least 13 of the 15 nested-CV folds". It was removed
+after the hold-out run because it was not blind: the nested-CV results (MLP
+better in 15 of 15 folds) were already known when its threshold was written,
+so it could not have failed. Removing it only takes away a criterion the model
+passed, so it does not flatter the verdict. The fold-by-fold comparison is
+still shown as supporting evidence (`Accuracy and comparison with linear`_),
+and the original file remains in the git history.
 
 .. csv-table:: Acceptance criteria (fixed before the hold-out evaluation)
    :file: generated/acceptance.csv
