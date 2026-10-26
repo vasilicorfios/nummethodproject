@@ -67,3 +67,13 @@ Tonal peaks
    Each dot is one setup (one measured spectrum): the prominence of its
    largest peak (height above its surroundings) against the chord Reynolds
    number (log axis). Colour and marker show the angle band.
+
+.. figure:: generated/explore_tonal_peaks_strouhal_frequency.png
+   :width: 100%
+   :alt: Two scatter plots sharing a peak-prominence axis: left against the
+         Strouhal number at the peak on a log axis, right against log10 of
+         the peak frequency, one marker per setup by angle band.
+
+   Peak prominence of each setup against the Strouhal number at its peak,
+   f δ* / U (left, log axis), and against log10 of its peak frequency
+   (right), for all 106 setups. Colour and marker show the angle band.

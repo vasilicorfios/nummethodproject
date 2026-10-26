@@ -2103,8 +2103,11 @@ whole dataset (exploration).</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">setup_id</span></code>, chord, velocity, angle,
-<code class="docutils literal notranslate"><span class="pre">angle_band</span></code>, <code class="docutils literal notranslate"><span class="pre">reynolds</span></code>, <code class="docutils literal notranslate"><span class="pre">log10_reynolds</span></code>, <code class="docutils literal notranslate"><span class="pre">prominence_db</span></code>
-and <code class="docutils literal notranslate"><span class="pre">peak_hz</span></code> (NaN when there is no interior peak).</p>
+displacement thickness, <code class="docutils literal notranslate"><span class="pre">angle_band</span></code>, <code class="docutils literal notranslate"><span class="pre">reynolds</span></code>,
+<code class="docutils literal notranslate"><span class="pre">log10_reynolds</span></code>, <code class="docutils literal notranslate"><span class="pre">prominence_db</span></code>, <code class="docutils literal notranslate"><span class="pre">peak_hz</span></code>, and the peak’s
+<code class="docutils literal notranslate"><span class="pre">log10_peak_hz</span></code> and Strouhal number <code class="docutils literal notranslate"><span class="pre">strouhal_peak</span></code>
+(<code class="docutils literal notranslate"><span class="pre">peak_hz</span> <span class="pre">*</span> <span class="pre">δ*</span> <span class="pre">/</span> <span class="pre">U</span></code>). The last three are NaN when there is no
+interior peak.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>One row per setup</p>
@@ -2114,36 +2117,13 @@ and <code class="docutils literal notranslate"><span class="pre">peak_hz</span><
 
 <p id="module-functions.plot_error_analysis">Figures for the error analysis (<a class="reference internal" href="#module-functions.error_analysis" title="functions.error_analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.error_analysis</span></code></a>).</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_error_map" title="functions.plot_error_analysis.plot_error_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_error_map()</span></code></a>: every setup placed by its test conditions and
-coloured by its RMSE, so clusters of poorly predicted conditions stand out.</p></li>
-<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_angle" title="functions.plot_error_analysis.plot_tonal_by_angle"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_angle()</span></code></a> and <a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_error" title="functions.plot_error_analysis.plot_tonal_by_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_error()</span></code></a>: peak
-prominence against chord Reynolds number for every setup.</p></li>
+<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_angle" title="functions.plot_error_analysis.plot_tonal_by_angle"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_angle()</span></code></a>: peak prominence against chord Reynolds number
+for every setup.</p></li>
+<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_strouhal_and_frequency" title="functions.plot_error_analysis.plot_tonal_by_strouhal_and_frequency"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_strouhal_and_frequency()</span></code></a>: peak prominence against the
+peak’s Strouhal number and log10 frequency.</p></li>
 </ul>
 <p>The style matches <a class="reference internal" href="#module-functions.plot_results" title="functions.plot_results"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_results</span></code></a>; save with
 <a class="reference internal" href="#functions.plot_tuning.save_png_pdf" title="functions.plot_tuning.save_png_pdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.plot_tuning.save_png_pdf()</span></code></a>.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.plot_error_analysis.plot_error_map">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_error_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pd.DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_ranks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_error_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_error_map" title="Link to this definition">¶</a></dt>
-<dd><p>Per-setup RMSE placed on the test matrix, one row of panels per model.</p>
-<p>Each panel is one free-stream velocity: angle of attack across, chord
-up the side. Filled markers are cross-validation setups coloured by
-RMSE (one shared scale); hollow grey markers are held-out test setups,
-shown only so gaps in the test matrix are visible (they are not scored).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tables</strong> – <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">per_setup_rmse</span> <span class="pre">table)</span></code> pairs, one row of panels each.</p></li>
-<li><p><strong>data</strong> – The dataset (for the test matrix).</p></li>
-<li><p><strong>label_ranks</strong> – Optional table with <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> and <code class="docutils literal notranslate"><span class="pre">rank</span></code>; those
-setups are labelled with their rank on the last row of panels.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The figure (not shown or saved).</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py data">
 <dt class="sig sig-object py" id="functions.plot_error_analysis.ANGLE_BAND_COLOURS">
 <span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">ANGLE_BAND_COLOURS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['#86b6ef',</span> <span class="pre">'#3987e5',</span> <span class="pre">'#256abf',</span> <span class="pre">'#184f95',</span> <span class="pre">'#0d366b']</span></em><a class="headerlink" href="#functions.plot_error_analysis.ANGLE_BAND_COLOURS" title="Link to this definition">¶</a></dt>
@@ -2177,18 +2157,17 @@ separate angles would be too many colours to tell apart.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="functions.plot_error_analysis.plot_tonal_by_error">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_tonal_by_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_tonal_by_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_tonal_by_error" title="Link to this definition">¶</a></dt>
-<dd><p>Peak prominence against chord Reynolds number (log axis), coloured by model error.</p>
-<p>Same axes as <a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_angle" title="functions.plot_error_analysis.plot_tonal_by_angle"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_angle()</span></code></a>, with each setup coloured by
-the model’s out-of-fold RMSE for that setup (darker = larger error).</p>
+<dt class="sig sig-object py" id="functions.plot_error_analysis.plot_tonal_by_strouhal_and_frequency">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_tonal_by_strouhal_and_frequency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_tonal_by_strouhal_and_frequency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_tonal_by_strouhal_and_frequency" title="Link to this definition">¶</a></dt>
+<dd><p>Peak prominence against the peak’s Strouhal number and log10 frequency.</p>
+<p>Left: prominence against <code class="docutils literal notranslate"><span class="pre">St</span> <span class="pre">=</span> <span class="pre">f_peak</span> <span class="pre">δ*</span> <span class="pre">/</span> <span class="pre">U</span></code> (log axis). Right:
+prominence against <code class="docutils literal notranslate"><span class="pre">log10(f_peak)</span></code>. Each dot is one setup, coloured and
+shaped by angle band as in <a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_angle" title="functions.plot_error_analysis.plot_tonal_by_angle"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_angle()</span></code></a>. Setups with no
+interior peak have no peak frequency and are left out; the count is in
+the title.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>table</strong> – <a class="reference internal" href="#functions.error_analysis.tonal_table" title="functions.error_analysis.tonal_table"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.error_analysis.tonal_table()</span></code></a> output merged
-with a per-setup <code class="docutils literal notranslate"><span class="pre">rmse</span></code> column.</p></li>
-<li><p><strong>label</strong> – Model name for the colour-bar label.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>table</strong> – Output of <a class="reference internal" href="#functions.error_analysis.tonal_table" title="functions.error_analysis.tonal_table"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.error_analysis.tonal_table()</span></code></a>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The figure (not shown or saved).</p>
@@ -2213,12 +2192,8 @@ rebuilt by refitting each fold’s chosen setting
 set) and the file is written, so later runs can load it directly. Either
 way every fold is checked against <code class="docutils literal notranslate"><span class="pre">tuning_outer_scores.csv</span></code>. The test
 hold-out is never used.</p>
-<p>It then runs three further analyses (<a class="reference internal" href="#module-functions.error_analysis" title="functions.error_analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.error_analysis</span></code></a>):</p>
-<ul class="simple">
-<li><p>an <strong>error map</strong> placing every setup on the test matrix, coloured by RMSE;</p></li>
-<li><p>the share of each setup’s error that sits around its measured peak;</p></li>
-<li><p>peak prominence against Reynolds number, coloured by the MLP’s setup RMSE.</p></li>
-</ul>
+<p>It then finds each setup’s measured peak and the share of each setup’s
+error that sits around it (<a class="reference internal" href="#module-functions.error_analysis" title="functions.error_analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.error_analysis</span></code></a>).</p>
 <p>Writes, for each feature set <code class="docutils literal notranslate"><span class="pre">&lt;fs&gt;</span></code>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">results/setup_rmse_&lt;fs&gt;.csv</span></code>: every setup with both models’ RMSE and bias.</p></li>
@@ -2228,10 +2203,6 @@ hold-out is never used.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/spectral_peaks_&lt;fs&gt;.csv</span></code>: measured and predicted peak per setup.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/peak_error_share_&lt;fs&gt;.csv</span></code>: per-setup share of error at the peak.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/peak_error_share_&lt;fs&gt;.csv</span></code>: rounded table for the docs.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/error_map_&lt;fs&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">tonal_peaks_mlp_error_&lt;fs&gt;</span></code>
-(<code class="docutils literal notranslate"><span class="pre">.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>): the figures.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">results/tonal_peaks_&lt;fs&gt;.csv</span></code>: peak prominence, Reynolds number and MLP
-setup RMSE for every CV setup.</p></li>
 </ul>
 <dl class="py data">
 <dt class="sig sig-object py" id="run_error_analysis.N_WORST">
@@ -2319,17 +2290,14 @@ worst for the MLP).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="run_error_analysis.run_extra_analyses">
-<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">run_extra_analyses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#run_extra_analyses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.run_extra_analyses" title="Link to this definition">¶</a></dt>
-<dd><p>Error map, peak error share and tonal-peak plot for one feature set.</p>
+<span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">run_extra_analyses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#run_extra_analyses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.run_extra_analyses" title="Link to this definition">¶</a></dt>
+<dd><p>Measured peaks and the share of error around them, for one feature set.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – Dataset with physics features.</p></li>
 <li><p><strong>linear</strong> – Linear baseline result.</p></li>
 <li><p><strong>mlp</strong> – Tuned-MLP result.</p></li>
-<li><p><strong>linear_setups</strong> – <a class="reference internal" href="#functions.evaluate.per_setup_rmse" title="functions.evaluate.per_setup_rmse"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.evaluate.per_setup_rmse()</span></code></a> for linear.</p></li>
-<li><p><strong>mlp_setups</strong> – The same for the MLP.</p></li>
-<li><p><strong>worst</strong> – The worst-setups table (for rank labels on the error map).</p></li>
 </ul>
 </dd>
 </dl>
@@ -3930,7 +3898,9 @@ interactive inspection rather than the HTML page.</p>
 <code class="docutils literal notranslate"><span class="pre">explore_spl_vs_features.png</span></code>,
 <code class="docutils literal notranslate"><span class="pre">explore_spl_vs_physics_features.png</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">explore_tonal_peaks.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code> (peak prominence against
-Reynolds number by angle band, for every setup) and
+Reynolds number by angle band, for every setup),
+<code class="docutils literal notranslate"><span class="pre">explore_tonal_peaks_strouhal_frequency.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code> (peak
+prominence against the peak’s Strouhal number and log frequency) and
 <code class="docutils literal notranslate"><span class="pre">explore_spectra_grid.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code> (every measured spectrum, by
 chord and velocity).</p>
 </dd>

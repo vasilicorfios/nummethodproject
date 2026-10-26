@@ -229,8 +229,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        One row per setup: ``setup_id``, chord, velocity, angle,</span>
-<span class="sd">        ``angle_band``, ``reynolds``, ``log10_reynolds``, ``prominence_db``</span>
-<span class="sd">        and ``peak_hz`` (NaN when there is no interior peak).</span>
+<span class="sd">        displacement thickness, ``angle_band``, ``reynolds``,</span>
+<span class="sd">        ``log10_reynolds``, ``prominence_db``, ``peak_hz``, and the peak's</span>
+<span class="sd">        ``log10_peak_hz`` and Strouhal number ``strouhal_peak``</span>
+<span class="sd">        (``peak_hz * δ* / U``). The last three are NaN when there is no</span>
+<span class="sd">        interior peak.</span>
 <span class="sd">    """</span>
     <span class="n">folded</span> <span class="o">=</span> <span class="n">assign_folds</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="n">rows_used</span> <span class="o">=</span> <span class="n">folded</span> <span class="k">if</span> <span class="n">include_holdout</span> <span class="k">else</span> <span class="n">folded</span><span class="p">[</span><span class="n">folded</span><span class="p">[</span><span class="s2">"fold"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">TEST_FOLD</span><span class="p">]</span>
@@ -246,12 +249,15 @@
             <span class="s2">"chord_length_m"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"chord_length_m"</span><span class="p">],</span>
             <span class="s2">"velocity_mps"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">],</span>
             <span class="s2">"attack_angle_deg"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">],</span>
+            <span class="s2">"disp_thickness_m"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"disp_thickness_m"</span><span class="p">],</span>
             <span class="s2">"reynolds"</span><span class="p">:</span> <span class="n">first</span><span class="p">[</span><span class="s2">"reynolds"</span><span class="p">],</span>
             <span class="s2">"prominence_db"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">props</span><span class="p">[</span><span class="s2">"prominences"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">if</span> <span class="n">has_peak</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
             <span class="s2">"peak_hz"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="s2">"frequency_hz"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">if</span> <span class="n">has_peak</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
         <span class="p">})</span>
     <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
     <span class="n">table</span><span class="p">[</span><span class="s2">"log10_reynolds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"reynolds"</span><span class="p">])</span>
+    <span class="n">table</span><span class="p">[</span><span class="s2">"log10_peak_hz"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">])</span>
+    <span class="n">table</span><span class="p">[</span><span class="s2">"strouhal_peak"</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">]</span> <span class="o">*</span> <span class="n">table</span><span class="p">[</span><span class="s2">"disp_thickness_m"</span><span class="p">]</span> <span class="o">/</span> <span class="n">table</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span>
     <span class="n">table</span><span class="p">[</span><span class="s2">"angle_band"</span><span class="p">]</span> <span class="o">=</span> <span class="n">angle_band</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"attack_angle_deg"</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">table</span></div>
 

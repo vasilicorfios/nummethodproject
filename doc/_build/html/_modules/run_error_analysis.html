@@ -50,11 +50,8 @@
 <span class="sd">way every fold is checked against ``tuning_outer_scores.csv``. The test</span>
 <span class="sd">hold-out is never used.</span>
 
-<span class="sd">It then runs three further analyses (:mod:`functions.error_analysis`):</span>
-
-<span class="sd">* an **error map** placing every setup on the test matrix, coloured by RMSE;</span>
-<span class="sd">* the share of each setup's error that sits around its measured peak;</span>
-<span class="sd">* peak prominence against Reynolds number, coloured by the MLP's setup RMSE.</span>
+<span class="sd">It then finds each setup's measured peak and the share of each setup's</span>
+<span class="sd">error that sits around it (:mod:`functions.error_analysis`).</span>
 
 <span class="sd">Writes, for each feature set ``&lt;fs&gt;``:</span>
 
@@ -65,10 +62,6 @@
 <span class="sd">* ``results/spectral_peaks_&lt;fs&gt;.csv``: measured and predicted peak per setup.</span>
 <span class="sd">* ``results/peak_error_share_&lt;fs&gt;.csv``: per-setup share of error at the peak.</span>
 <span class="sd">* ``doc/generated/peak_error_share_&lt;fs&gt;.csv``: rounded table for the docs.</span>
-<span class="sd">* ``doc/generated/error_map_&lt;fs&gt;`` and ``tonal_peaks_mlp_error_&lt;fs&gt;``</span>
-<span class="sd">  (``.png`` and ``.pdf``): the figures.</span>
-<span class="sd">* ``results/tonal_peaks_&lt;fs&gt;.csv``: peak prominence, Reynolds number and MLP</span>
-<span class="sd">  setup RMSE for every CV setup.</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
@@ -82,11 +75,6 @@
     <span class="n">peak_error_share</span><span class="p">,</span>
     <span class="n">peak_error_summary</span><span class="p">,</span>
     <span class="n">spectral_peaks</span><span class="p">,</span>
-    <span class="n">tonal_table</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">plot_error_map</span><span class="p">,</span>
-    <span class="n">plot_tonal_by_error</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_setup_spectra</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_png_pdf</span>
@@ -217,32 +205,22 @@
 
 <div class="viewcode-block" id="run_extra_analyses">
 <a class="viewcode-back" href="../api.html#run_error_analysis.run_extra_analyses">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">linear</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">mlp</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span>
-                       <span class="n">linear_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-                       <span class="n">worst</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Error map, peak error share and tonal-peak plot for one feature set.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">linear</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">mlp</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Measured peaks and the share of error around them, for one feature set.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data: Dataset with physics features.</span>
 <span class="sd">        linear: Linear baseline result.</span>
 <span class="sd">        mlp: Tuned-MLP result.</span>
-<span class="sd">        linear_setups: :func:`functions.evaluate.per_setup_rmse` for linear.</span>
-<span class="sd">        mlp_setups: The same for the MLP.</span>
-<span class="sd">        worst: The worst-setups table (for rank labels on the error map).</span>
 <span class="sd">    """</span>
     <span class="n">fs</span> <span class="o">=</span> <span class="n">mlp</span><span class="o">.</span><span class="n">feature_set</span>
     <span class="n">mlp_label</span><span class="p">,</span> <span class="n">linear_label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"mlp (tuned) / </span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"linear / </span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span>
 
-    <span class="c1"># 1. Error map: where on the test matrix are the badly predicted setups?</span>
-    <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_error_map</span><span class="p">([(</span><span class="n">linear_label</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">),</span> <span class="p">(</span><span class="n">mlp_label</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">)],</span> <span class="n">data</span><span class="p">,</span>
-                         <span class="n">label_ranks</span><span class="o">=</span><span class="n">worst</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"rank"</span><span class="p">]])</span>
-    <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"error_map_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-    <span class="c1"># 2. Measured peaks (and where the MLP's predicted spectra peak).</span>
+    <span class="c1"># 1. Measured peaks (and where the MLP's predicted spectra peak).</span>
     <span class="n">peaks</span> <span class="o">=</span> <span class="n">spectral_peaks</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mlp</span><span class="p">)</span>
     <span class="n">peaks</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"spectral_peaks_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="c1"># 3. How much of each setup's error is at its peak?</span>
+    <span class="c1"># 2. How much of each setup's error is at its peak?</span>
     <span class="n">shares</span><span class="p">,</span> <span class="n">summaries</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="p">((</span><span class="n">linear_label</span><span class="p">,</span> <span class="n">linear</span><span class="p">),</span> <span class="p">(</span><span class="n">mlp_label</span><span class="p">,</span> <span class="n">mlp</span><span class="p">)):</span>
         <span class="n">share</span> <span class="o">=</span> <span class="n">peak_error_share</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">peaks</span><span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
@@ -256,15 +234,7 @@
         <span class="s2">"Frequencies in peak window (median)"</span><span class="p">:</span> <span class="n">_percent</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"median_frequency_share"</span><span class="p">]),</span>
         <span class="s2">"Squared error in peak window (median)"</span><span class="p">:</span> <span class="n">_percent</span><span class="p">(</span><span class="n">summary</span><span class="p">[</span><span class="s2">"median_error_share"</span><span class="p">]),</span>
     <span class="p">})</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">DOC_TABLES_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"peak_error_share_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-
-    <span class="c1"># 4. Does the MLP struggle more on spectra with a prominent (tonal) peak?</span>
-    <span class="n">tonal</span> <span class="o">=</span> <span class="n">tonal_table</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">mlp_setups</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"rmse"</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">)</span>
-    <span class="n">tonal</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">RESULTS_DIR</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"tonal_peaks_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">.csv"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_tonal_by_error</span><span class="p">(</span><span class="n">tonal</span><span class="p">,</span> <span class="s2">"Tuned MLP (out-of-fold)"</span><span class="p">),</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span>
-                 <span class="sa">f</span><span class="s2">"tonal_peaks_mlp_error_</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Peak prominence vs MLP setup RMSE (</span><span class="si">{</span><span class="n">fs</span><span class="si">}</span><span class="s2">): Spearman rank correlation "</span>
-          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">tonal</span><span class="p">[</span><span class="s1">'prominence_db'</span><span class="p">]</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">tonal</span><span class="p">[</span><span class="s1">'rmse'</span><span class="p">],</span><span class="w"> </span><span class="n">method</span><span class="o">=</span><span class="s1">'spearman'</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+    <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span></div>
 
 
 
@@ -305,7 +275,7 @@
         <span class="c1"># Linear first (blue), tuned MLP second (orange), as in every comparison.</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="n">plot_setup_spectra</span><span class="p">([</span><span class="n">linear</span><span class="p">,</span> <span class="n">mlp</span><span class="p">],</span> <span class="n">data</span><span class="p">,</span> <span class="n">worst</span><span class="p">[</span><span class="s2">"setup_id"</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">titles</span><span class="o">=</span><span class="n">titles</span><span class="p">)</span>
         <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">DOC_TABLES_DIR</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"worst_setups_spectra_</span><span class="si">{</span><span class="n">feature_set</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="n">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">linear</span><span class="p">,</span> <span class="n">mlp</span><span class="p">,</span> <span class="n">linear_setups</span><span class="p">,</span> <span class="n">mlp_setups</span><span class="p">,</span> <span class="n">worst</span><span class="p">)</span>
+        <span class="n">run_extra_analyses</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">linear</span><span class="p">,</span> <span class="n">mlp</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">recovered</span><span class="p">:</span>
         <span class="n">save_recovered_predictions</span><span class="p">(</span><span class="n">recovered</span><span class="p">)</span>

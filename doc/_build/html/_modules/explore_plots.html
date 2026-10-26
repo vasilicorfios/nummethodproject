@@ -57,7 +57,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_by_chord_length</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_by_chord_length</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_distribution</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_features</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_tonal_by_angle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_tonal_by_angle</span><span class="p">,</span> <span class="n">plot_tonal_by_strouhal_and_frequency</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spectra_grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spectra_grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_png_pdf</span>
@@ -85,7 +85,9 @@
 <span class="sd">        ``explore_spl_vs_features.png``,</span>
 <span class="sd">        ``explore_spl_vs_physics_features.png``, and</span>
 <span class="sd">        ``explore_tonal_peaks.png`` / ``.pdf`` (peak prominence against</span>
-<span class="sd">        Reynolds number by angle band, for every setup) and</span>
+<span class="sd">        Reynolds number by angle band, for every setup),</span>
+<span class="sd">        ``explore_tonal_peaks_strouhal_frequency.png`` / ``.pdf`` (peak</span>
+<span class="sd">        prominence against the peak's Strouhal number and log frequency) and</span>
 <span class="sd">        ``explore_spectra_grid.png`` / ``.pdf`` (every measured spectrum, by</span>
 <span class="sd">        chord and velocity).</span>
 <span class="sd">    """</span>
@@ -103,8 +105,10 @@
         <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
         <span class="n">written</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="c1"># Tonal peaks, one dot per setup. Saved as PDF too, for the report.</span>
-    <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_tonal_by_angle</span><span class="p">(</span><span class="n">tonal_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">include_holdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
-                            <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"explore_tonal_peaks"</span><span class="p">)</span>
+    <span class="n">tonal</span> <span class="o">=</span> <span class="n">tonal_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">include_holdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_tonal_by_angle</span><span class="p">(</span><span class="n">tonal</span><span class="p">),</span> <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"explore_tonal_peaks"</span><span class="p">)</span>
+    <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_tonal_by_strouhal_and_frequency</span><span class="p">(</span><span class="n">tonal</span><span class="p">),</span> <span class="n">out_dir</span><span class="p">,</span>
+                            <span class="s2">"explore_tonal_peaks_strouhal_frequency"</span><span class="p">)</span>
     <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_spectra_grid</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"explore_spectra_grid"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">written</span></div>
 

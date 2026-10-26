@@ -36,6 +36,8 @@ def test_explore_figures_written_and_closed(data, tmp_path):
         "explore_spl_vs_physics_features.png",
         "explore_tonal_peaks.png",
         "explore_tonal_peaks.pdf",
+        "explore_tonal_peaks_strouhal_frequency.png",
+        "explore_tonal_peaks_strouhal_frequency.pdf",
         "explore_spectra_grid.png",
         "explore_spectra_grid.pdf",
     }

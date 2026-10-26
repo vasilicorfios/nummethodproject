@@ -159,28 +159,9 @@ Worst-predicted setups and error analysis
    Measured spectra (black) and out-of-fold predictions of linear and the
    tuned MLP (averaged over seeds) for the 10 worst setups, feature set B.
 
-.. figure:: generated/error_map_B.png
-   :width: 100%
-   :alt: Panels for each free-stream velocity placing every setup by angle of
-         attack and chord, coloured by its RMSE, for linear and tuned MLP.
-
-   Out-of-fold RMSE of every cross-validation setup by velocity (panels),
-   angle (across) and chord (up), for linear (top) and the tuned MLP (bottom),
-   feature set B. Numbers mark the 10 worst MLP setups; hollow grey circles
-   are hold-out setups (not scored).
-
 .. csv-table:: Median share of each setup's squared error within its peak window (peak ± one 1/3-octave step), with the share of frequencies in that window
    :file: generated/peak_error_share_B.csv
    :header-rows: 1
-
-.. figure:: generated/tonal_peaks_mlp_error_B.png
-   :width: 85%
-   :alt: Peak prominence against chord Reynolds number (log axis) for the 90
-         cross-validation setups, coloured by the tuned MLP's setup RMSE.
-
-   Peak prominence against chord Reynolds number (log axis) for the 90
-   cross-validation setups, coloured by the tuned MLP's out-of-fold setup
-   RMSE.
 
 Runtime, memory and FLOPs
 -------------------------

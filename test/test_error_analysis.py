@@ -19,11 +19,8 @@ from functions.error_analysis import (  # noqa: E402
     peak_error_summary,
     spectral_peaks,
 )
-from functions.evaluate import CVResult, per_setup_rmse  # noqa: E402
+from functions.evaluate import CVResult  # noqa: E402
 from functions.make_folds import TEST_FOLD, assign_folds  # noqa: E402
-from functions.plot_error_analysis import (  # noqa: E402
-    plot_error_map,
-)
 from functions.plot_tuning import save_png_pdf  # noqa: E402
 
 
@@ -92,22 +89,6 @@ def test_peak_error_summary_hand_calculated():
     assert out["median_frequency_share"].tolist() == pytest.approx([0.2, 0.25])
 
 
-def test_error_analysis_figures_saved(data, linear_b, tmp_path):
-    """The error map saves as PNG and PDF."""
-    setups = per_setup_rmse(linear_b, data)
-    paths = save_png_pdf(plot_error_map([("linear", setups)], data,
-                                        setups[["setup_id"]].head(3).assign(rank=[1, 2, 3])),
-                         tmp_path, "map")
-    assert len(paths) == 2 and all(p.stat().st_size > 0 for p in paths)
-
-
-@pytest.fixture(scope="module")
-def linear_b(data):
-    """Linear baseline on feature set B (fast)."""
-    from functions.evaluate import cross_validate
-    return cross_validate(data, "linear", "B")
-
-
 def test_tonal_table_counts_and_values(data):
     """One row per setup (106 with the hold-out, 90 without); valid prominences and bands."""
     from functions.error_analysis import tonal_table
@@ -135,14 +116,18 @@ def test_tonal_table_hand_made_spectrum(data):
     row = tonal_table(fake, include_holdout=True).set_index("setup_id").loc[setup_id]
     assert row["prominence_db"] == pytest.approx(10.0)
     assert row["peak_hz"] == fake.loc[ordered[3], "frequency_hz"]
+    # Strouhal number and log frequency of that peak, worked out directly.
+    first = fake.loc[ordered[0]]
+    assert row["strouhal_peak"] == pytest.approx(
+        row["peak_hz"] * first["disp_thickness_m"] / first["velocity_mps"])
+    assert row["log10_peak_hz"] == pytest.approx(np.log10(row["peak_hz"]))
 
 
 def test_tonal_figures_saved(data, tmp_path):
-    """The angle-coloured and error-coloured tonal plots save as PNG and PDF."""
+    """The Reynolds and Strouhal / log-frequency tonal plots save as PNG and PDF."""
     from functions.error_analysis import tonal_table
-    from functions.plot_error_analysis import plot_tonal_by_angle, plot_tonal_by_error
+    from functions.plot_error_analysis import plot_tonal_by_angle, plot_tonal_by_strouhal_and_frequency
     table = tonal_table(data, include_holdout=True)
     paths = save_png_pdf(plot_tonal_by_angle(table), tmp_path, "by_angle")
-    paths += save_png_pdf(plot_tonal_by_error(table.assign(rmse=table["prominence_db"] / 5), "test"),
-                          tmp_path, "by_error")
+    paths += save_png_pdf(plot_tonal_by_strouhal_and_frequency(table), tmp_path, "by_st_f")
     assert len(paths) == 4 and all(p.stat().st_size > 0 for p in paths)

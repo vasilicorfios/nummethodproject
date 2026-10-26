@@ -107,7 +107,7 @@ Run every command from the project root. Later scripts read results written by e
 | `python src/explore_plots.py` | Exploratory figures of the dataset | seconds |
 | `python src/run_cv.py` | Linear baseline: repeated grouped 5-fold CV on feature sets A and B | seconds |
 | `python src/run_tuning.py` | Tunes the MLP by nested CV and compares it with linear on the same folds | about 45 min (see below) |
-| `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error, plots the 10 worst spectra, and adds an error map, the share of error at each spectral peak and a tonal-peak plot | about 1 min |
+| `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error, plots the 10 worst spectra, and the share of error at each spectral peak | about 1 min |
 | `python src/run_profile.py` | Timing, memory, size and FLOP profile of linear (A, B), the final MLP and the runner-up MLP (B), with machine and thread settings | about 25 s |
 | `python src/run_shift_tests.py` | Robustness: leave one chord / one velocity out, final MLP (3 seeds) vs linear | about 1 min |
 | `python src/run_physics_check.py` | Physics check (faster flow is louder) on out-of-fold predictions, then the acceptance criteria table | about 5 s |

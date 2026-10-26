@@ -214,12 +214,8 @@ The tuned MLP's out-of-fold predictions are saved by ``run_tuning.py`` in
 them. Only when the file is missing (results from before it was added) does
 it refit each fold's chosen setting, and then it saves the file.
 
-The same script also produces:
-
-* an **error map** placing every setup on the test matrix, coloured by RMSE;
-* the share of each setup's squared error that falls around its measured
-  peak;
-* peak prominence against Reynolds number, coloured by the MLP's setup RMSE.
+The same script also finds each setup's measured peak and the share of each
+setup's squared error that falls around it.
 
 Robustness shift tests
 ----------------------

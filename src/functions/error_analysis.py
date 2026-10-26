@@ -185,8 +185,11 @@ def tonal_table(data: pd.DataFrame, include_holdout: bool = False) -> pd.DataFra
 
     Returns:
         One row per setup: ``setup_id``, chord, velocity, angle,
-        ``angle_band``, ``reynolds``, ``log10_reynolds``, ``prominence_db``
-        and ``peak_hz`` (NaN when there is no interior peak).
+        displacement thickness, ``angle_band``, ``reynolds``,
+        ``log10_reynolds``, ``prominence_db``, ``peak_hz``, and the peak's
+        ``log10_peak_hz`` and Strouhal number ``strouhal_peak``
+        (``peak_hz * δ* / U``). The last three are NaN when there is no
+        interior peak.
     """
     folded = assign_folds(data)
     rows_used = folded if include_holdout else folded[folded["fold"] != TEST_FOLD]
@@ -202,11 +205,14 @@ def tonal_table(data: pd.DataFrame, include_holdout: bool = False) -> pd.DataFra
             "chord_length_m": first["chord_length_m"],
             "velocity_mps": first["velocity_mps"],
             "attack_angle_deg": first["attack_angle_deg"],
+            "disp_thickness_m": first["disp_thickness_m"],
             "reynolds": first["reynolds"],
             "prominence_db": float(props["prominences"].max()) if has_peak else 0.0,
             "peak_hz": float(spectrum["frequency_hz"].iloc[k]) if has_peak else np.nan,
         })
     table = pd.DataFrame(rows)
     table["log10_reynolds"] = np.log10(table["reynolds"])
+    table["log10_peak_hz"] = np.log10(table["peak_hz"])
+    table["strouhal_peak"] = table["peak_hz"] * table["disp_thickness_m"] / table["velocity_mps"]
     table["angle_band"] = angle_band(table["attack_angle_deg"])
     return table

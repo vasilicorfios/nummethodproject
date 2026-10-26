@@ -17,11 +17,8 @@ set) and the file is written, so later runs can load it directly. Either
 way every fold is checked against ``tuning_outer_scores.csv``. The test
 hold-out is never used.
 
-It then runs three further analyses (:mod:`functions.error_analysis`):
-
-* an **error map** placing every setup on the test matrix, coloured by RMSE;
-* the share of each setup's error that sits around its measured peak;
-* peak prominence against Reynolds number, coloured by the MLP's setup RMSE.
+It then finds each setup's measured peak and the share of each setup's
+error that sits around it (:mod:`functions.error_analysis`).
 
 Writes, for each feature set ``<fs>``:
 
@@ -32,10 +29,6 @@ Writes, for each feature set ``<fs>``:
 * ``results/spectral_peaks_<fs>.csv``: measured and predicted peak per setup.
 * ``results/peak_error_share_<fs>.csv``: per-setup share of error at the peak.
 * ``doc/generated/peak_error_share_<fs>.csv``: rounded table for the docs.
-* ``doc/generated/error_map_<fs>`` and ``tonal_peaks_mlp_error_<fs>``
-  (``.png`` and ``.pdf``): the figures.
-* ``results/tonal_peaks_<fs>.csv``: peak prominence, Reynolds number and MLP
-  setup RMSE for every CV setup.
 """
 
 import argparse
@@ -49,11 +42,6 @@ from functions.error_analysis import (
     peak_error_share,
     peak_error_summary,
     spectral_peaks,
-    tonal_table,
-)
-from functions.plot_error_analysis import (
-    plot_error_map,
-    plot_tonal_by_error,
 )
 from functions.plot_results import plot_setup_spectra
 from functions.plot_tuning import save_png_pdf
@@ -167,32 +155,22 @@ def _percent(values: pd.Series) -> pd.Series:
     return (values * 100).round().astype(int).astype(str) + "%"
 
 
-def run_extra_analyses(data: pd.DataFrame, linear: CVResult, mlp: CVResult,
-                       linear_setups: pd.DataFrame, mlp_setups: pd.DataFrame,
-                       worst: pd.DataFrame) -> None:
-    """Error map, peak error share and tonal-peak plot for one feature set.
+def run_extra_analyses(data: pd.DataFrame, linear: CVResult, mlp: CVResult) -> None:
+    """Measured peaks and the share of error around them, for one feature set.
 
     Args:
         data: Dataset with physics features.
         linear: Linear baseline result.
         mlp: Tuned-MLP result.
-        linear_setups: :func:`functions.evaluate.per_setup_rmse` for linear.
-        mlp_setups: The same for the MLP.
-        worst: The worst-setups table (for rank labels on the error map).
     """
     fs = mlp.feature_set
     mlp_label, linear_label = f"mlp (tuned) / {fs}", f"linear / {fs}"
 
-    # 1. Error map: where on the test matrix are the badly predicted setups?
-    fig = plot_error_map([(linear_label, linear_setups), (mlp_label, mlp_setups)], data,
-                         label_ranks=worst[["setup_id", "rank"]])
-    save_png_pdf(fig, DOC_TABLES_DIR, f"error_map_{fs}")
-
-    # 2. Measured peaks (and where the MLP's predicted spectra peak).
+    # 1. Measured peaks (and where the MLP's predicted spectra peak).
     peaks = spectral_peaks(data, mlp)
     peaks.to_csv(RESULTS_DIR / f"spectral_peaks_{fs}.csv", index=False)
 
-    # 3. How much of each setup's error is at its peak?
+    # 2. How much of each setup's error is at its peak?
     shares, summaries = [], []
     for label, result in ((linear_label, linear), (mlp_label, mlp)):
         share = peak_error_share(result, data, peaks).assign(model=label)
@@ -207,14 +185,6 @@ def run_extra_analyses(data: pd.DataFrame, linear: CVResult, mlp: CVResult,
         "Squared error in peak window (median)": _percent(summary["median_error_share"]),
     }).to_csv(DOC_TABLES_DIR / f"peak_error_share_{fs}.csv", index=False)
     print(summary.round(2).to_string(index=False))
-
-    # 4. Does the MLP struggle more on spectra with a prominent (tonal) peak?
-    tonal = tonal_table(data).merge(mlp_setups[["setup_id", "rmse"]], on="setup_id")
-    tonal.to_csv(RESULTS_DIR / f"tonal_peaks_{fs}.csv", index=False)
-    save_png_pdf(plot_tonal_by_error(tonal, "Tuned MLP (out-of-fold)"), DOC_TABLES_DIR,
-                 f"tonal_peaks_mlp_error_{fs}")
-    print(f"Peak prominence vs MLP setup RMSE ({fs}): Spearman rank correlation "
-          f"{tonal['prominence_db'].corr(tonal['rmse'], method='spearman'):.2f}")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -252,7 +222,7 @@ def main(argv: list[str] | None = None) -> None:
         # Linear first (blue), tuned MLP second (orange), as in every comparison.
         fig = plot_setup_spectra([linear, mlp], data, worst["setup_id"].tolist(), titles=titles)
         save_png_pdf(fig, DOC_TABLES_DIR, f"worst_setups_spectra_{feature_set}")
-        run_extra_analyses(data, linear, mlp, linear_setups, mlp_setups, worst)
+        run_extra_analyses(data, linear, mlp)
 
     if recovered:
         save_recovered_predictions(recovered)
