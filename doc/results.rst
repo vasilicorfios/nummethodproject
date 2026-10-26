@@ -239,7 +239,7 @@ and predicted the 227 hold-out rows (16 setups) once. Run details are in
    :file: generated/holdout_setups.csv
    :header-rows: 1
 
-.. csv-table:: Hold-out metrics for linear, the runner-up MLP and the final MLP (bias = mean of measured − predicted)
+.. csv-table:: Hold-out metrics for linear, the runner-up MLP and the final MLP
    :file: generated/holdout_metrics.csv
    :header-rows: 1
 

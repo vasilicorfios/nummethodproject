@@ -1,4 +1,4 @@
-Model,Hold-out RMSE (dB),MAE (dB),R²,Bias (dB),Fit time (s),Predict time (ms),Epochs
-linear,4.762,3.645,0.511,-0.914,0.006,1.94,
-runner-up MLP,2.434,1.809,0.872,-0.546,1.682,2.45,226
-final MLP (selected),2.63,2.028,0.851,-1.024,2.166,2.7,177
+Model,Hold-out RMSE (dB),MAE (dB),R²,Fit time (s),Predict time (ms),Epochs
+linear,4.762,3.645,0.511,0.006,1.94,
+runner-up MLP,2.434,1.809,0.872,1.682,2.45,226
+final MLP (selected),2.63,2.028,0.851,2.166,2.7,177
