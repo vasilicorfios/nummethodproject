@@ -2,8 +2,9 @@
 
 The plotting functions live in their own modules
 (:mod:`functions.plot_spl_distribution`, :mod:`functions.plot_spl_vs_features`,
-:mod:`functions.plot_spl_by_chord_length` and
-:mod:`functions.plot_spl_vs_physics_features`); this script loads the data,
+:mod:`functions.plot_spl_by_chord_length`,
+:mod:`functions.plot_spl_vs_physics_features` and
+:mod:`functions.plot_spectra_grid`); this script loads the data,
 adds the physics features, saves the figures used by the HTML docs to
 ``doc/generated/`` and then shows every figure::
 
@@ -24,6 +25,7 @@ from functions.plot_spl_by_chord_length import plot_spl_by_chord_length
 from functions.plot_spl_distribution import plot_spl_distribution
 from functions.plot_spl_vs_features import plot_spl_vs_features
 from functions.plot_error_analysis import plot_tonal_by_angle
+from functions.plot_spectra_grid import plot_spectra_grid
 from functions.plot_spl_vs_physics_features import plot_spl_vs_physics_features
 from functions.plot_tuning import save_png_pdf
 
@@ -48,7 +50,9 @@ def save_explore_figures(df: pd.DataFrame, out_dir: Path = DOC_FIGURES_DIR) -> l
         ``explore_spl_vs_features.png``,
         ``explore_spl_vs_physics_features.png``, and
         ``explore_tonal_peaks.png`` / ``.pdf`` (peak prominence against
-        Reynolds number by angle band, for every setup).
+        Reynolds number by angle band, for every setup) and
+        ``explore_spectra_grid.png`` / ``.pdf`` (every measured spectrum, by
+        chord and velocity).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     figures = {
@@ -66,6 +70,7 @@ def save_explore_figures(df: pd.DataFrame, out_dir: Path = DOC_FIGURES_DIR) -> l
     # Tonal peaks, one dot per setup. Saved as PDF too, for the report.
     written += save_png_pdf(plot_tonal_by_angle(tonal_table(df, include_holdout=True)),
                             out_dir, "explore_tonal_peaks")
+    written += save_png_pdf(plot_spectra_grid(df), out_dir, "explore_spectra_grid")
     return written
 
 
@@ -86,6 +91,7 @@ def main() -> None:
     plot_spl_vs_features(df)
     plot_spl_by_chord_length(df)
     plot_spl_vs_physics_features(df)
+    plot_spectra_grid(df)
     plt.show()
 
 

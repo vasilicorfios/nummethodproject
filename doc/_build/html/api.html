@@ -4264,11 +4264,43 @@ on a linear axis.</p>
 </dl>
 </dd></dl>
 
+<p id="module-functions.plot_spectra_grid">Grid of measured spectra: one panel per chord and velocity, one line per angle.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_spectra_grid.ANGLE_CMAP">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_spectra_grid.</span></span><span class="sig-name descname"><span class="pre">ANGLE_CMAP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Blues'</span></em><a class="headerlink" href="#functions.plot_spectra_grid.ANGLE_CMAP" title="Link to this definition">¶</a></dt>
+<dd><p>Sequential colour map for angle of attack (light = small angle).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functions.plot_spectra_grid.CMAP_START">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_spectra_grid.</span></span><span class="sig-name descname"><span class="pre">CMAP_START</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></em><a class="headerlink" href="#functions.plot_spectra_grid.CMAP_START" title="Link to this definition">¶</a></dt>
+<dd><p>Start of the colour map actually used (0 = lightest).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functions.plot_spectra_grid.plot_spectra_grid">
+<span class="sig-prename descclassname"><span class="pre">functions.plot_spectra_grid.</span></span><span class="sig-name descname"><span class="pre">plot_spectra_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_spectra_grid.html#plot_spectra_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_spectra_grid.plot_spectra_grid" title="Link to this definition">¶</a></dt>
+<dd><p>Plot every setup’s measured spectrum, arranged by chord and velocity.</p>
+<p>Rows are chord lengths, columns are free-stream velocities, and each line
+is one setup (one angle of attack), coloured by angle. Axes are shared so
+panels can be compared directly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Dataset as returned by
+<a class="reference internal" href="#functions.data_loader.load_airfoil_data" title="functions.data_loader.load_airfoil_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.data_loader.load_airfoil_data()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created matplotlib figure (not yet shown).</p>
+</dd>
+</dl>
+</dd></dl>
+
 <p id="module-explore_plots">Entry point that displays the exploratory plots for the airfoil dataset.</p>
 <p>The plotting functions live in their own modules
 (<a class="reference internal" href="#module-functions.plot_spl_distribution" title="functions.plot_spl_distribution"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_distribution</span></code></a>, <a class="reference internal" href="#module-functions.plot_spl_vs_features" title="functions.plot_spl_vs_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_features</span></code></a>,
-<a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a> and
-<a class="reference internal" href="#module-functions.plot_spl_vs_physics_features" title="functions.plot_spl_vs_physics_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_physics_features</span></code></a>); this script loads the data,
+<a class="reference internal" href="#module-functions.plot_spl_by_chord_length" title="functions.plot_spl_by_chord_length"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_by_chord_length</span></code></a>,
+<a class="reference internal" href="#module-functions.plot_spl_vs_physics_features" title="functions.plot_spl_vs_physics_features"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spl_vs_physics_features</span></code></a> and
+<a class="reference internal" href="#module-functions.plot_spectra_grid" title="functions.plot_spectra_grid"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_spectra_grid</span></code></a>); this script loads the data,
 adds the physics features, saves the figures used by the HTML docs to
 <code class="docutils literal notranslate"><span class="pre">doc/generated/</span></code> and then shows every figure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">explore_plots</span><span class="o">.</span><span class="n">py</span>
@@ -4301,7 +4333,9 @@ interactive inspection rather than the HTML page.</p>
 <code class="docutils literal notranslate"><span class="pre">explore_spl_vs_features.png</span></code>,
 <code class="docutils literal notranslate"><span class="pre">explore_spl_vs_physics_features.png</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">explore_tonal_peaks.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code> (peak prominence against
-Reynolds number by angle band, for every setup).</p>
+Reynolds number by angle band, for every setup) and
+<code class="docutils literal notranslate"><span class="pre">explore_spectra_grid.png</span></code> / <code class="docutils literal notranslate"><span class="pre">.pdf</span></code> (every measured spectrum, by
+chord and velocity).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Paths of the files written</p>

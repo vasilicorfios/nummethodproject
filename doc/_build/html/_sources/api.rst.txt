@@ -156,5 +156,8 @@ Exploratory plots
 .. automodule:: functions.plot_spl_vs_physics_features
    :members:
 
+.. automodule:: functions.plot_spectra_grid
+   :members:
+
 .. automodule:: explore_plots
    :members:

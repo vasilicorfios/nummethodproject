@@ -36,6 +36,8 @@ def test_explore_figures_written_and_closed(data, tmp_path):
         "explore_spl_vs_physics_features.png",
         "explore_tonal_peaks.png",
         "explore_tonal_peaks.pdf",
+        "explore_spectra_grid.png",
+        "explore_spectra_grid.pdf",
     }
     for path in paths:
         expected = b"\x89PNG\r\n\x1a\n" if path.suffix == ".png" else b"%PDF"

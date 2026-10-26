@@ -35,8 +35,9 @@
 
 <span class="sd">The plotting functions live in their own modules</span>
 <span class="sd">(:mod:`functions.plot_spl_distribution`, :mod:`functions.plot_spl_vs_features`,</span>
-<span class="sd">:mod:`functions.plot_spl_by_chord_length` and</span>
-<span class="sd">:mod:`functions.plot_spl_vs_physics_features`); this script loads the data,</span>
+<span class="sd">:mod:`functions.plot_spl_by_chord_length`,</span>
+<span class="sd">:mod:`functions.plot_spl_vs_physics_features` and</span>
+<span class="sd">:mod:`functions.plot_spectra_grid`); this script loads the data,</span>
 <span class="sd">adds the physics features, saves the figures used by the HTML docs to</span>
 <span class="sd">``doc/generated/`` and then shows every figure::</span>
 
@@ -57,6 +58,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_distribution</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_distribution</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_tonal_by_angle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spectra_grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spectra_grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_spl_vs_physics_features</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_spl_vs_physics_features</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.plot_tuning</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_png_pdf</span>
 
@@ -83,7 +85,9 @@
 <span class="sd">        ``explore_spl_vs_features.png``,</span>
 <span class="sd">        ``explore_spl_vs_physics_features.png``, and</span>
 <span class="sd">        ``explore_tonal_peaks.png`` / ``.pdf`` (peak prominence against</span>
-<span class="sd">        Reynolds number by angle band, for every setup).</span>
+<span class="sd">        Reynolds number by angle band, for every setup) and</span>
+<span class="sd">        ``explore_spectra_grid.png`` / ``.pdf`` (every measured spectrum, by</span>
+<span class="sd">        chord and velocity).</span>
 <span class="sd">    """</span>
     <span class="n">out_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">figures</span> <span class="o">=</span> <span class="p">{</span>
@@ -101,6 +105,7 @@
     <span class="c1"># Tonal peaks, one dot per setup. Saved as PDF too, for the report.</span>
     <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_tonal_by_angle</span><span class="p">(</span><span class="n">tonal_table</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">include_holdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
                             <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"explore_tonal_peaks"</span><span class="p">)</span>
+    <span class="n">written</span> <span class="o">+=</span> <span class="n">save_png_pdf</span><span class="p">(</span><span class="n">plot_spectra_grid</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"explore_spectra_grid"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">written</span></div>
 
 
@@ -124,6 +129,7 @@
     <span class="n">plot_spl_vs_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_by_chord_length</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plot_spl_vs_physics_features</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">plot_spectra_grid</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 

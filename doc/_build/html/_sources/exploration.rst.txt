@@ -21,6 +21,19 @@ Distribution of the target
    Number of observations in each 1 dB band of scaled sound pressure level,
    with the mean and median marked.
 
+Measured spectra
+----------------
+
+.. figure:: generated/explore_spectra_grid.png
+   :width: 100%
+   :alt: Grid of 24 panels, rows by chord length and columns by free-stream
+         velocity, each showing SPL against frequency with one line per angle
+         of attack, coloured from light (0 deg) to dark (22.2 deg).
+
+   Measured SPL against frequency (log axis) for all 106 setups. Rows are
+   chord lengths, columns are free-stream velocities, and each line is one
+   angle of attack (colour bar).
+
 Feature set A: the raw inputs
 -----------------------------
 
