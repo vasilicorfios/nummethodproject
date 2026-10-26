@@ -23,7 +23,6 @@ Writes:
 * ``results/physics_speed_order_summary.csv``: the scores per model.
 * ``results/acceptance.csv``: the acceptance criteria table.
 * ``doc/generated/physics_speed_order.csv`` and ``acceptance.csv``: rounded copies.
-* ``doc/generated/physics_speed_order.png`` and ``.pdf``: example groups.
 """
 
 from pathlib import Path
@@ -36,8 +35,6 @@ from functions.evaluate import cross_validate
 from functions.models import FINAL_FEATURE_SET, FINAL_MODEL_NAME
 from functions.physics_checks import group_levels, speed_order_check
 from functions.physics_features import add_physics_features
-from functions.plot_robustness import plot_speed_order
-from functions.plot_tuning import save_png_pdf
 from functions.tuning import OOF_FILENAME, tuned_result_from_saved
 from run_cv import DOC_TABLES_DIR, RESULTS_DIR
 
@@ -63,36 +60,6 @@ def saved_holdout(results_dir: Path) -> dict[str, float] | None:
         return None
     rmse = pd.read_csv(path).set_index("model")["rmse"]
     return {"mlp_rmse": float(rmse[FINAL_MODEL_NAME]), "linear_rmse": float(rmse["linear"])}
-
-
-def example_groups(groups: pd.DataFrame, n: int = N_EXAMPLES) -> list[tuple[float, float]]:
-    """Pick example (chord, angle) groups for the figure.
-
-    Groups where the MLP gets the order wrong come first (they are the
-    interesting cases); the rest are correctly ordered groups with the most
-    speeds, each from a different chord.
-
-    Args:
-        groups: The per-group table from
-            :func:`functions.physics_checks.speed_order_check`.
-        n: Number of groups to return.
-
-    Returns:
-        Up to ``n`` ``(chord, angle)`` pairs.
-    """
-    scored = groups[groups["measured_increasing"]]
-    wrong = scored[~scored["mlp_order_correct"]]
-    picks = list(zip(wrong["chord_length_m"], wrong["attack_angle_deg"]))[:n]
-    right = scored[scored["mlp_order_correct"]].sort_values(
-        ["n_speeds", "chord_length_m"], ascending=[False, True])
-    used_chords = {chord for chord, _ in picks}
-    for _, row in right.iterrows():
-        if len(picks) >= n:
-            break
-        if row["chord_length_m"] not in used_chords:
-            picks.append((row["chord_length_m"], row["attack_angle_deg"]))
-            used_chords.add(row["chord_length_m"])
-    return picks
 
 
 def write_doc_tables(summary: pd.DataFrame, groups: pd.DataFrame,
@@ -151,8 +118,6 @@ def main() -> None:
     groups.to_csv(RESULTS_DIR / "physics_speed_order.csv", index=False)
     levels.to_csv(RESULTS_DIR / "physics_speed_order_levels.csv", index=False)
     summary.to_csv(RESULTS_DIR / "physics_speed_order_summary.csv", index=False)
-    save_png_pdf(plot_speed_order(levels, example_groups(groups)), DOC_TABLES_DIR,
-                 "physics_speed_order")
 
     # Acceptance criteria (fixed before the hold-out run). If the hold-out has
     # already been evaluated, its saved results are included so this table
@@ -167,7 +132,7 @@ def main() -> None:
     write_doc_tables(summary, groups, acceptance)
     print("\nAcceptance criteria (fixed before the hold-out evaluation)")
     print(acceptance[["criterion", "threshold", "value", "result"]].to_string(index=False))
-    print(f"\nResults written to {RESULTS_DIR}; doc tables and figure to {DOC_TABLES_DIR}")
+    print(f"\nResults written to {RESULTS_DIR}; doc tables to {DOC_TABLES_DIR}")
 
 
 if __name__ == "__main__":

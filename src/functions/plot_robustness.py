@@ -1,9 +1,7 @@
-"""Figures for the robustness shift tests and the speed physics check.
+"""Figure for the robustness shift tests.
 
-* :func:`plot_shift_tests`: RMSE for each held-out chord and velocity,
-  linear vs MLP, with each model's in-distribution (nested-CV) RMSE dashed.
-* :func:`plot_speed_order`: mean SPL against free-stream velocity for a few
-  (chord, angle) groups, measured vs predicted.
+:func:`plot_shift_tests`: RMSE for each held-out chord and velocity, linear
+vs MLP, with each model's in-distribution (nested-CV) RMSE dashed.
 
 Linear is always blue and the MLP orange, as in every other comparison.
 Save with :func:`functions.plot_tuning.save_png_pdf`.
@@ -24,11 +22,6 @@ MODEL_STYLE = {
     "linear": (SERIES_COLOURS[0], "linear / B"),
     "mlp": (SERIES_COLOURS[1], "final MLP / B"),
 }
-
-#: Legend labels in the physics check: its MLP predictions come from the
-#: nested-CV MLPs (each outer fold's own tuned setting), not the frozen final
-#: model, so they are labelled differently from the shift tests.
-SPEED_CHECK_LABELS = {"linear": "linear / B", "mlp": "MLP (nested CV) / B"}
 
 #: Readable panel titles for the shift tests.
 SHIFT_TITLES = {
@@ -82,39 +75,4 @@ def plot_shift_tests(table: pd.DataFrame, reference: dict[str, float]) -> Figure
     axes[0, 0].set_ylabel("RMSE on held-out rows (dB)")
     # The last panel has free space at the top (the tallest bar is on the left).
     axes[0, -1].legend(frameon=False, fontsize=8, labelcolor=INK_SECONDARY, loc="upper right")
-    return fig
-
-
-def plot_speed_order(levels: pd.DataFrame, groups: list[tuple[float, float]]) -> Figure:
-    """Mean SPL against velocity for chosen (chord, angle) groups.
-
-    Measured mean SPL is drawn as black points; the nested-CV MLP and linear
-    out-of-fold predictions as coloured lines. For the physics check, the
-    predicted lines should rise with velocity like the measured points.
-
-    Args:
-        levels: Output of :func:`functions.physics_checks.group_levels`.
-        groups: ``(chord, angle)`` pairs to draw, one panel each.
-
-    Returns:
-        The figure (not shown or saved).
-    """
-    fig, axes = plt.subplots(1, len(groups), figsize=(3.4 * len(groups), 3.4),
-                             squeeze=False, layout="constrained")
-    fig.set_facecolor(SURFACE)
-    for ax, (chord, angle) in zip(axes[0], groups):
-        _style(ax)
-        g = levels[(levels["chord_length_m"] == chord) & (levels["attack_angle_deg"] == angle)]
-        g = g.sort_values("velocity_mps")
-        for model, column in (("linear", "linear_spl"), ("mlp", "mlp_spl")):
-            colour, _ = MODEL_STYLE[model]
-            label = SPEED_CHECK_LABELS[model]
-            ax.plot(g["velocity_mps"], g[column], color=colour, linewidth=2, marker="o",
-                    markersize=4, label=label)
-        ax.plot(g["velocity_mps"], g["measured_spl"], color=INK, linestyle="none", marker="o",
-                markersize=7, label="measured")
-        ax.set_title(f"c = {chord:g} m, α = {angle:g}°", fontsize=9, loc="left")
-        ax.set_xlabel("Free-stream velocity (m/s)")
-    axes[0, 0].set_ylabel("Mean SPL over shared bands (dB)")
-    axes[0, 0].legend(frameon=False, fontsize=7.5, labelcolor=INK_SECONDARY)
     return fig

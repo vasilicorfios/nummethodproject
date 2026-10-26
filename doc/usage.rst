@@ -217,11 +217,9 @@ it refit each fold's chosen setting, and then it saves the file.
 The same script also produces:
 
 * an **error map** placing every setup on the test matrix, coloured by RMSE;
-* a **Strouhal-scaling check**: whether measured peak frequencies scale
-  with ``U / δ*`` (constant Strouhal number), and whether the MLP's predicted
-  peak lands within one 1/3-octave step of the measured one;
-* a **residual heatmap** (setups x frequencies), and the share of each setup's
-  squared error that falls around its measured peak.
+* the share of each setup's squared error that falls around its measured
+  peak;
+* peak prominence against Reynolds number, coloured by the MLP's setup RMSE.
 
 Robustness shift tests
 ----------------------

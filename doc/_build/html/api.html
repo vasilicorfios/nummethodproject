@@ -34,231 +34,6 @@
             
   <section id="api-reference">
 <h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
-<section id="module-functions.verification">
-<span id="verification-manufactured-solutions"></span><h2>Verification (manufactured solutions)<a class="headerlink" href="#module-functions.verification" title="Link to this heading">¶</a></h2>
-<p>Manufactured-solution checks: is each model implemented correctly?</p>
-<p>A <strong>manufactured solution</strong> is made-up data generated from a formula whose
-answer is known exactly. If the code is implemented correctly, the model must
-recover that answer. This checks the <em>implementation</em> (verification), as
-opposed to how well the model predicts real noise data (validation).</p>
-<p>Both checks use the real model pipelines from <a class="reference internal" href="#functions.models.build_model" title="functions.models.build_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.build_model()</span></code></a>,
-including the input and target scaling, so the whole chain is verified, not just
-the estimator inside it.</p>
-<ul class="simple">
-<li><p><strong>Linear least squares</strong> (<a class="reference internal" href="#functions.verification.check_linear" title="functions.verification.check_linear"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_linear()</span></code></a>): data from
-<code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">x1</span> <span class="pre">−</span> <span class="pre">5</span> <span class="pre">x2</span></code> with no noise, with the two inputs about 10⁸ apart
-in scale (like Reynolds and Strouhal numbers). An exact solver must recover
-the coefficients and reproduce <code class="docutils literal notranslate"><span class="pre">y</span></code> to round-off.</p></li>
-<li><p><strong>MLP</strong> (<a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_sine()</span></code></a>): 200 evenly spaced points of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">sin(x)</span></code>
-on [0, 2π]. A correctly implemented network should learn this smooth
-non-linear curve to a small error, and it is scored on points <strong>between</strong>
-the training points, so it must have learned the curve, not memorised the
-points. The linear model is run on the same data as a <strong>negative
-control</strong>: it cannot represent a sine, so it must fail. That shows the test
-is able to fail.</p></li>
-</ul>
-<p>The MLP pass marks (<a class="reference internal" href="#functions.verification.SINE_MAX_RMSE" title="functions.verification.SINE_MAX_RMSE"><code class="xref py py-data docutils literal notranslate"><span class="pre">SINE_MAX_RMSE</span></code></a>, <a class="reference internal" href="#functions.verification.SINE_MIN_R2" title="functions.verification.SINE_MIN_R2"><code class="xref py py-data docutils literal notranslate"><span class="pre">SINE_MIN_R2</span></code></a>) were set
-after a first measurement, with a safety margin. They test that the network
-learns a smooth non-linear function, not that it reproduces it exactly: the
-final MLP’s strong L2 penalty (<code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">=</span> <span class="pre">1</span></code>) and early stopping deliberately
-smooth the fit. The largest error occurs at the ends of the range, where a
-network has data on one side only, so no pass mark is set on the maximum
-error.</p>
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.LINEAR_INTERCEPT">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">LINEAR_INTERCEPT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3.0</span></em><a class="headerlink" href="#functions.verification.LINEAR_INTERCEPT" title="Link to this definition">¶</a></dt>
-<dd><p>intercept and coefficients of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">x1</span> <span class="pre">−</span> <span class="pre">5</span> <span class="pre">x2</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Manufactured linear law</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.N_POINTS">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">N_POINTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">200</span></em><a class="headerlink" href="#functions.verification.N_POINTS" title="Link to this definition">¶</a></dt>
-<dd><p>Number of points in each manufactured dataset.</p>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.LINEAR_MAX_REL_ERROR">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">LINEAR_MAX_REL_ERROR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></em><a class="headerlink" href="#functions.verification.LINEAR_MAX_REL_ERROR" title="Link to this definition">¶</a></dt>
-<dd><p>largest allowed relative error in the recovered coefficients.
-Round-off with inputs 10⁸ apart in scale is about 1e-9, so 1e-6 is strict.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Linear check</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.SINE_MAX_RMSE">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">SINE_MAX_RMSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#functions.verification.SINE_MAX_RMSE" title="Link to this definition">¶</a></dt>
-<dd><p>largest allowed RMSE between training points (10% of the
-sine’s amplitude of 1).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>MLP check</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.SINE_MIN_R2">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">SINE_MIN_R2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.98</span></em><a class="headerlink" href="#functions.verification.SINE_MIN_R2" title="Link to this definition">¶</a></dt>
-<dd><p>smallest allowed R² between training points.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>MLP check</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.verification.CONTROL_MIN_RMSE">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">CONTROL_MIN_RMSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.3</span></em><a class="headerlink" href="#functions.verification.CONTROL_MIN_RMSE" title="Link to this definition">¶</a></dt>
-<dd><p>the linear model must have at least this RMSE on the
-sine, i.e. clearly fail.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Negative control</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.verification.manufactured_linear">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">manufactured_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/verification.html#manufactured_linear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.manufactured_linear" title="Link to this definition">¶</a></dt>
-<dd><p>Noise-free data from the known linear law, inputs on very different scales.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>n</strong> – Number of points.</p></li>
-<li><p><strong>seed</strong> – Seed for drawing the inputs.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>inputs <code class="docutils literal notranslate"><span class="pre">x1</span></code> in [0, 10⁶] and <code class="docutils literal notranslate"><span class="pre">x2</span></code> in [0, 10⁻²], and exact <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(X,</span> <span class="pre">y)</span></code></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.verification.check_linear">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">check_linear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/functions/verification.html#check_linear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.check_linear" title="Link to this definition">¶</a></dt>
-<dd><p>Fit the linear pipeline to the manufactured law and measure the recovery.</p>
-<p>The raw coefficients are recovered from the scaled model with
-<code class="docutils literal notranslate"><span class="pre">beta_j</span> <span class="pre">=</span> <span class="pre">coef_effect_j</span> <span class="pre">/</span> <span class="pre">sigma_j</span></code> (see
-<a class="reference internal" href="#functions.models.coefficient_effects" title="functions.models.coefficient_effects"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.models.coefficient_effects()</span></code></a>).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>n</strong> – Number of points.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">max_coef_rel_error</span></code>, <code class="docutils literal notranslate"><span class="pre">max_abs_pred_error</span></code> (in units of
-<code class="docutils literal notranslate"><span class="pre">y</span></code>), the recovered coefficients and <code class="docutils literal notranslate"><span class="pre">passed</span></code>.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.verification.manufactured_sine">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">manufactured_sine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/verification.html#manufactured_sine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.manufactured_sine" title="Link to this definition">¶</a></dt>
-<dd><p>Training points and in-between test points of <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">sin(x)</span></code> on [0, 2π].</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>n</strong> – Number of evenly spaced training points.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(X_train,</span> <span class="pre">y_train,</span> <span class="pre">X_between,</span> <span class="pre">y_between)</span></code>. The “between” points
-are a fine grid on the same range with the training points removed,
-so the model is scored where it never saw data.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.verification.check_sine">
-<span class="sig-prename descclassname"><span class="pre">functions.verification.</span></span><span class="sig-name descname"><span class="pre">check_sine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mlp_final'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/functions/verification.html#check_sine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.verification.check_sine" title="Link to this definition">¶</a></dt>
-<dd><p>Fit a model to the manufactured sine and score it between the points.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>model_name</strong> – Key of <a class="reference internal" href="#functions.models.MODELS" title="functions.models.MODELS"><code class="xref py py-data docutils literal notranslate"><span class="pre">functions.models.MODELS</span></code></a>.</p></li>
-<li><p><strong>n</strong> – Number of training points.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">train_rmse</span></code>, <code class="docutils literal notranslate"><span class="pre">rmse</span></code> and <code class="docutils literal notranslate"><span class="pre">r2</span></code> (between the training points),
-<code class="docutils literal notranslate"><span class="pre">max_error</span></code> and the <code class="docutils literal notranslate"><span class="pre">x</span></code> where it occurs, <code class="docutils literal notranslate"><span class="pre">n_iter</span></code> (epochs, for
-MLPs), <code class="docutils literal notranslate"><span class="pre">passed</span></code> (MLP pass marks met), and the <code class="docutils literal notranslate"><span class="pre">x</span></code>/<code class="docutils literal notranslate"><span class="pre">prediction</span></code>
-arrays for plotting.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<p id="module-run_verification">Entry point for the manufactured-solution verification checks.</p>
-<p>Runs the linear and MLP manufactured-solution checks
-(<a class="reference internal" href="#module-functions.verification" title="functions.verification"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.verification</span></code></a>) and saves a table and a figure for the HTML
-results page. These checks use made-up data only; the airfoil dataset and
-the test hold-out are not involved:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_verification</span><span class="o">.</span><span class="n">py</span>    <span class="c1"># a few seconds</span>
-</pre></div>
-</div>
-<p>Writes:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">results/verification.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">doc/generated/verification.csv</span></code>: one
-row per check, with value, pass mark and PASS/FAIL.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/verification_sine.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: the MLP sine check.</p></li>
-</ul>
-<dl class="py function">
-<dt class="sig sig-object py" id="run_verification.verification_table">
-<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">verification_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/run_verification.html#verification_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.verification_table" title="Link to this definition">¶</a></dt>
-<dd><p>One row per verification check, with value, pass mark and result.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>linear</strong> – Output of <a class="reference internal" href="#functions.verification.check_linear" title="functions.verification.check_linear"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_linear()</span></code></a>.</p></li>
-<li><p><strong>mlp</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for the final MLP.</p></li>
-<li><p><strong>control</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for linear.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Columns <code class="docutils literal notranslate"><span class="pre">check</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">quantity</span></code>, <code class="docutils literal notranslate"><span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">pass_mark</span></code>
-and <code class="docutils literal notranslate"><span class="pre">result</span></code>.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="run_verification.plot_sine_check">
-<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">plot_sine_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/run_verification.html#plot_sine_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.plot_sine_check" title="Link to this definition">¶</a></dt>
-<dd><p>Sine fit (left) and the MLP’s error along x (right).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>mlp</strong> – <a class="reference internal" href="#functions.verification.check_sine" title="functions.verification.check_sine"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.verification.check_sine()</span></code></a> for the final MLP.</p></li>
-<li><p><strong>control</strong> – The same for linear (the negative control).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The figure (not shown or saved).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="run_verification.main">
-<span class="sig-prename descclassname"><span class="pre">run_verification.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_verification.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_verification.main" title="Link to this definition">¶</a></dt>
-<dd><p>Run the checks, print the table and save the outputs.</p>
-</dd></dl>
-
-</section>
 <section id="module-functions.data_loader">
 <span id="data-loading"></span><h2>Data loading<a class="headerlink" href="#module-functions.data_loader" title="Link to this heading">¶</a></h2>
 <p>Load the NASA/UCI Airfoil Self-Noise dataset.</p>
@@ -2193,25 +1968,20 @@ cannot always show R² or ±; the saved tables use the proper symbols.</p>
 </section>
 <section id="module-functions.error_analysis">
 <span id="error-analysis"></span><h2>Error analysis<a class="headerlink" href="#module-functions.error_analysis" title="Link to this heading">¶</a></h2>
-<p>Where and why the models fail: spectral peaks, Strouhal scaling, residuals.</p>
-<p>Three analyses of the out-of-fold predictions, all on the cross-validation
-setups only (the test hold-out is never looked at):</p>
+<p>Where the models fail: spectral peaks and the error around them.</p>
+<p>Analyses of the out-of-fold predictions, all on the cross-validation setups
+only (the test hold-out is never looked at):</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#functions.error_analysis.spectral_peaks" title="functions.error_analysis.spectral_peaks"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral_peaks()</span></code></a> finds the most prominent peak of each measured
 spectrum and the frequency at which a model’s predicted spectrum peaks.</p></li>
-<li><p><a class="reference internal" href="#functions.error_analysis.peak_scaling_fit" title="functions.error_analysis.peak_scaling_fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">peak_scaling_fit()</span></code></a> checks a physical law: if a peak is produced at a
-fixed Strouhal number <code class="docutils literal notranslate"><span class="pre">St</span> <span class="pre">=</span> <span class="pre">f</span> <span class="pre">L</span> <span class="pre">/</span> <span class="pre">U</span></code> (<code class="docutils literal notranslate"><span class="pre">L</span></code> a length scale), its
-frequency is proportional to <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">L</span></code>. On log axes that is a straight
-line of <strong>slope 1</strong>. A fitted slope well away from 1 means a single
-Strouhal number does not describe the peaks.</p></li>
-<li><p><a class="reference internal" href="#functions.error_analysis.residual_matrix" title="functions.error_analysis.residual_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">residual_matrix()</span></code></a> and <a class="reference internal" href="#functions.error_analysis.peak_error_share" title="functions.error_analysis.peak_error_share"><code class="xref py py-func docutils literal notranslate"><span class="pre">peak_error_share()</span></code></a> show where along the
-spectrum the errors sit, and how much of each setup’s error comes from the
-frequencies around its measured peak.</p></li>
+<li><p><a class="reference internal" href="#functions.error_analysis.peak_error_share" title="functions.error_analysis.peak_error_share"><code class="xref py py-func docutils literal notranslate"><span class="pre">peak_error_share()</span></code></a> shows how much of each setup’s error comes from
+the frequencies around its measured peak.</p></li>
+<li><p><a class="reference internal" href="#functions.error_analysis.tonal_table" title="functions.error_analysis.tonal_table"><code class="xref py py-func docutils literal notranslate"><span class="pre">tonal_table()</span></code></a> gives each setup’s peak prominence.</p></li>
 </ul>
 <p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">spectral_peaks</span><span class="p">,</span> <span class="n">peak_scaling_fit</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">peaks</span> <span class="o">=</span> <span class="n">spectral_peaks</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mlp_result</span><span class="p">)</span>      
-<span class="gp">&gt;&gt;&gt; </span><span class="n">peak_scaling_fit</span><span class="p">(</span><span class="n">peaks</span><span class="p">,</span> <span class="s2">"disp_thickness_m"</span><span class="p">)</span>   
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.error_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">spectral_peaks</span><span class="p">,</span> <span class="n">peak_error_share</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaks</span> <span class="o">=</span> <span class="n">spectral_peaks</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mlp_result</span><span class="p">)</span>       
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peak_error_share</span><span class="p">(</span><span class="n">mlp_result</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">peaks</span><span class="p">)</span>      
 </pre></div>
 </div>
 <dl class="py data">
@@ -2261,51 +2031,6 @@ of the peak in the setup’s sorted frequencies), <code class="docutils literal 
 (<code class="docutils literal notranslate"><span class="pre">peak_hz</span> <span class="pre">*</span> <span class="pre">disp_thickness_m</span> <span class="pre">/</span> <span class="pre">velocity_mps</span></code>) and, with <code class="docutils literal notranslate"><span class="pre">result</span></code>,
 <code class="docutils literal notranslate"><span class="pre">pred_peak_hz</span></code> and <code class="docutils literal notranslate"><span class="pre">pred_peak_steps_off</span></code> (1/3-octave steps from
 the measured peak).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.error_analysis.peak_scaling_fit">
-<span class="sig-prename descclassname"><span class="pre">functions.error_analysis.</span></span><span class="sig-name descname"><span class="pre">peak_scaling_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">peaks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/functions/error_analysis.html#peak_scaling_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.error_analysis.peak_scaling_fit" title="Link to this definition">¶</a></dt>
-<dd><p>Test whether peak frequencies scale with <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">L</span></code> (constant Strouhal).</p>
-<p>Fits <code class="docutils literal notranslate"><span class="pre">log10(peak_hz)</span> <span class="pre">=</span> <span class="pre">slope</span> <span class="pre">*</span> <span class="pre">log10(U</span> <span class="pre">/</span> <span class="pre">L)</span> <span class="pre">+</span> <span class="pre">intercept</span></code> over the setups
-that have a peak. Constant-Strouhal scaling predicts <code class="docutils literal notranslate"><span class="pre">slope</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>peaks</strong> – Output of <a class="reference internal" href="#functions.error_analysis.spectral_peaks" title="functions.error_analysis.spectral_peaks"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral_peaks()</span></code></a>.</p></li>
-<li><p><strong>length_column</strong> – Column used as the length scale <code class="docutils literal notranslate"><span class="pre">L</span></code>, e.g.
-<code class="docutils literal notranslate"><span class="pre">&quot;disp_thickness_m&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;chord_length_m&quot;</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">length_scale</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code> (setups with a peak), <code class="docutils literal notranslate"><span class="pre">slope</span></code>,
-<code class="docutils literal notranslate"><span class="pre">slope_ci95</span></code> (half-width of the 95% confidence interval), <code class="docutils literal notranslate"><span class="pre">r2</span></code>,
-<code class="docutils literal notranslate"><span class="pre">median_st</span></code> (median of <code class="docutils literal notranslate"><span class="pre">peak_hz</span> <span class="pre">*</span> <span class="pre">L</span> <span class="pre">/</span> <span class="pre">U</span></code>) and the spread factors
-<code class="docutils literal notranslate"><span class="pre">peak_hz_spread</span></code> and <code class="docutils literal notranslate"><span class="pre">st_spread</span></code> (10 to the power of the SD of
-their log10). If Strouhal scaling held, <code class="docutils literal notranslate"><span class="pre">st_spread</span></code> would be much
-smaller than <code class="docutils literal notranslate"><span class="pre">peak_hz_spread</span></code>.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.error_analysis.residual_matrix">
-<span class="sig-prename descclassname"><span class="pre">functions.error_analysis.</span></span><span class="sig-name descname"><span class="pre">residual_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="reference internal" href="_modules/functions/error_analysis.html#residual_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.error_analysis.residual_matrix" title="Link to this definition">¶</a></dt>
-<dd><p>Mean residual (measured − predicted) for every setup and frequency.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>result</strong> – Model result.</p></li>
-<li><p><strong>data</strong> – The dataset the result was computed on.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A table indexed by <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> with one column per measured
-frequency (Hz, ascending). Values are in dB, averaged over seeds;
-NaN where that frequency was not measured for the setup. Rows are
-ordered by chord, then angle, then velocity.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2391,25 +2116,11 @@ and <code class="docutils literal notranslate"><span class="pre">peak_hz</span><
 <ul class="simple">
 <li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_error_map" title="functions.plot_error_analysis.plot_error_map"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_error_map()</span></code></a>: every setup placed by its test conditions and
 coloured by its RMSE, so clusters of poorly predicted conditions stand out.</p></li>
-<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_peak_scaling" title="functions.plot_error_analysis.plot_peak_scaling"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_peak_scaling()</span></code></a>: the Strouhal-scaling check on measured peaks,
-and the model’s predicted peak frequency against the measured one.</p></li>
-<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_residual_heatmap" title="functions.plot_error_analysis.plot_residual_heatmap"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_residual_heatmap()</span></code></a>: residual (measured − predicted) for every
-setup and frequency, with the measured peaks marked.</p></li>
+<li><p><a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_angle" title="functions.plot_error_analysis.plot_tonal_by_angle"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_angle()</span></code></a> and <a class="reference internal" href="#functions.plot_error_analysis.plot_tonal_by_error" title="functions.plot_error_analysis.plot_tonal_by_error"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_tonal_by_error()</span></code></a>: peak
+prominence against chord Reynolds number for every setup.</p></li>
 </ul>
 <p>The style matches <a class="reference internal" href="#module-functions.plot_results" title="functions.plot_results"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.plot_results</span></code></a>; save with
 <a class="reference internal" href="#functions.plot_tuning.save_png_pdf" title="functions.plot_tuning.save_png_pdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.plot_tuning.save_png_pdf()</span></code></a>.</p>
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.plot_error_analysis.RESIDUAL_CMAP">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">RESIDUAL_CMAP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'residual'</span></em><a class="headerlink" href="#functions.plot_error_analysis.RESIDUAL_CMAP" title="Link to this definition">¶</a></dt>
-<dd><p>blue (model too high) -&gt; neutral -&gt; red
-(model too low). The neutral midpoint means “no error”.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Diverging map for residuals</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="functions.plot_error_analysis.plot_error_map">
 <span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_error_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pd.DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_ranks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_error_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_error_map" title="Link to this definition">¶</a></dt>
@@ -2425,55 +2136,6 @@ shown only so gaps in the test matrix are visible (they are not scored).</p>
 <li><p><strong>data</strong> – The dataset (for the test matrix).</p></li>
 <li><p><strong>label_ranks</strong> – Optional table with <code class="docutils literal notranslate"><span class="pre">setup_id</span></code> and <code class="docutils literal notranslate"><span class="pre">rank</span></code>; those
 setups are labelled with their rank on the last row of panels.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The figure (not shown or saved).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.plot_error_analysis.plot_peak_scaling">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_peak_scaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">peaks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_peak_scaling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_peak_scaling" title="Link to this definition">¶</a></dt>
-<dd><p>Strouhal-scaling check (left) and predicted vs measured peak frequency (right).</p>
-<p>Left: measured peak frequency against <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">δ*</span></code> on log axes for setups
-with a peak. Constant-Strouhal scaling would put the points on a line of
-slope 1 (dashed, drawn through the median Strouhal number); the solid
-line is the fitted slope. Right: the frequency of the model’s predicted
-peak against the measured one; marker size counts setups (frequencies
-are discrete 1/3-octave values, so many coincide). Dotted lines mark one
-1/3-octave step either side of perfect agreement.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>peaks</strong> – <a class="reference internal" href="#functions.error_analysis.spectral_peaks" title="functions.error_analysis.spectral_peaks"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.error_analysis.spectral_peaks()</span></code></a> output (with
-predicted peaks).</p></li>
-<li><p><strong>fit</strong> – <a class="reference internal" href="#functions.error_analysis.peak_scaling_fit" title="functions.error_analysis.peak_scaling_fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.error_analysis.peak_scaling_fit()</span></code></a> output for
-<code class="docutils literal notranslate"><span class="pre">disp_thickness_m</span></code>.</p></li>
-<li><p><strong>model_label</strong> – Name of the model in the right panel.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The figure (not shown or saved).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.plot_error_analysis.plot_residual_heatmap">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_error_analysis.</span></span><span class="sig-name descname"><span class="pre">plot_residual_heatmap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peaks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_error_analysis.html#plot_residual_heatmap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_error_analysis.plot_residual_heatmap" title="Link to this definition">¶</a></dt>
-<dd><p>Residual for every setup (rows) and frequency (columns), per model.</p>
-<p>Red means the model predicts too low, blue too high. Rows are grouped by
-chord (lines separate the groups) and ordered by angle then velocity
-within each chord. Black dots mark each setup’s measured peak.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>matrices</strong> – <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">residual_matrix)</span></code> pairs, one panel each, with
-identical row order.</p></li>
-<li><p><strong>data</strong> – The dataset (for the chord of each setup).</p></li>
-<li><p><strong>peaks</strong> – <a class="reference internal" href="#functions.error_analysis.spectral_peaks" title="functions.error_analysis.spectral_peaks"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.error_analysis.spectral_peaks()</span></code></a> output.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2554,11 +2216,8 @@ hold-out is never used.</p>
 <p>It then runs three further analyses (<a class="reference internal" href="#module-functions.error_analysis" title="functions.error_analysis"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functions.error_analysis</span></code></a>):</p>
 <ul class="simple">
 <li><p>an <strong>error map</strong> placing every setup on the test matrix, coloured by RMSE;</p></li>
-<li><p>a <strong>Strouhal check</strong>: do measured peak frequencies scale with <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">/</span> <span class="pre">δ*</span></code>
-(constant Strouhal number), and does the MLP put its peak in the right
-place?</p></li>
-<li><p>a <strong>residual heatmap</strong> (setups x frequencies) and the share of each
-setup’s error that sits around its measured peak.</p></li>
+<li><p>the share of each setup’s error that sits around its measured peak;</p></li>
+<li><p>peak prominence against Reynolds number, coloured by the MLP’s setup RMSE.</p></li>
 </ul>
 <p>Writes, for each feature set <code class="docutils literal notranslate"><span class="pre">&lt;fs&gt;</span></code>:</p>
 <ul class="simple">
@@ -2567,13 +2226,10 @@ setup’s error that sits around its measured peak.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/worst_setups_&lt;fs&gt;.csv</span></code>: a rounded copy for the docs.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/worst_setups_spectra_&lt;fs&gt;.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: their spectra.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/spectral_peaks_&lt;fs&gt;.csv</span></code>: measured and predicted peak per setup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">results/peak_scaling_&lt;fs&gt;.csv</span></code>: Strouhal-scaling fits for δ* and chord.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/peak_error_share_&lt;fs&gt;.csv</span></code>: per-setup share of error at the peak.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/peak_scaling_&lt;fs&gt;.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">peak_error_share_&lt;fs&gt;.csv</span></code>:
-rounded tables for the docs.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/error_map_&lt;fs&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">peak_scaling_&lt;fs&gt;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">residual_heatmap_&lt;fs&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">tonal_peaks_mlp_error_&lt;fs&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">.png</span></code> and
-<code class="docutils literal notranslate"><span class="pre">.pdf</span></code>): the figures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/peak_error_share_&lt;fs&gt;.csv</span></code>: rounded table for the docs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/error_map_&lt;fs&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">tonal_peaks_mlp_error_&lt;fs&gt;</span></code>
+(<code class="docutils literal notranslate"><span class="pre">.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>): the figures.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/tonal_peaks_&lt;fs&gt;.csv</span></code>: peak prominence, Reynolds number and MLP
 setup RMSE for every CV setup.</p></li>
 </ul>
@@ -2664,7 +2320,7 @@ worst for the MLP).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="run_error_analysis.run_extra_analyses">
 <span class="sig-prename descclassname"><span class="pre">run_error_analysis.</span></span><span class="sig-name descname"><span class="pre">run_extra_analyses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#functions.evaluate.CVResult" title="functions.evaluate.CVResult"><span class="pre">CVResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">linear_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp_setups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/run_error_analysis.html#run_extra_analyses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_error_analysis.run_extra_analyses" title="Link to this definition">¶</a></dt>
-<dd><p>Error map, Strouhal check and residual heatmap for one feature set.</p>
+<dd><p>Error map, peak error share and tonal-peak plot for one feature set.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -3040,32 +2696,15 @@ excluded groups.</p>
 </dl>
 </dd></dl>
 
-<p id="module-functions.plot_robustness">Figures for the robustness shift tests and the speed physics check.</p>
-<ul class="simple">
-<li><p><a class="reference internal" href="#functions.plot_robustness.plot_shift_tests" title="functions.plot_robustness.plot_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_shift_tests()</span></code></a>: RMSE for each held-out chord and velocity,
-linear vs MLP, with each model’s in-distribution (nested-CV) RMSE dashed.</p></li>
-<li><p><a class="reference internal" href="#functions.plot_robustness.plot_speed_order" title="functions.plot_robustness.plot_speed_order"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_speed_order()</span></code></a>: mean SPL against free-stream velocity for a few
-(chord, angle) groups, measured vs predicted.</p></li>
-</ul>
+<p id="module-functions.plot_robustness">Figure for the robustness shift tests.</p>
+<p><a class="reference internal" href="#functions.plot_robustness.plot_shift_tests" title="functions.plot_robustness.plot_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_shift_tests()</span></code></a>: RMSE for each held-out chord and velocity, linear
+vs MLP, with each model’s in-distribution (nested-CV) RMSE dashed.</p>
 <p>Linear is always blue and the MLP orange, as in every other comparison.
 Save with <a class="reference internal" href="#functions.plot_tuning.save_png_pdf" title="functions.plot_tuning.save_png_pdf"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.plot_tuning.save_png_pdf()</span></code></a>.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="functions.plot_robustness.MODEL_STYLE">
 <span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">MODEL_STYLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">('#2a78d6',</span> <span class="pre">'linear</span> <span class="pre">/</span> <span class="pre">B'),</span> <span class="pre">'mlp':</span> <span class="pre">('#eb6834',</span> <span class="pre">'final</span> <span class="pre">MLP</span> <span class="pre">/</span> <span class="pre">B')}</span></em><a class="headerlink" href="#functions.plot_robustness.MODEL_STYLE" title="Link to this definition">¶</a></dt>
 <dd><p>Colour and legend label of each model.</p>
-</dd></dl>
-
-<dl class="py data">
-<dt class="sig sig-object py" id="functions.plot_robustness.SPEED_CHECK_LABELS">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">SPEED_CHECK_LABELS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'linear':</span> <span class="pre">'linear</span> <span class="pre">/</span> <span class="pre">B',</span> <span class="pre">'mlp':</span> <span class="pre">'MLP</span> <span class="pre">(nested</span> <span class="pre">CV)</span> <span class="pre">/</span> <span class="pre">B'}</span></em><a class="headerlink" href="#functions.plot_robustness.SPEED_CHECK_LABELS" title="Link to this definition">¶</a></dt>
-<dd><p>its MLP predictions come from the
-nested-CV MLPs (each outer fold’s own tuned setting), not the frozen final
-model, so they are labelled differently from the shift tests.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Legend labels in the physics check</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -3088,26 +2727,6 @@ the training range.</p>
 <li><p><strong>table</strong> – Output of <a class="reference internal" href="#functions.shift_tests.run_shift_tests" title="functions.shift_tests.run_shift_tests"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.shift_tests.run_shift_tests()</span></code></a>.</p></li>
 <li><p><strong>reference</strong> – Output of
 <a class="reference internal" href="#functions.shift_tests.in_distribution_reference" title="functions.shift_tests.in_distribution_reference"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.shift_tests.in_distribution_reference()</span></code></a>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The figure (not shown or saved).</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="functions.plot_robustness.plot_speed_order">
-<span class="sig-prename descclassname"><span class="pre">functions.plot_robustness.</span></span><span class="sig-name descname"><span class="pre">plot_speed_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.figure.Figure</span></span></span><a class="reference internal" href="_modules/functions/plot_robustness.html#plot_speed_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#functions.plot_robustness.plot_speed_order" title="Link to this definition">¶</a></dt>
-<dd><p>Mean SPL against velocity for chosen (chord, angle) groups.</p>
-<p>Measured mean SPL is drawn as black points; the nested-CV MLP and linear
-out-of-fold predictions as coloured lines. For the physics check, the
-predicted lines should rise with velocity like the measured points.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>levels</strong> – Output of <a class="reference internal" href="#functions.physics_checks.group_levels" title="functions.physics_checks.group_levels"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_checks.group_levels()</span></code></a>.</p></li>
-<li><p><strong>groups</strong> – <code class="docutils literal notranslate"><span class="pre">(chord,</span> <span class="pre">angle)</span></code> pairs to draw, one panel each.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3173,7 +2792,6 @@ model’s order and pair results.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_summary.csv</span></code>: the scores per model.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">results/acceptance.csv</span></code>: the acceptance criteria table.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/physics_speed_order.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">acceptance.csv</span></code>: rounded copies.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">doc/generated/physics_speed_order.png</span></code> and <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>: example groups.</p></li>
 </ul>
 <dl class="py data">
 <dt class="sig sig-object py" id="run_physics_check.N_EXAMPLES">
@@ -3194,27 +2812,6 @@ never evaluates the hold-out itself.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{&quot;mlp_rmse&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;linear_rmse&quot;:</span> <span class="pre">...}</span></code> for the selected final MLP
 and linear, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if the hold-out has not been run yet.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="run_physics_check.example_groups">
-<span class="sig-prename descclassname"><span class="pre">run_physics_check.</span></span><span class="sig-name descname"><span class="pre">example_groups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/run_physics_check.html#example_groups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#run_physics_check.example_groups" title="Link to this definition">¶</a></dt>
-<dd><p>Pick example (chord, angle) groups for the figure.</p>
-<p>Groups where the MLP gets the order wrong come first (they are the
-interesting cases); the rest are correctly ordered groups with the most
-speeds, each from a different chord.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>groups</strong> – The per-group table from
-<a class="reference internal" href="#functions.physics_checks.speed_order_check" title="functions.physics_checks.speed_order_check"><code class="xref py py-func docutils literal notranslate"><span class="pre">functions.physics_checks.speed_order_check()</span></code></a>.</p></li>
-<li><p><strong>n</strong> – Number of groups to return.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Up to <code class="docutils literal notranslate"><span class="pre">n</span></code> <code class="docutils literal notranslate"><span class="pre">(chord,</span> <span class="pre">angle)</span></code> pairs.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4384,7 +3981,6 @@ chord and velocity).</p>
 <li class="toctree-l1"><a class="reference internal" href="exploration.html">Data exploration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-functions.verification">Verification (manufactured solutions)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.data_loader">Data loading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.input_checks">Input checks and prediction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-functions.physics_features">Physics features</a></li>

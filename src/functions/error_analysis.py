@@ -1,23 +1,18 @@
-"""Where and why the models fail: spectral peaks, Strouhal scaling, residuals.
+"""Where the models fail: spectral peaks and the error around them.
 
-Three analyses of the out-of-fold predictions, all on the cross-validation
-setups only (the test hold-out is never looked at):
+Analyses of the out-of-fold predictions, all on the cross-validation setups
+only (the test hold-out is never looked at):
 
 * :func:`spectral_peaks` finds the most prominent peak of each measured
   spectrum and the frequency at which a model's predicted spectrum peaks.
-* :func:`peak_scaling_fit` checks a physical law: if a peak is produced at a
-  fixed Strouhal number ``St = f L / U`` (``L`` a length scale), its
-  frequency is proportional to ``U / L``. On log axes that is a straight
-  line of **slope 1**. A fitted slope well away from 1 means a single
-  Strouhal number does not describe the peaks.
-* :func:`residual_matrix` and :func:`peak_error_share` show where along the
-  spectrum the errors sit, and how much of each setup's error comes from the
-  frequencies around its measured peak.
+* :func:`peak_error_share` shows how much of each setup's error comes from
+  the frequencies around its measured peak.
+* :func:`tonal_table` gives each setup's peak prominence.
 
 Example:
-    >>> from functions.error_analysis import spectral_peaks, peak_scaling_fit
-    >>> peaks = spectral_peaks(data, mlp_result)      # doctest: +SKIP
-    >>> peak_scaling_fit(peaks, "disp_thickness_m")   # doctest: +SKIP
+    >>> from functions.error_analysis import spectral_peaks, peak_error_share
+    >>> peaks = spectral_peaks(data, mlp_result)       # doctest: +SKIP
+    >>> peak_error_share(mlp_result, data, peaks)      # doctest: +SKIP
 """
 
 # Postponed annotations: the docs build mocks pandas, and evaluating
@@ -27,7 +22,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks
-from scipy.stats import linregress
 
 from functions.evaluate import CVResult, angle_band
 from functions.make_folds import TEST_FOLD, assign_folds
@@ -108,65 +102,6 @@ def spectral_peaks(data: pd.DataFrame, result: CVResult | None = None,
     peaks = pd.DataFrame(rows)
     peaks["st_peak"] = peaks["peak_hz"] * peaks["disp_thickness_m"] / peaks["velocity_mps"]
     return peaks
-
-
-def peak_scaling_fit(peaks: pd.DataFrame, length_column: str) -> dict[str, float]:
-    """Test whether peak frequencies scale with ``U / L`` (constant Strouhal).
-
-    Fits ``log10(peak_hz) = slope * log10(U / L) + intercept`` over the setups
-    that have a peak. Constant-Strouhal scaling predicts ``slope = 1``.
-
-    Args:
-        peaks: Output of :func:`spectral_peaks`.
-        length_column: Column used as the length scale ``L``, e.g.
-            ``"disp_thickness_m"`` or ``"chord_length_m"``.
-
-    Returns:
-        ``length_scale``, ``n`` (setups with a peak), ``slope``,
-        ``slope_ci95`` (half-width of the 95% confidence interval), ``r2``,
-        ``median_st`` (median of ``peak_hz * L / U``) and the spread factors
-        ``peak_hz_spread`` and ``st_spread`` (10 to the power of the SD of
-        their log10). If Strouhal scaling held, ``st_spread`` would be much
-        smaller than ``peak_hz_spread``.
-    """
-    p = peaks[peaks["has_peak"]]
-    x = np.log10(p["velocity_mps"] / p[length_column])
-    y = np.log10(p["peak_hz"])
-    fit = linregress(x, y)
-    st = p["peak_hz"] * p[length_column] / p["velocity_mps"]
-    return {
-        "length_scale": length_column,
-        "n": len(p),
-        "slope": fit.slope,
-        "slope_ci95": 1.96 * fit.stderr,
-        "intercept": fit.intercept,
-        "r2": fit.rvalue ** 2,
-        "median_st": float(st.median()),
-        "peak_hz_spread": float(10 ** np.log10(p["peak_hz"]).std()),
-        "st_spread": float(10 ** np.log10(st).std()),
-    }
-
-
-def residual_matrix(result: CVResult, data: pd.DataFrame) -> pd.DataFrame:
-    """Mean residual (measured − predicted) for every setup and frequency.
-
-    Args:
-        result: Model result.
-        data: The dataset the result was computed on.
-
-    Returns:
-        A table indexed by ``setup_id`` with one column per measured
-        frequency (Hz, ascending). Values are in dB, averaged over seeds;
-        NaN where that frequency was not measured for the setup. Rows are
-        ordered by chord, then angle, then velocity.
-    """
-    cv = _cv_rows(data)
-    residual = (cv["spl_db"] - _mean_prediction(result).reindex(cv.index)).rename("residual")
-    table = pd.concat([cv[["setup_id", "frequency_hz"]], residual], axis=1)
-    matrix = table.pivot_table(index="setup_id", columns="frequency_hz", values="residual")
-    order = (cv.drop_duplicates("setup_id")
-             .sort_values(["chord_length_m", "attack_angle_deg", "velocity_mps"])["setup_id"])
-    return matrix.reindex(order)
 
 
 def peak_error_share(result: CVResult, data: pd.DataFrame, peaks: pd.DataFrame,

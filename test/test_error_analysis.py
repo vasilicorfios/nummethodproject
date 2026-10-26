@@ -17,16 +17,12 @@ import pytest  # noqa: E402
 from functions.error_analysis import (  # noqa: E402
     peak_error_share,
     peak_error_summary,
-    peak_scaling_fit,
-    residual_matrix,
     spectral_peaks,
 )
 from functions.evaluate import CVResult, per_setup_rmse  # noqa: E402
 from functions.make_folds import TEST_FOLD, assign_folds  # noqa: E402
 from functions.plot_error_analysis import (  # noqa: E402
     plot_error_map,
-    plot_peak_scaling,
-    plot_residual_heatmap,
 )
 from functions.plot_tuning import save_png_pdf  # noqa: E402
 
@@ -67,29 +63,6 @@ def test_perfect_model_finds_every_peak(perfect):
     assert (peaks.loc[peaks["has_peak"], "pred_peak_steps_off"] == 0).all()
 
 
-def test_scaling_fit_recovers_exact_strouhal_law():
-    """Peaks at exactly St = 0.1 give slope 1, R² 1 and no Strouhal spread."""
-    u = np.array([31.7, 39.6, 55.5, 71.3, 39.6])
-    length = np.array([0.001, 0.002, 0.004, 0.003, 0.0005])
-    peaks = pd.DataFrame({"has_peak": True, "velocity_mps": u, "disp_thickness_m": length,
-                          "peak_hz": 0.1 * u / length})
-    fit = peak_scaling_fit(peaks, "disp_thickness_m")
-    assert fit["slope"] == pytest.approx(1.0)
-    assert fit["r2"] == pytest.approx(1.0)
-    assert fit["median_st"] == pytest.approx(0.1)
-    assert fit["st_spread"] == pytest.approx(1.0)
-    assert fit["n"] == 5
-
-
-def test_residual_matrix_shape_and_values(data, perfect):
-    """90 CV setups x 21 frequencies; a perfect model has zero residual everywhere measured."""
-    result, _ = perfect
-    matrix = residual_matrix(result, data)
-    assert matrix.shape == (90, 21)
-    assert list(matrix.columns) == sorted(matrix.columns)
-    assert np.nanmax(np.abs(matrix.to_numpy())) == pytest.approx(0.0)
-
-
 def test_peak_error_share_when_error_only_at_peak(data, perfect):
     """If the only error is at the peak frequency, all squared error is in the window."""
     _, peaks = perfect
@@ -119,18 +92,13 @@ def test_peak_error_summary_hand_calculated():
     assert out["median_frequency_share"].tolist() == pytest.approx([0.2, 0.25])
 
 
-def test_error_analysis_figures_saved(data, perfect, linear_b, tmp_path):
-    """The error map, peak-scaling plot and residual heatmap save as PNG and PDF."""
-    result, peaks = perfect
+def test_error_analysis_figures_saved(data, linear_b, tmp_path):
+    """The error map saves as PNG and PDF."""
     setups = per_setup_rmse(linear_b, data)
     paths = save_png_pdf(plot_error_map([("linear", setups)], data,
                                         setups[["setup_id"]].head(3).assign(rank=[1, 2, 3])),
                          tmp_path, "map")
-    fit = peak_scaling_fit(peaks, "disp_thickness_m")
-    paths += save_png_pdf(plot_peak_scaling(peaks, fit, "perfect"), tmp_path, "scaling")
-    paths += save_png_pdf(plot_residual_heatmap([("perfect", residual_matrix(result, data))], data, peaks),
-                          tmp_path, "heatmap")
-    assert len(paths) == 6 and all(p.stat().st_size > 0 for p in paths)
+    assert len(paths) == 2 and all(p.stat().st_size > 0 for p in paths)
 
 
 @pytest.fixture(scope="module")

@@ -107,12 +107,11 @@ Run every command from the project root. Later scripts read results written by e
 | `python src/explore_plots.py` | Exploratory figures of the dataset | seconds |
 | `python src/run_cv.py` | Linear baseline: repeated grouped 5-fold CV on feature sets A and B | seconds |
 | `python src/run_tuning.py` | Tunes the MLP by nested CV and compares it with linear on the same folds | about 45 min (see below) |
-| `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error, plots the 10 worst spectra, and adds an error map, a Strouhal-scaling check on spectral peaks and a residual heatmap | about 1 min |
+| `python src/run_error_analysis.py` | Ranks wind-tunnel setups by prediction error, plots the 10 worst spectra, and adds an error map, the share of error at each spectral peak and a tonal-peak plot | about 1 min |
 | `python src/run_profile.py` | Timing, memory, size and FLOP profile of linear (A, B), the final MLP and the runner-up MLP (B), with machine and thread settings | about 25 s |
 | `python src/run_shift_tests.py` | Robustness: leave one chord / one velocity out, final MLP (3 seeds) vs linear | about 1 min |
 | `python src/run_physics_check.py` | Physics check (faster flow is louder) on out-of-fold predictions, then the acceptance criteria table | about 5 s |
 | `python src/run_final.py` | **Run once.** Final hold-out evaluation of linear, runner-up and final MLP, and the acceptance criteria (refuses to overwrite without `--force`) | about 10 s |
-| `python src/run_verification.py` | Manufactured-solution checks: linear solver on an exact linear law, final MLP on y = sin(x) (with a linear negative control) | a few seconds |
 | `python src/plot_holdout_residuals.py` | Residual vs measured SPL plot for the three models, drawn from the saved hold-out predictions (no re-run) | a few seconds |
 | `python -m pytest --html=test/test_report.html --self-contained-html` | Runs the tests and writes the HTML test report | about 50 s |
 

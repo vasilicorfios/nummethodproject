@@ -12,8 +12,6 @@ import run_physics_check  # noqa: E402
 from functions.evaluate import CVResult  # noqa: E402
 from functions.make_folds import TEST_FOLD, assign_folds  # noqa: E402
 from functions.physics_checks import group_levels, speed_order_check  # noqa: E402
-from functions.plot_robustness import plot_speed_order  # noqa: E402
-from functions.plot_tuning import save_png_pdf  # noqa: E402
 
 
 def _levels(groups: dict[tuple[float, float], list[float]], mlp_sign: float = 1.0,
@@ -102,18 +100,6 @@ def test_perfect_model_matches_measured_order(perfect_levels):
     """A perfect model is right in every scored group and pair."""
     _, summary = speed_order_check(perfect_levels)
     assert _summary_row(summary, "mlp")["pairs_correct_pct"] == pytest.approx(100.0)
-
-
-def test_example_groups_put_mlp_failures_first(tmp_path):
-    """The figure shows groups where the MLP is wrong before correct ones."""
-    levels = _levels(ORDERED)
-    levels.loc[(levels["chord_length_m"] == 0.2), "mlp_spl"] = [121.0, 118.0]  # reversed
-    groups, _ = speed_order_check(levels)
-    picks = run_physics_check.example_groups(groups, n=3)
-    assert picks[0] == (0.2, 0.0)
-    assert len(picks) == 3
-    paths = save_png_pdf(plot_speed_order(levels, picks), tmp_path, "speed")
-    assert all(p.stat().st_size > 0 for p in paths)
 
 
 def test_acceptance_keeps_saved_holdout_results(tmp_path):

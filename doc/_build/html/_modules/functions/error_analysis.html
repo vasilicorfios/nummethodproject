@@ -31,26 +31,21 @@
           <div class="body" role="main">
             
   <h1>Source code for functions.error_analysis</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Where and why the models fail: spectral peaks, Strouhal scaling, residuals.</span>
+<span></span><span class="sd">"""Where the models fail: spectral peaks and the error around them.</span>
 
-<span class="sd">Three analyses of the out-of-fold predictions, all on the cross-validation</span>
-<span class="sd">setups only (the test hold-out is never looked at):</span>
+<span class="sd">Analyses of the out-of-fold predictions, all on the cross-validation setups</span>
+<span class="sd">only (the test hold-out is never looked at):</span>
 
 <span class="sd">* :func:`spectral_peaks` finds the most prominent peak of each measured</span>
 <span class="sd">  spectrum and the frequency at which a model's predicted spectrum peaks.</span>
-<span class="sd">* :func:`peak_scaling_fit` checks a physical law: if a peak is produced at a</span>
-<span class="sd">  fixed Strouhal number ``St = f L / U`` (``L`` a length scale), its</span>
-<span class="sd">  frequency is proportional to ``U / L``. On log axes that is a straight</span>
-<span class="sd">  line of **slope 1**. A fitted slope well away from 1 means a single</span>
-<span class="sd">  Strouhal number does not describe the peaks.</span>
-<span class="sd">* :func:`residual_matrix` and :func:`peak_error_share` show where along the</span>
-<span class="sd">  spectrum the errors sit, and how much of each setup's error comes from the</span>
-<span class="sd">  frequencies around its measured peak.</span>
+<span class="sd">* :func:`peak_error_share` shows how much of each setup's error comes from</span>
+<span class="sd">  the frequencies around its measured peak.</span>
+<span class="sd">* :func:`tonal_table` gives each setup's peak prominence.</span>
 
 <span class="sd">Example:</span>
-<span class="sd">    &gt;&gt;&gt; from functions.error_analysis import spectral_peaks, peak_scaling_fit</span>
-<span class="sd">    &gt;&gt;&gt; peaks = spectral_peaks(data, mlp_result)      # doctest: +SKIP</span>
-<span class="sd">    &gt;&gt;&gt; peak_scaling_fit(peaks, "disp_thickness_m")   # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; from functions.error_analysis import spectral_peaks, peak_error_share</span>
+<span class="sd">    &gt;&gt;&gt; peaks = spectral_peaks(data, mlp_result)       # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; peak_error_share(mlp_result, data, peaks)      # doctest: +SKIP</span>
 <span class="sd">"""</span>
 
 <span class="c1"># Postponed annotations: the docs build mocks pandas, and evaluating</span>
@@ -60,7 +55,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">linregress</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.evaluate</span><span class="w"> </span><span class="kn">import</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">angle_band</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.make_folds</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEST_FOLD</span><span class="p">,</span> <span class="n">assign_folds</span>
@@ -143,71 +137,6 @@
     <span class="n">peaks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
     <span class="n">peaks</span><span class="p">[</span><span class="s2">"st_peak"</span><span class="p">]</span> <span class="o">=</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">]</span> <span class="o">*</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"disp_thickness_m"</span><span class="p">]</span> <span class="o">/</span> <span class="n">peaks</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">peaks</span></div>
-
-
-
-<div class="viewcode-block" id="peak_scaling_fit">
-<a class="viewcode-back" href="../../api.html#functions.error_analysis.peak_scaling_fit">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">peak_scaling_fit</span><span class="p">(</span><span class="n">peaks</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">length_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Test whether peak frequencies scale with ``U / L`` (constant Strouhal).</span>
-
-<span class="sd">    Fits ``log10(peak_hz) = slope * log10(U / L) + intercept`` over the setups</span>
-<span class="sd">    that have a peak. Constant-Strouhal scaling predicts ``slope = 1``.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        peaks: Output of :func:`spectral_peaks`.</span>
-<span class="sd">        length_column: Column used as the length scale ``L``, e.g.</span>
-<span class="sd">            ``"disp_thickness_m"`` or ``"chord_length_m"``.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ``length_scale``, ``n`` (setups with a peak), ``slope``,</span>
-<span class="sd">        ``slope_ci95`` (half-width of the 95% confidence interval), ``r2``,</span>
-<span class="sd">        ``median_st`` (median of ``peak_hz * L / U``) and the spread factors</span>
-<span class="sd">        ``peak_hz_spread`` and ``st_spread`` (10 to the power of the SD of</span>
-<span class="sd">        their log10). If Strouhal scaling held, ``st_spread`` would be much</span>
-<span class="sd">        smaller than ``peak_hz_spread``.</span>
-<span class="sd">    """</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">peaks</span><span class="p">[</span><span class="n">peaks</span><span class="p">[</span><span class="s2">"has_peak"</span><span class="p">]]</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="n">length_column</span><span class="p">])</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">])</span>
-    <span class="n">fit</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="n">st</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="n">length_column</span><span class="p">]</span> <span class="o">/</span> <span class="n">p</span><span class="p">[</span><span class="s2">"velocity_mps"</span><span class="p">]</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">"length_scale"</span><span class="p">:</span> <span class="n">length_column</span><span class="p">,</span>
-        <span class="s2">"n"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-        <span class="s2">"slope"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">slope</span><span class="p">,</span>
-        <span class="s2">"slope_ci95"</span><span class="p">:</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">fit</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
-        <span class="s2">"intercept"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">intercept</span><span class="p">,</span>
-        <span class="s2">"r2"</span><span class="p">:</span> <span class="n">fit</span><span class="o">.</span><span class="n">rvalue</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
-        <span class="s2">"median_st"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">median</span><span class="p">()),</span>
-        <span class="s2">"peak_hz_spread"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"peak_hz"</span><span class="p">])</span><span class="o">.</span><span class="n">std</span><span class="p">()),</span>
-        <span class="s2">"st_spread"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">st</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()),</span>
-    <span class="p">}</span></div>
-
-
-
-<div class="viewcode-block" id="residual_matrix">
-<a class="viewcode-back" href="../../api.html#functions.error_analysis.residual_matrix">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">residual_matrix</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">CVResult</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Mean residual (measured − predicted) for every setup and frequency.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        result: Model result.</span>
-<span class="sd">        data: The dataset the result was computed on.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        A table indexed by ``setup_id`` with one column per measured</span>
-<span class="sd">        frequency (Hz, ascending). Values are in dB, averaged over seeds;</span>
-<span class="sd">        NaN where that frequency was not measured for the setup. Rows are</span>
-<span class="sd">        ordered by chord, then angle, then velocity.</span>
-<span class="sd">    """</span>
-    <span class="n">cv</span> <span class="o">=</span> <span class="n">_cv_rows</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-    <span class="n">residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv</span><span class="p">[</span><span class="s2">"spl_db"</span><span class="p">]</span> <span class="o">-</span> <span class="n">_mean_prediction</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">cv</span><span class="o">.</span><span class="n">index</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"residual"</span><span class="p">)</span>
-    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">cv</span><span class="p">[[</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="s2">"frequency_hz"</span><span class="p">]],</span> <span class="n">residual</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">matrix</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s2">"setup_id"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"frequency_hz"</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="s2">"residual"</span><span class="p">)</span>
-    <span class="n">order</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="s2">"setup_id"</span><span class="p">)</span>
-             <span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">"chord_length_m"</span><span class="p">,</span> <span class="s2">"attack_angle_deg"</span><span class="p">,</span> <span class="s2">"velocity_mps"</span><span class="p">])[</span><span class="s2">"setup_id"</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">order</span><span class="p">)</span></div>
 
 
 
