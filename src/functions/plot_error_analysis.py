@@ -20,7 +20,6 @@ import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.figure import Figure
 
-from functions.error_analysis import PEAK_PROMINENCE_DB, TONAL_PROMINENCE_DB
 from functions.evaluate import ANGLE_BAND_LABELS
 from functions.make_folds import TEST_FOLD, assign_folds
 from functions.plot_results import INK, INK_SECONDARY, MUTED, SERIES_COLOURS, SURFACE, _style
@@ -209,14 +208,8 @@ ANGLE_BAND_MARKERS = ["o", "s", "^", "D", "v"]
 
 
 def _tonal_axes(ax, table: pd.DataFrame) -> None:
-    """Shared look of the tonal plots: reference lines, labels and limits."""
+    """Shared look of the tonal plots: axes, labels and limits."""
     _style(ax)
-    for level, text in ((PEAK_PROMINENCE_DB, "peak threshold"), (TONAL_PROMINENCE_DB, "strongly tonal")):
-        ax.axhline(level, color=MUTED, linestyle="--", linewidth=1)
-        # Pinned to the left edge of the plot area (axes x = 0.01), where the
-        # lines are clear of dots, and drawn above them so it is never hidden.
-        ax.text(0.01, level, f"{text} ({level:g} dB)", transform=ax.get_yaxis_transform(),
-                va="bottom", ha="left", fontsize=8, color=INK_SECONDARY, zorder=5)
     # Reynolds number spans more than a decade, so it goes on a log axis, with
     # the actual Reynolds numbers written on the ticks so they can be read off.
     ax.set_xscale("log")
