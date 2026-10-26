@@ -92,6 +92,11 @@ tests and documentation, ran them, and reported results.
   folds") because its outcome was already known when it was set. The student
   also checked in the git history that P1's threshold was committed before
   the physics check existed.
+- **Interpretation of the results:** in the student's words: "Early versions
+  of the HTML results pages included AI-drafted interpretation of the
+  figures. I reviewed it, replaced it with factual captions, and wrote my own
+  interpretation in the report." The earlier versions remain in the git
+  history.
 
 ## 4. AI errors found and corrected
 
