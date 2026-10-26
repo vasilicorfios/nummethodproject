@@ -9,21 +9,6 @@ deviation over the 15 cross-validation folds (5 folds × 3 seeds). Feature set
 A is the five raw inputs; feature set B adds log10 frequency, the Strouhal
 number and the chord Reynolds number.
 
-Verification: manufactured-solution tests
------------------------------------------
-
-.. csv-table:: Manufactured-solution checks: the linear pipeline on y = 3 + 2x1 − 5x2, the final MLP on y = sin(x) (200 points, scored between the training points), and linear on the same sine as a negative control. The MLP pass marks were set after a first measurement.
-   :file: generated/verification.csv
-   :header-rows: 1
-
-.. figure:: generated/verification_sine.png
-   :width: 100%
-   :alt: Left, sin(x) with the 200 training points, the final MLP's fit and
-         the linear control. Right, the final MLP's error along x.
-
-   Left: y = sin(x), its 200 training points, the final MLP's fit and the
-   linear control. Right: the final MLP's error between the training points.
-
 Linear baseline
 ---------------
 
@@ -184,32 +169,6 @@ Worst-predicted setups and error analysis
    feature set B. Numbers mark the 10 worst MLP setups; hollow grey circles
    are hold-out setups (not scored).
 
-.. csv-table:: Fit of log10(peak frequency) against log10(U / L) for the measured peaks (≥ 5 dB prominence) of the cross-validation setups
-   :file: generated/peak_scaling_B.csv
-   :header-rows: 1
-
-.. figure:: generated/peak_scaling_B.png
-   :width: 100%
-   :alt: Left, measured peak frequency against U over displacement thickness
-         on log axes with fitted and slope-1 lines. Right, tuned-MLP predicted
-         peak frequency against measured peak frequency.
-
-   Left: measured peak frequency against U / δ*, with the fitted line (solid)
-   and a constant-Strouhal line of slope 1 (dashed). Right: tuned-MLP
-   predicted against measured peak frequency; marker area counts setups and
-   dotted lines are ± one 1/3-octave step.
-
-.. figure:: generated/residual_heatmap_B.png
-   :width: 100%
-   :alt: Heatmaps of residual for every setup (rows, grouped by chord) and
-         frequency (columns) for linear and tuned MLP, with measured peaks
-         marked by dots.
-
-   Out-of-fold residual (measured − predicted) for every cross-validation
-   setup (rows, grouped by chord) and frequency (columns), for linear and the
-   tuned MLP, feature set B. Grey: frequency not measured; dots: measured
-   peaks.
-
 .. csv-table:: Median share of each setup's squared error within its peak window (peak ± one 1/3-octave step), with the share of frequencies in that window
    :file: generated/peak_error_share_B.csv
    :header-rows: 1
@@ -276,14 +235,6 @@ group, using out-of-fold predictions.
 .. csv-table:: Groups excluded because the measured level does not rise at every higher speed
    :file: generated/physics_speed_order_excluded.csv
    :header-rows: 1
-
-.. figure:: generated/physics_speed_order.png
-   :width: 100%
-   :alt: Mean SPL against velocity for four chord and angle groups: measured
-         points, MLP and linear lines.
-
-   Mean SPL over the shared bands against velocity for four chord-angle
-   groups: measured (points), nested-CV MLP and linear (lines).
 
 Acceptance criteria
 -------------------

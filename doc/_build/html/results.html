@@ -42,77 +42,10 @@ hold-out is used only in <a class="reference internal" href="#final-hold-out-eva
 deviation over the 15 cross-validation folds (5 folds × 3 seeds). Feature set
 A is the five raw inputs; feature set B adds log10 frequency, the Strouhal
 number and the chord Reynolds number.</p>
-<section id="verification-manufactured-solution-tests">
-<h2>Verification: manufactured-solution tests<a class="headerlink" href="#verification-manufactured-solution-tests" title="Link to this heading">¶</a></h2>
-<table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Manufactured-solution checks: the linear pipeline on y = 3 + 2x1 − 5x2, the final MLP on y = sin(x) (200 points, scored between the training points), and linear on the same sine as a negative control. The MLP pass marks were set after a first measurement.</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
-<thead>
-<tr class="row-odd"><th class="head"><p>Check</p></th>
-<th class="head"><p>Model</p></th>
-<th class="head"><p>Quantity</p></th>
-<th class="head"><p>Value</p></th>
-<th class="head"><p>Pass mark</p></th>
-<th class="head"><p>Result</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Linear law y = 3 + 2x1 - 5x2</p></td>
-<td><p>linear</p></td>
-<td><p>largest relative coefficient error</p></td>
-<td><p>2.1e-09</p></td>
-<td><p>&lt;= 1e-06</p></td>
-<td><p>PASS</p></td>
-</tr>
-<tr class="row-odd"><td><p>Linear law y = 3 + 2x1 - 5x2</p></td>
-<td><p>linear</p></td>
-<td><p>largest prediction error</p></td>
-<td><p>5.3e-10</p></td>
-<td><p>(round-off)</p></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><p>y = sin(x), 200 points</p></td>
-<td><p>final MLP</p></td>
-<td><p>RMSE between training points</p></td>
-<td><p>0.065</p></td>
-<td><p>&lt;= 0.1</p></td>
-<td><p>PASS</p></td>
-</tr>
-<tr class="row-odd"><td><p>y = sin(x), 200 points</p></td>
-<td><p>final MLP</p></td>
-<td><p>R² between training points</p></td>
-<td><p>0.9915</p></td>
-<td><p>&gt;= 0.98</p></td>
-<td><p>PASS</p></td>
-</tr>
-<tr class="row-even"><td><p>y = sin(x), 200 points</p></td>
-<td><p>final MLP</p></td>
-<td><p>largest error (at x = 6.28)</p></td>
-<td><p>0.225</p></td>
-<td><p>(reported only)</p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p>y = sin(x), negative control</p></td>
-<td><p>linear</p></td>
-<td><p>RMSE between training points (must fail)</p></td>
-<td><p>0.442</p></td>
-<td><p>&gt;= 0.3</p></td>
-<td><p>PASS</p></td>
-</tr>
-</tbody>
-</table>
-<figure class="align-default" id="id2">
-<a class="reference internal image-reference" href="_images/verification_sine.png"><img alt="Left, sin(x) with the 200 training points, the final MLP's fit and the linear control. Right, the final MLP's error along x." src="_images/verification_sine.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Left: y = sin(x), its 200 training points, the final MLP’s fit and the
-linear control. Right: the final MLP’s error between the training points.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
-</section>
 <section id="linear-baseline">
 <h2>Linear baseline<a class="headerlink" href="#linear-baseline" title="Link to this heading">¶</a></h2>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Linear baseline: validation metrics for feature sets A and B (mean ± SD over 15 folds) and mean time per fold</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Linear baseline: validation metrics for feature sets A and B (mean ± SD over 15 folds) and mean time per fold</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -142,16 +75,16 @@ linear control. Right: the final MLP’s error between the training points.</spa
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id4">
+<figure class="align-default" id="id2">
 <a class="reference internal image-reference" href="_images/cv_predicted_vs_measured.png"><img alt="Scatter of out-of-fold predicted SPL against measured SPL for each feature set, with a dashed y = x line." src="_images/cv_predicted_vs_measured.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold predicted against measured SPL for the linear model on
-feature sets A and B (one CV seed); the dashed line is y = x.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+feature sets A and B (one CV seed); the dashed line is y = x.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text">Out-of-fold RMSE (dB) of the linear model by chord, velocity, angle band and frequency band (mean over seeds; Rows = measurements per group)</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Out-of-fold RMSE (dB) of the linear model by chord, velocity, angle band and frequency band (mean over seeds; Rows = measurements per group)</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Grouped by</p></th>
 <th class="head"><p>Group</p></th>
@@ -277,32 +210,32 @@ feature sets A and B (one CV seed); the dashed line is y = x.</span><a class="he
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id6">
+<figure class="align-default" id="id4">
 <a class="reference internal image-reference" href="_images/cv_rmse_breakdown.png"><img alt="Grouped bar charts of out-of-fold RMSE by chord, velocity, angle band and frequency band, one bar per feature set." src="_images/cv_rmse_breakdown.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold RMSE of the linear model by chord, velocity, angle band and
-frequency band, for feature sets A and B.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
+frequency band, for feature sets A and B.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id7">
+<figure class="align-default" id="id5">
 <a class="reference internal image-reference" href="_images/cv_residual_by_frequency.png"><img alt="Line chart of mean out-of-fold residual against frequency on a log axis, one line per feature set." src="_images/cv_residual_by_frequency.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Mean out-of-fold residual (measured − predicted) of the linear model at
-each measured frequency, for feature sets A and B (one CV seed).</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
+each measured frequency, for feature sets A and B (one CV seed).</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id8">
+<figure class="align-default" id="id6">
 <a class="reference internal image-reference" href="_images/cv_example_spectra.png"><img alt="Three panels of SPL against frequency for the best, median and worst predicted setups, comparing measured spectra with predictions." src="_images/cv_example_spectra.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Measured and out-of-fold predicted spectra (linear, sets A and B) for the
-best, median and worst predicted setups, ranked by per-setup RMSE on set A.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+best, median and worst predicted setups, ranked by per-setup RMSE on set A.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Linear coefficients in dB per input standard deviation, mean ± SD over the 15 fits [percentage of fits agreeing in sign]</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Linear coefficients in dB per input standard deviation, mean ± SD over the 15 fits [percentage of fits agreeing in sign]</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature</p></th>
 <th class="head"><p>linear / A</p></th>
@@ -344,12 +277,12 @@ best, median and worst predicted setups, ranked by per-setup RMSE on set A.</spa
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id10">
+<figure class="align-default" id="id8">
 <a class="reference internal image-reference" href="_images/cv_coefficients.png"><img alt="Dot and whisker plot of each feature's coefficient with its spread across folds, for each feature set." src="_images/cv_coefficients.png" style="width: 85%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Linear coefficients (dB per input standard deviation) with whiskers of
-± one SD over the 15 fits, for feature sets A and B.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+± one SD over the 15 fits, for feature sets A and B.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -360,8 +293,8 @@ best, median and worst predicted setups, ranked by per-setup RMSE on set A.</spa
 training setups; the chosen setting was scored on the outer fold.</p>
 <section id="accuracy-and-comparison-with-linear">
 <h3>Accuracy and comparison with linear<a class="headerlink" href="#accuracy-and-comparison-with-linear" title="Link to this heading">¶</a></h3>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Tuned MLP outer-fold results for feature sets A and B, with the paired per-fold difference from linear (MLP − linear)</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Tuned MLP outer-fold results for feature sets A and B, with the paired per-fold difference from linear (MLP − linear)</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature set</p></th>
 <th class="head"><p>Outer folds</p></th>
@@ -400,43 +333,43 @@ training setups; the chosen setting was scored on the outer fold.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id12">
+<figure class="align-default" id="id10">
 <a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_A.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set A." src="_images/tuning_pred_vs_measured_A.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold predicted against measured SPL on feature set A: linear (left)
-and tuned MLP (right), one CV seed.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+and tuned MLP (right), one CV seed.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id13">
+<figure class="align-default" id="id11">
 <a class="reference internal image-reference" href="_images/tuning_pred_vs_measured_B.png"><img alt="Predicted against measured SPL for the linear baseline and the tuned MLP on feature set B." src="_images/tuning_pred_vs_measured_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold predicted against measured SPL on feature set B: linear (left)
-and tuned MLP (right), one CV seed.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+and tuned MLP (right), one CV seed.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id14">
+<figure class="align-default" id="id12">
 <a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_A.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set A." src="_images/tuning_rmse_breakdown_A.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold RMSE by chord, velocity, angle band and frequency band for
-linear and the tuned MLP, feature set A.</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+linear and the tuned MLP, feature set A.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id15">
+<figure class="align-default" id="id13">
 <a class="reference internal image-reference" href="_images/tuning_rmse_breakdown_B.png"><img alt="Grouped bars of out-of-fold RMSE by chord, velocity, angle band and frequency band for linear and tuned MLP, feature set B." src="_images/tuning_rmse_breakdown_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold RMSE by chord, velocity, angle band and frequency band for
-linear and the tuned MLP, feature set B.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+linear and the tuned MLP, feature set B.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
 <section id="settings-chosen-and-training">
 <h3>Settings chosen and training<a class="headerlink" href="#settings-chosen-and-training" title="Link to this heading">¶</a></h3>
-<table class="docutils align-default" id="id16">
-<caption><span class="caption-text">Settings chosen by the inner CV and the number of outer folds each won (settings that never won are omitted)</span><a class="headerlink" href="#id16" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">Settings chosen by the inner CV and the number of outer folds each won (settings that never won are omitted)</span><a class="headerlink" href="#id14" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Feature set</p></th>
 <th class="head"><p>Hidden layer sizes</p></th>
@@ -492,39 +425,39 @@ linear and the tuned MLP, feature set B.</span><a class="headerlink" href="#id15
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id17">
+<figure class="align-default" id="id15">
 <a class="reference internal image-reference" href="_images/tuning_inner_grid_heatmap.png"><img alt="Heatmaps of mean inner-CV RMSE over network size and alpha for feature sets A and B, with the best cell outlined." src="_images/tuning_inner_grid_heatmap.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Mean inner-CV RMSE for each network size and alpha, averaged over all
 outer folds and seeds, for feature sets A and B; the outlined cell has
-the lowest value.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
+the lowest value.</span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id18">
+<figure class="align-default" id="id16">
 <a class="reference internal image-reference" href="_images/tuning_loss_curves_A.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set A." src="_images/tuning_loss_curves_A.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Training loss (top) and early-stopping R² (bottom) per epoch for the
 selected MLP in three outer folds, feature set A; the dashed line marks
-the best epoch.</span><a class="headerlink" href="#id18" title="Link to this image">¶</a></p>
+the best epoch.</span><a class="headerlink" href="#id16" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id19">
+<figure class="align-default" id="id17">
 <a class="reference internal image-reference" href="_images/tuning_loss_curves_B.png"><img alt="Training loss and early-stopping R² against epoch for the selected MLP in three outer folds, feature set B." src="_images/tuning_loss_curves_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Training loss (top) and early-stopping R² (bottom) per epoch for the
 selected MLP in three outer folds, feature set B; the dashed line marks
-the best epoch.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
+the best epoch.</span><a class="headerlink" href="#id17" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
 </section>
 <section id="worst-predicted-setups-and-error-analysis">
 <h2>Worst-predicted setups and error analysis<a class="headerlink" href="#worst-predicted-setups-and-error-analysis" title="Link to this heading">¶</a></h2>
-<table class="docutils align-default" id="id20">
-<caption><span class="caption-text">The 10 setups with the highest out-of-fold tuned-MLP RMSE, feature set B (bias = mean of measured − predicted)</span><a class="headerlink" href="#id20" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">The 10 setups with the highest out-of-fold tuned-MLP RMSE, feature set B (bias = mean of measured − predicted)</span><a class="headerlink" href="#id18" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Rank</p></th>
 <th class="head"><p>Setup</p></th>
@@ -640,77 +573,26 @@ the best epoch.</span><a class="headerlink" href="#id19" title="Link to this ima
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id21">
+<figure class="align-default" id="id19">
 <a class="reference internal image-reference" href="_images/worst_setups_spectra_B.png"><img alt="Ten panels of SPL against frequency for the worst-predicted setups, comparing the measured spectrum with linear and tuned-MLP predictions." src="_images/worst_setups_spectra_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Measured spectra (black) and out-of-fold predictions of linear and the
-tuned MLP (averaged over seeds) for the 10 worst setups, feature set B.</span><a class="headerlink" href="#id21" title="Link to this image">¶</a></p>
+tuned MLP (averaged over seeds) for the 10 worst setups, feature set B.</span><a class="headerlink" href="#id19" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id22">
+<figure class="align-default" id="id20">
 <a class="reference internal image-reference" href="_images/error_map_B.png"><img alt="Panels for each free-stream velocity placing every setup by angle of attack and chord, coloured by its RMSE, for linear and tuned MLP." src="_images/error_map_B.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Out-of-fold RMSE of every cross-validation setup by velocity (panels),
 angle (across) and chord (up), for linear (top) and the tuned MLP (bottom),
 feature set B. Numbers mark the 10 worst MLP setups; hollow grey circles
-are hold-out setups (not scored).</span><a class="headerlink" href="#id22" title="Link to this image">¶</a></p>
+are hold-out setups (not scored).</span><a class="headerlink" href="#id20" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id23">
-<caption><span class="caption-text">Fit of log10(peak frequency) against log10(U / L) for the measured peaks (≥ 5 dB prominence) of the cross-validation setups</span><a class="headerlink" href="#id23" title="Link to this table">¶</a></caption>
-<thead>
-<tr class="row-odd"><th class="head"><p>Length scale L</p></th>
-<th class="head"><p>Setups with a peak</p></th>
-<th class="head"><p>Fitted slope (constant St gives 1)</p></th>
-<th class="head"><p>R²</p></th>
-<th class="head"><p>Median St = f L / U</p></th>
-<th class="head"><p>Spread of f (×)</p></th>
-<th class="head"><p>Spread of St (×)</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>δ* (displacement thickness)</p></td>
-<td><p>64</p></td>
-<td><p>0.48 ± 0.09</p></td>
-<td><p>0.64</p></td>
-<td><p>0.0926</p></td>
-<td><p>1.96</p></td>
-<td><p>2.04</p></td>
-</tr>
-<tr class="row-odd"><td><p>c (chord)</p></td>
-<td><p>64</p></td>
-<td><p>0.4 ± 0.14</p></td>
-<td><p>0.34</p></td>
-<td><p>3</p></td>
-<td><p>1.96</p></td>
-<td><p>2.22</p></td>
-</tr>
-</tbody>
-</table>
-<figure class="align-default" id="id24">
-<a class="reference internal image-reference" href="_images/peak_scaling_B.png"><img alt="Left, measured peak frequency against U over displacement thickness on log axes with fitted and slope-1 lines. Right, tuned-MLP predicted peak frequency against measured peak frequency." src="_images/peak_scaling_B.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Left: measured peak frequency against U / δ*, with the fitted line (solid)
-and a constant-Strouhal line of slope 1 (dashed). Right: tuned-MLP
-predicted against measured peak frequency; marker area counts setups and
-dotted lines are ± one 1/3-octave step.</span><a class="headerlink" href="#id24" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
-<figure class="align-default" id="id25">
-<a class="reference internal image-reference" href="_images/residual_heatmap_B.png"><img alt="Heatmaps of residual for every setup (rows, grouped by chord) and frequency (columns) for linear and tuned MLP, with measured peaks marked by dots." src="_images/residual_heatmap_B.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Out-of-fold residual (measured − predicted) for every cross-validation
-setup (rows, grouped by chord) and frequency (columns), for linear and the
-tuned MLP, feature set B. Grey: frequency not measured; dots: measured
-peaks.</span><a class="headerlink" href="#id25" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
-<table class="docutils align-default" id="id26">
-<caption><span class="caption-text">Median share of each setup’s squared error within its peak window (peak ± one 1/3-octave step), with the share of frequencies in that window</span><a class="headerlink" href="#id26" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id21">
+<caption><span class="caption-text">Median share of each setup’s squared error within its peak window (peak ± one 1/3-octave step), with the share of frequencies in that window</span><a class="headerlink" href="#id21" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Setups</p></th>
@@ -741,13 +623,13 @@ peaks.</span><a class="headerlink" href="#id25" title="Link to this image">¶</a
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id27">
+<figure class="align-default" id="id22">
 <a class="reference internal image-reference" href="_images/tonal_peaks_mlp_error_B.png"><img alt="Peak prominence against chord Reynolds number (log axis) for the 90 cross-validation setups, coloured by the tuned MLP's setup RMSE." src="_images/tonal_peaks_mlp_error_B.png" style="width: 85%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Peak prominence against chord Reynolds number (log axis) for the 90
 cross-validation setups, coloured by the tuned MLP’s out-of-fold setup
-RMSE.</span><a class="headerlink" href="#id27" title="Link to this image">¶</a></p>
+RMSE.</span><a class="headerlink" href="#id22" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -756,8 +638,8 @@ RMSE.</span><a class="headerlink" href="#id27" title="Link to this image">¶</a>
 <p>Each model was trained on all 1,276 cross-validation rows; fit and predict
 were each repeated 5 times. FLOP counts are estimates from formulas
 (<code class="docutils literal notranslate"><span class="pre">functions.profiling</span></code>).</p>
-<table class="docutils align-default" id="id28">
-<caption><span class="caption-text">Profile of one fit on all cross-validation rows for linear (sets A, B), the final MLP and the runner-up MLP (set B)</span><a class="headerlink" href="#id28" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id23">
+<caption><span class="caption-text">Profile of one fit on all cross-validation rows for linear (sets A, B), the final MLP and the runner-up MLP (set B)</span><a class="headerlink" href="#id23" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Feature set</p></th>
@@ -828,8 +710,8 @@ were each repeated 5 times. FLOP counts are estimates from formulas
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id29">
-<caption><span class="caption-text">Cost ratios between the final MLP and linear, and between the final and runner-up MLPs</span><a class="headerlink" href="#id29" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id24">
+<caption><span class="caption-text">Cost ratios between the final MLP and linear, and between the final and runner-up MLPs</span><a class="headerlink" href="#id24" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Comparison</p></th>
 <th class="head"><p>Quantity</p></th>
@@ -887,8 +769,8 @@ were each repeated 5 times. FLOP counts are estimates from formulas
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id30">
-<caption><span class="caption-text">Machine, library versions and thread settings used for the timings</span><a class="headerlink" href="#id30" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id25">
+<caption><span class="caption-text">Machine, library versions and thread settings used for the timings</span><a class="headerlink" href="#id25" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Item</p></th>
 <th class="head"><p>Value</p></th>
@@ -933,8 +815,8 @@ were each repeated 5 times. FLOP counts are estimates from formulas
 <p>Every setup with one chord (or one velocity) was held out in turn; the final
 MLP (random seeds 0, 1, 2) and linear were trained on the remaining
 cross-validation setups.</p>
-<table class="docutils align-default" id="id31">
-<caption><span class="caption-text">Shift tests: RMSE on the held-out chord or velocity (MLP mean ± SD over 3 seeds), with each model’s nested-CV RMSE</span><a class="headerlink" href="#id31" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id26">
+<caption><span class="caption-text">Shift tests: RMSE on the held-out chord or velocity (MLP mean ± SD over 3 seeds), with each model’s nested-CV RMSE</span><a class="headerlink" href="#id26" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Shift test</p></th>
 <th class="head"><p>Held out</p></th>
@@ -1171,13 +1053,13 @@ cross-validation setups.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id32">
+<figure class="align-default" id="id27">
 <a class="reference internal image-reference" href="_images/shift_tests.png"><img alt="Grouped bars of RMSE for each held-out chord and velocity, linear and final MLP, with dashed lines at each model's nested-CV RMSE." src="_images/shift_tests.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">RMSE on the held-out chord (left) or velocity (right) for linear and the
 final MLP; error bars are the SD over the MLP’s 3 seeds, dashed lines the
-nested-CV RMSE, and “extrap.” marks values outside the training range.</span><a class="headerlink" href="#id32" title="Link to this image">¶</a></p>
+nested-CV RMSE, and “extrap.” marks values outside the training range.</span><a class="headerlink" href="#id27" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -1186,8 +1068,8 @@ nested-CV RMSE, and “extrap.” marks values outside the training range.</span
 <p>Setups were grouped by chord and angle (groups with 2 or more speeds); each
 setup’s SPL was averaged over the bands measured at every speed in its
 group, using out-of-fold predictions.</p>
-<table class="docutils align-default" id="id33">
-<caption><span class="caption-text">Speed-order check: groups and speed pairs whose predicted level rises with velocity</span><a class="headerlink" href="#id33" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id28">
+<caption><span class="caption-text">Speed-order check: groups and speed pairs whose predicted level rises with velocity</span><a class="headerlink" href="#id28" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Groups fully in order</p></th>
@@ -1208,8 +1090,8 @@ group, using out-of-fold predictions.</p>
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id34">
-<caption><span class="caption-text">Groups excluded because the measured level does not rise at every higher speed</span><a class="headerlink" href="#id34" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id29">
+<caption><span class="caption-text">Groups excluded because the measured level does not rise at every higher speed</span><a class="headerlink" href="#id29" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Chord (m)</p></th>
 <th class="head"><p>Angle (deg)</p></th>
@@ -1255,14 +1137,6 @@ group, using out-of-fold predictions.</p>
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id35">
-<a class="reference internal image-reference" href="_images/physics_speed_order.png"><img alt="Mean SPL against velocity for four chord and angle groups: measured points, MLP and linear lines." src="_images/physics_speed_order.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Mean SPL over the shared bands against velocity for four chord-angle
-groups: measured (points), nested-CV MLP and linear (lines).</span><a class="headerlink" href="#id35" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
 </section>
 <section id="acceptance-criteria">
 <h2>Acceptance criteria<a class="headerlink" href="#acceptance-criteria" title="Link to this heading">¶</a></h2>
@@ -1279,8 +1153,8 @@ model. Removing it only takes away a criterion the model passed, so it does
 not flatter the verdict. The fold-by-fold comparison is still shown as
 supporting evidence (<a class="reference internal" href="#accuracy-and-comparison-with-linear">Accuracy and comparison with linear</a>), and the original
 file remains in the git history.</p>
-<table class="docutils align-default" id="id36">
-<caption><span class="caption-text">Acceptance criteria for the final MLP, with thresholds, values and results</span><a class="headerlink" href="#id36" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id30">
+<caption><span class="caption-text">Acceptance criteria for the final MLP, with thresholds, values and results</span><a class="headerlink" href="#id30" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Criterion</p></th>
 <th class="head"><p>Description</p></th>
@@ -1322,8 +1196,8 @@ file remains in the git history.</p>
 <p>Each model was trained once on all 1,276 cross-validation rows (90 setups)
 and predicted the 227 hold-out rows (16 setups) once. Run details are in
 <code class="docutils literal notranslate"><span class="pre">results/holdout_run_info.txt</span></code>.</p>
-<table class="docutils align-default" id="id37">
-<caption><span class="caption-text">The hold-out setups</span><a class="headerlink" href="#id37" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id31">
+<caption><span class="caption-text">The hold-out setups</span><a class="headerlink" href="#id31" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Setup</p></th>
 <th class="head"><p>Chord (m)</p></th>
@@ -1431,8 +1305,8 @@ and predicted the 227 hold-out rows (16 setups) once. Run details are in
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id38">
-<caption><span class="caption-text">Hold-out metrics for linear, the runner-up MLP and the final MLP (bias = mean of measured − predicted)</span><a class="headerlink" href="#id38" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id32">
+<caption><span class="caption-text">Hold-out metrics for linear, the runner-up MLP and the final MLP (bias = mean of measured − predicted)</span><a class="headerlink" href="#id32" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>Hold-out RMSE (dB)</p></th>
@@ -1474,8 +1348,8 @@ and predicted the 227 hold-out rows (16 setups) once. Run details are in
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id39">
-<caption><span class="caption-text">Cross-validation estimate and hold-out RMSE for each model</span><a class="headerlink" href="#id39" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id33">
+<caption><span class="caption-text">Cross-validation estimate and hold-out RMSE for each model</span><a class="headerlink" href="#id33" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Model</p></th>
 <th class="head"><p>CV estimate</p></th>
@@ -1501,16 +1375,16 @@ and predicted the 227 hold-out rows (16 setups) once. Run details are in
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id40">
+<figure class="align-default" id="id34">
 <a class="reference internal image-reference" href="_images/holdout_vs_cv.png"><img alt="For each model, its cross-validation RMSE with a one-SD error bar and its hold-out RMSE as a point." src="_images/holdout_vs_cv.png" style="width: 85%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Cross-validation RMSE ± fold SD (hollow markers with bars) and hold-out
-RMSE (filled markers) for each model.</span><a class="headerlink" href="#id40" title="Link to this image">¶</a></p>
+RMSE (filled markers) for each model.</span><a class="headerlink" href="#id34" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id41">
-<caption><span class="caption-text">Paired per-setup RMSE differences on the hold-out (final MLP − other model)</span><a class="headerlink" href="#id41" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id35">
+<caption><span class="caption-text">Paired per-setup RMSE differences on the hold-out (final MLP − other model)</span><a class="headerlink" href="#id35" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Comparison (per setup)</p></th>
 <th class="head"><p>Setups</p></th>
@@ -1534,40 +1408,40 @@ RMSE (filled markers) for each model.</span><a class="headerlink" href="#id40" t
 </tr>
 </tbody>
 </table>
-<figure class="align-default" id="id42">
+<figure class="align-default" id="id36">
 <a class="reference internal image-reference" href="_images/holdout_pred_vs_measured.png"><img alt="Three scatter panels of predicted against measured SPL on the hold-out: linear, runner-up MLP and final MLP." src="_images/holdout_pred_vs_measured.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Predicted against measured SPL on the hold-out for linear, the runner-up
-MLP and the final MLP.</span><a class="headerlink" href="#id42" title="Link to this image">¶</a></p>
+MLP and the final MLP.</span><a class="headerlink" href="#id36" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id43">
+<figure class="align-default" id="id37">
 <a class="reference internal image-reference" href="_images/holdout_residuals.png"><img alt="Three panels of residual (measured minus predicted) against measured SPL on the hold-out, for linear, the runner-up MLP and the final MLP." src="_images/holdout_residuals.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Residual (measured − predicted) against measured SPL on the hold-out for
-linear, the runner-up MLP and the final MLP.</span><a class="headerlink" href="#id43" title="Link to this image">¶</a></p>
+linear, the runner-up MLP and the final MLP.</span><a class="headerlink" href="#id37" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id44">
+<figure class="align-default" id="id38">
 <a class="reference internal image-reference" href="_images/holdout_spectra.png"><img alt="Sixteen panels of SPL against frequency, one per hold-out setup, with measured points and lines for the three models." src="_images/holdout_spectra.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Measured spectrum (black) and predictions of linear (blue), the runner-up
-MLP (green) and the final MLP (orange) for every hold-out setup.</span><a class="headerlink" href="#id44" title="Link to this image">¶</a></p>
+MLP (green) and the final MLP (orange) for every hold-out setup.</span><a class="headerlink" href="#id38" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id45">
+<figure class="align-default" id="id39">
 <a class="reference internal image-reference" href="_images/holdout_rmse_breakdown.png"><img alt="Grouped bars of hold-out RMSE by chord, velocity, angle band and frequency band for the three models." src="_images/holdout_rmse_breakdown.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Hold-out RMSE by chord, velocity, angle band and frequency band for the
-three models.</span><a class="headerlink" href="#id45" title="Link to this image">¶</a></p>
+three models.</span><a class="headerlink" href="#id39" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<table class="docutils align-default" id="id46">
-<caption><span class="caption-text">Hold-out RMSE by chord, velocity, angle band and frequency band (setups and rows per group)</span><a class="headerlink" href="#id46" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id40">
+<caption><span class="caption-text">Hold-out RMSE by chord, velocity, angle band and frequency band (setups and rows per group)</span><a class="headerlink" href="#id40" title="Link to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Grouped by</p></th>
 <th class="head"><p>Group</p></th>
@@ -1759,7 +1633,6 @@ three models.</span><a class="headerlink" href="#id45" title="Link to this image
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exploration.html">Data exploration</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Results</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#verification-manufactured-solution-tests">Verification: manufactured-solution tests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#linear-baseline">Linear baseline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tuned-mlp-nested-cross-validation">Tuned MLP (nested cross-validation)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#worst-predicted-setups-and-error-analysis">Worst-predicted setups and error analysis</a></li>
