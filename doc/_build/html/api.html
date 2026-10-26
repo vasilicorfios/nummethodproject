@@ -2366,9 +2366,7 @@ setup’s frequencies in the window).</p>
 its height above the higher of the lowest points on either side before a
 taller peak (<code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.signal.find_peaks()</span></code>). For each setup the most
 prominent interior peak is used, with no minimum, so every setup appears.
-A spectrum with no interior peak (it only rises or only falls) gets 0 dB.
-Narrow, very prominent peaks are the tonal noise that the models find
-hardest.</p>
+A spectrum with no interior peak (it only rises or only falls) gets 0 dB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2539,9 +2537,8 @@ with a per-setup <code class="docutils literal notranslate"><span class="pre">rm
 <p id="module-run_error_analysis">Entry point that finds the setups the models predict worst.</p>
 <p>Each wind-tunnel setup (one chord, velocity and angle) gives one noise
 spectrum. This script computes the out-of-fold RMSE of every setup for the
-linear baseline and the tuned MLP, ranks setups by the MLP’s RMSE (the
-better model, so its failures are the interesting ones) and plots the worst
-spectra:</p>
+linear baseline and the tuned MLP, ranks setups by the MLP’s RMSE and plots
+the worst spectra:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_error_analysis</span><span class="o">.</span><span class="n">py</span>                     <span class="c1"># sets A and B, 10 worst</span>
 <span class="n">python</span> <span class="n">src</span><span class="o">/</span><span class="n">run_error_analysis</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">feature</span><span class="o">-</span><span class="n">sets</span> <span class="n">B</span> <span class="o">--</span><span class="n">n</span><span class="o">-</span><span class="n">worst</span> <span class="mi">5</span>
 </pre></div>

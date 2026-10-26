@@ -35,9 +35,8 @@
 
 <span class="sd">Each wind-tunnel setup (one chord, velocity and angle) gives one noise</span>
 <span class="sd">spectrum. This script computes the out-of-fold RMSE of every setup for the</span>
-<span class="sd">linear baseline and the tuned MLP, ranks setups by the MLP's RMSE (the</span>
-<span class="sd">better model, so its failures are the interesting ones) and plots the worst</span>
-<span class="sd">spectra::</span>
+<span class="sd">linear baseline and the tuned MLP, ranks setups by the MLP's RMSE and plots</span>
+<span class="sd">the worst spectra::</span>
 
 <span class="sd">    python src/run_error_analysis.py                     # sets A and B, 10 worst</span>
 <span class="sd">    python src/run_error_analysis.py --feature-sets B --n-worst 5</span>

@@ -91,36 +91,17 @@ nothing is ever filled in or adjusted.</p>
 <ol class="arabic simple">
 <li><p><strong>Missing</strong> (<code class="docutils literal notranslate"><span class="pre">MissingInputError</span></code>): a required column is absent, or a
 value is empty or NaN. The error lists every affected column and row.
-Missing values are <strong>not imputed</strong>: any guess would produce a
-confident-looking but meaningless prediction.</p></li>
+Missing values are <strong>not imputed</strong>.</p></li>
 <li><p><strong>Invalid</strong> (<code class="docutils literal notranslate"><span class="pre">InvalidInputError</span></code>): a value is not a number, or is
-physically impossible.</p>
-<ul class="simple">
-<li><p><strong>Frequency, chord, velocity and displacement thickness</strong> of zero or
-less are impossible. They would also break the physics features:
-<code class="docutils literal notranslate"><span class="pre">log10(f)</span></code> needs <code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>, the Strouhal number <code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">δ*/U</span></code> divides by
-the velocity, and the Reynolds number <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">c/ν</span></code> needs a positive
-velocity and chord.</p></li>
-<li><p><strong>Negative angles</strong> are treated as invalid, not just out of range. The
-NACA 0012 is symmetric, so a negative angle is the same flow mirrored,
-but mirroring swaps the suction and pressure sides. The dataset only
-gives the suction-side displacement thickness, so a negative angle
-cannot be described correctly by these inputs.</p></li>
-</ul>
-</li>
+physically impossible: frequency, chord, velocity or displacement
+thickness of zero or less, or a negative angle.</p></li>
 <li><p><strong>Out of range</strong> (<code class="docutils literal notranslate"><span class="pre">OutOfRangeError</span></code>): a physically valid value below the
-smallest or above the largest value the model was trained on. These are
-refused because predicting there would be extrapolating to a new setup,
-whose noise may follow different physics. The shift tests on the results
-page show the error rising sharply outside the training range.</p></li>
+smallest or above the largest value the model was trained on.</p></li>
 </ol>
 <p>All three errors are <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> subclasses (<code class="docutils literal notranslate"><span class="pre">InputError</span></code>), so they can
 be caught together. The same missing and invalid checks also run when the
-dataset is loaded, so a damaged data file is refused rather than trained on.</p>
-<p><strong>Limitation.</strong> Each input is checked on its own. A combination of
-individually valid values that was never tested together, for example the
-largest chord at the highest angle (high angles were only tested on small
-chords), is accepted, even though it is also an extrapolation.</p>
+dataset is loaded.</p>
+<p>Each input is checked on its own; combinations of inputs are not checked.</p>
 <p><strong>Predicting for new conditions</strong> with the saved final model:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functions.predict</span><span class="w"> </span><span class="kn">import</span> <span class="n">predict_spl</span>
@@ -192,9 +173,8 @@ training folds only.</p>
 </pre></div>
 </div>
 <p>The script reports validation RMSE (the main metric), MAE and R² as mean ±
-standard deviation over all 15 folds (5 folds x 3 seeds), so the spread
-shows how much the score changes from one batch of unseen setups to the
-next. It also reports the mean fit and predict time per fold.
+standard deviation over all 15 folds (5 folds x 3 seeds). It also reports
+the mean fit and predict time per fold.
 It also breaks the out-of-fold RMSE down by chord, velocity, angle band
 (0, 0-5, 5-10, 10-15, &gt;15 deg) and frequency band. Results are saved as CSV
 files in <code class="docutils literal notranslate"><span class="pre">results/</span></code>. The test hold-out is not used.</p>
@@ -210,17 +190,12 @@ files in <code class="docutils literal notranslate"><span class="pre">results/</
 </div>
 <p>For linear models the script also prints each input’s coefficient in dB per
 standard deviation of that input, with its spread over all 15 fits (5 folds
-x 3 seeds). A coefficient whose sign changes between fits (<code class="docutils literal notranslate"><span class="pre">sign_agreement</span></code>
-below 1) is not reliably estimated. In feature set B this happens to
-<code class="docutils literal notranslate"><span class="pre">log_frequency</span></code> and <code class="docutils literal notranslate"><span class="pre">reynolds</span></code>, which are strongly correlated with other
-inputs, so their individual coefficients should not be interpreted
-physically.</p>
+x 3 seeds), and <code class="docutils literal notranslate"><span class="pre">sign_agreement</span></code>: the fraction of fits whose sign matches
+the sign of the mean.</p>
 </section>
 <section id="tuning-the-mlp-with-nested-cross-validation">
 <h2>Tuning the MLP with nested cross-validation<a class="headerlink" href="#tuning-the-mlp-with-nested-cross-validation" title="Link to this heading">¶</a></h2>
-<p>Choosing hyperparameters and scoring the model on the same folds would make
-the score optimistic. <strong>Nested cross-validation</strong> keeps the two jobs apart.
-For each outer fold, an inner grouped 5-fold cross-validation, run only on
+<p>For each outer fold, an inner grouped 5-fold cross-validation, run only on
 that fold’s training setups, picks the network size and <code class="docutils literal notranslate"><span class="pre">alpha</span></code>. The chosen
 model is then scored on the outer fold, which played no part in choosing it.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/run_tuning.py                               # all 3 seeds, sets A and B</span>

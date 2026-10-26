@@ -51,16 +51,18 @@ All splits keep each wind-tunnel setup (one chord, velocity and angle, i.e. one 
 
 Cross-validation figures are mean ± SD over 15 folds (5 folds × 3 seeds).
 
-- **The final MLP passes all four acceptance criteria.** All four are blind: they were committed before the hold-out run and before the physics check existed.
-  - it beats linear on the hold-out;
-  - its hold-out RMSE (2.63 dB) is within CV mean + 2 SD (2.82 dB) and under the 3.0 dB usefulness limit;
-  - it predicts that faster flow is louder for 97% of speed pairs.
+Acceptance criteria (committed before the hold-out run and before the physics check was written):
 
-  (A fifth criterion, "beats linear in at least 13 of 15 CV folds", was removed because its outcome was already known when it was set. The MLP did win all 15 CV folds; that is reported as supporting evidence.)
-- **The runner-up scored slightly better on the hold-out.** This is reported, but the selected model was not changed afterwards: choosing by hold-out score would make the test dishonest, and 16 setups cannot settle a 0.2 dB difference.
-- **The hardest conditions** are small chords at high angles of attack, where narrow tonal peaks occur. Leaving the smallest chord out of training entirely roughly doubles the MLP's error.
+| Criterion | Threshold | Final MLP | Result |
+|---|---|---|---|
+| C1: beats linear on the hold-out | MLP RMSE < linear RMSE | 2.63 vs 4.76 dB | PASS |
+| C2: hold-out RMSE within CV mean + 2 SD | ≤ 2.82 dB | 2.63 dB | PASS |
+| C3: hold-out RMSE under the usefulness limit | ≤ 3.0 dB | 2.63 dB | PASS |
+| P1: faster flow predicted louder | ≥ 90% of speed pairs | 97% | PASS |
 
-Full results, figures and the method are in the HTML documentation (`doc/_build/html/index.html`).
+A fifth criterion, C1a ("beats linear in at least 13 of 15 CV folds"), was removed because its outcome was already known when it was set. The final model was not changed after the hold-out run.
+
+Full results and figures are in the HTML documentation (`doc/_build/html/index.html`).
 
 ## Repository structure
 
@@ -118,7 +120,7 @@ Results are written as CSV files to `results/`. Rounded tables and figures go to
 
 ### Tuning the MLP (nested cross-validation)
 
-Choosing hyperparameters and scoring the model on the same folds would flatter the result. Nested cross-validation separates the two jobs. For each outer fold, an inner cross-validation, run only on that fold's training setups, picks the network size and `alpha`. The chosen model is then scored on the outer fold, which played no part in choosing it. Every split, inner and outer, keeps all rows of a wind-tunnel setup together, and the test hold-out is never used.
+For each outer fold, an inner cross-validation, run only on that fold's training setups, picks the network size and `alpha`. The chosen model is then scored on the outer fold, which played no part in choosing it. Every split, inner and outer, keeps all rows of a wind-tunnel setup together, and the test hold-out is never used.
 
 ```
 python src/run_tuning.py                                # all 3 seeds, feature sets A and B

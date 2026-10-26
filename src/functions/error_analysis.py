@@ -241,8 +241,6 @@ def tonal_table(data: pd.DataFrame, include_holdout: bool = False) -> pd.DataFra
     taller peak (:func:`scipy.signal.find_peaks`). For each setup the most
     prominent interior peak is used, with no minimum, so every setup appears.
     A spectrum with no interior peak (it only rises or only falls) gets 0 dB.
-    Narrow, very prominent peaks are the tonal noise that the models find
-    hardest.
 
     Args:
         data: Dataset with physics features (for the Reynolds number).

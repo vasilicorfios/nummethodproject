@@ -50,35 +50,18 @@ nothing is ever filled in or adjusted.
 
 1. **Missing** (``MissingInputError``): a required column is absent, or a
    value is empty or NaN. The error lists every affected column and row.
-   Missing values are **not imputed**: any guess would produce a
-   confident-looking but meaningless prediction.
+   Missing values are **not imputed**.
 2. **Invalid** (``InvalidInputError``): a value is not a number, or is
-   physically impossible.
-
-   * **Frequency, chord, velocity and displacement thickness** of zero or
-     less are impossible. They would also break the physics features:
-     ``log10(f)`` needs ``f > 0``, the Strouhal number ``f δ*/U`` divides by
-     the velocity, and the Reynolds number ``U c/ν`` needs a positive
-     velocity and chord.
-   * **Negative angles** are treated as invalid, not just out of range. The
-     NACA 0012 is symmetric, so a negative angle is the same flow mirrored,
-     but mirroring swaps the suction and pressure sides. The dataset only
-     gives the suction-side displacement thickness, so a negative angle
-     cannot be described correctly by these inputs.
+   physically impossible: frequency, chord, velocity or displacement
+   thickness of zero or less, or a negative angle.
 3. **Out of range** (``OutOfRangeError``): a physically valid value below the
-   smallest or above the largest value the model was trained on. These are
-   refused because predicting there would be extrapolating to a new setup,
-   whose noise may follow different physics. The shift tests on the results
-   page show the error rising sharply outside the training range.
+   smallest or above the largest value the model was trained on.
 
 All three errors are ``ValueError`` subclasses (``InputError``), so they can
 be caught together. The same missing and invalid checks also run when the
-dataset is loaded, so a damaged data file is refused rather than trained on.
+dataset is loaded.
 
-**Limitation.** Each input is checked on its own. A combination of
-individually valid values that was never tested together, for example the
-largest chord at the highest angle (high angles were only tested on small
-chords), is accepted, even though it is also an extrapolation.
+Each input is checked on its own; combinations of inputs are not checked.
 
 **Predicting for new conditions** with the saved final model:
 
@@ -160,9 +143,8 @@ training folds only.
     python src/run_cv.py --models linear --feature-sets B
 
 The script reports validation RMSE (the main metric), MAE and R² as mean ±
-standard deviation over all 15 folds (5 folds x 3 seeds), so the spread
-shows how much the score changes from one batch of unseen setups to the
-next. It also reports the mean fit and predict time per fold.
+standard deviation over all 15 folds (5 folds x 3 seeds). It also reports
+the mean fit and predict time per fold.
 It also breaks the out-of-fold RMSE down by chord, velocity, angle band
 (0, 0-5, 5-10, 10-15, >15 deg) and frequency band. Results are saved as CSV
 files in ``results/``. The test hold-out is not used.
@@ -181,17 +163,12 @@ From Python:
 
 For linear models the script also prints each input's coefficient in dB per
 standard deviation of that input, with its spread over all 15 fits (5 folds
-x 3 seeds). A coefficient whose sign changes between fits (``sign_agreement``
-below 1) is not reliably estimated. In feature set B this happens to
-``log_frequency`` and ``reynolds``, which are strongly correlated with other
-inputs, so their individual coefficients should not be interpreted
-physically.
+x 3 seeds), and ``sign_agreement``: the fraction of fits whose sign matches
+the sign of the mean.
 
 Tuning the MLP with nested cross-validation
 -------------------------------------------
 
-Choosing hyperparameters and scoring the model on the same folds would make
-the score optimistic. **Nested cross-validation** keeps the two jobs apart.
 For each outer fold, an inner grouped 5-fold cross-validation, run only on
 that fold's training setups, picks the network size and ``alpha``. The chosen
 model is then scored on the outer fold, which played no part in choosing it.
