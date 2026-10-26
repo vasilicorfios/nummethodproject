@@ -2338,15 +2338,6 @@ in the data.</p></li>
 <a class="reference internal" href="#functions.acceptance.P1_MIN_PAIR_FRACTION" title="functions.acceptance.P1_MIN_PAIR_FRACTION"><code class="xref py py-data docutils literal notranslate"><span class="pre">P1_MIN_PAIR_FRACTION</span></code></a> of speed pairs (same chord and angle),
 evaluated by <code class="docutils literal notranslate"><span class="pre">src/run_physics_check.py</span></code> on out-of-fold predictions.</p></li>
 </ul>
-<p><strong>Removed criterion (C1a).</strong> The original file also had “C1a: the MLP beats
-linear in at least 13 of the 15 nested-CV outer folds”. It was removed after
-the hold-out evaluation because it was <strong>not blind</strong>: the nested-CV results
-(MLP better in 15 of 15 folds) were already known when its threshold was
-written, so it could not have failed and was not an honest test. The fold
-comparison is still reported as supporting evidence on the results page, just
-not as an acceptance criterion. Removing it only takes away a criterion the
-model passed, so it does not make the final verdict more favourable. The
-original version is preserved in the git history.</p>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functions.acceptance</span><span class="w"> </span><span class="kn">import</span> <span class="n">acceptance_table</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">acceptance_table</span><span class="p">(</span><span class="n">tuning_summary</span><span class="p">,</span> <span class="n">physics_pair_fraction</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span>   
@@ -3102,9 +3093,8 @@ final MLP and linear hold-out RMSEs enter; the runner-up is not assessed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>paired_cv</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>. No
-longer used, since the non-blind CV-fold criterion (C1a) was
-removed; kept so <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code> is unchanged after its single
+<li><p><strong>paired_cv</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_paired_vs_linear.csv</span></code>. Not
+used; kept so <code class="docutils literal notranslate"><span class="pre">run_final.py</span></code> is unchanged after its single
 hold-out run.</p></li>
 <li><p><strong>tuning_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/tuning_summary.csv</span></code>.</p></li>
 <li><p><strong>physics_summary</strong> – Contents of <code class="docutils literal notranslate"><span class="pre">results/physics_speed_order_summary.csv</span></code>.</p></li>

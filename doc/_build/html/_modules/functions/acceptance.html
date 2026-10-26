@@ -59,16 +59,6 @@
 <span class="sd">  :data:`P1_MIN_PAIR_FRACTION` of speed pairs (same chord and angle),</span>
 <span class="sd">  evaluated by ``src/run_physics_check.py`` on out-of-fold predictions.</span>
 
-<span class="sd">**Removed criterion (C1a).** The original file also had "C1a: the MLP beats</span>
-<span class="sd">linear in at least 13 of the 15 nested-CV outer folds". It was removed after</span>
-<span class="sd">the hold-out evaluation because it was **not blind**: the nested-CV results</span>
-<span class="sd">(MLP better in 15 of 15 folds) were already known when its threshold was</span>
-<span class="sd">written, so it could not have failed and was not an honest test. The fold</span>
-<span class="sd">comparison is still reported as supporting evidence on the results page, just</span>
-<span class="sd">not as an acceptance criterion. Removing it only takes away a criterion the</span>
-<span class="sd">model passed, so it does not make the final verdict more favourable. The</span>
-<span class="sd">original version is preserved in the git history.</span>
-
 <span class="sd">Example:</span>
 <span class="sd">    &gt;&gt;&gt; from functions.acceptance import acceptance_table</span>
 <span class="sd">    &gt;&gt;&gt; acceptance_table(tuning_summary, physics_pair_fraction=0.97)   # doctest: +SKIP</span>

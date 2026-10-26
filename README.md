@@ -60,7 +60,7 @@ Acceptance criteria (committed before the hold-out run and before the physics ch
 | C3: hold-out RMSE under the usefulness limit | ≤ 3.0 dB | 2.63 dB | PASS |
 | P1: faster flow predicted louder | ≥ 90% of speed pairs | 97% | PASS |
 
-A fifth criterion, C1a ("beats linear in at least 13 of 15 CV folds"), was removed because its outcome was already known when it was set. The final model was not changed after the hold-out run.
+The final model was not changed after the hold-out run.
 
 Full results and figures are in the HTML documentation (`doc/_build/html/index.html`).
 

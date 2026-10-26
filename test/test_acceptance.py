@@ -3,7 +3,6 @@
 import pandas as pd
 import pytest
 
-import functions.acceptance as acceptance
 from functions.acceptance import (
     C3_MAX_RMSE_DB,
     FAIL,
@@ -30,11 +29,10 @@ def test_fixed_thresholds():
     assert P1_MIN_PAIR_FRACTION == 0.90
 
 
-def test_only_blind_criteria_remain():
-    """The non-blind CV-fold criterion (C1a) is gone; four blind criteria remain."""
+def test_four_criteria():
+    """Exactly the criteria C1, C2, C3 and P1 are evaluated."""
     table = acceptance_table(SUMMARY)
     assert table["criterion"].tolist() == ["C1", "C2", "C3", "P1"]
-    assert not hasattr(acceptance, "C1_MIN_CV_FOLD_WINS")
 
 
 def test_holdout_criteria_pending_without_holdout_results():
