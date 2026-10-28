@@ -18,8 +18,8 @@ Work done before these sessions (data loading, the grouped train/test split,
 physics features, exploratory plots and the exploration page) is not covered
 by this record.
 
-> **✍️ WRITE THIS YOURSELF (1 of 3):** say whether AI was used for that
-> earlier work, and if so, for what. Delete this box when done.
+ It used an initial ‘search engine’ when I was first trying to find a personal dataset to choose. I have a passion in fluid mechanics and thermodynamics and asked it to scope out 5 datasets that involve both subjects, with this being selected from one of those 5 after careful inspection and feasibility of all suggested. Being passionate about renewable energy, I saw a viable opportunity to tie fluids and this idea together into this project. 
+
 
 ## 1. What the AI was used for
 
@@ -135,9 +135,10 @@ tests and documentation, ran them, and reported results.
 
 ## 6. Approximate level of AI contribution
 
-> **✍️ WRITE THIS YOURSELF (2 of 3):** your own estimate of how much of the
-> work was AI-generated, and why you used AI for those parts. Delete this box
-> when done.
+During the development of this project, the AI was used primarily to develop python code within VSCode, explain functions, help with debugging code and preparing documentation within the code, which were areas I was quite unfamiliar with as I have only the basics of pythons coding down; building a machine learning model to this scale would have been very difficult without it.
+It helped with my understanding how linear least squares regression works, what different error metrics mean alongside with finding interactive resources to learn about neural networks and how they work, which was a big learning curve as they are quite complex. 
+
+The AI was used as an idea generator for understanding the data and how to visually assess it, which was taken into consideration only if accompanied by references or online resources to verify and further explore and decide upon if it made tangible sense, and anything that didn’t was raised as information to be sceptical of and not use or to further question the AI and provide further outside sources. I was still responsible for all final engineering decisions and ideas, including choosing the models, parameters, which results to investigate and how they were interpreted, alongside any final modelling decision making, the entire computational approach.  
 
 For reference, from the record above: most of the code, tests and
 documentation from the linear baseline onwards was drafted by the AI to the
@@ -146,12 +147,4 @@ the thresholds, and made the modelling decisions in section 3.
 
 ## 7. Reflection
 
-> **✍️ WRITE THIS YOURSELF (3 of 3):** your reflection, in your own words.
-> Delete this box when done.
-
-The brief asks for:
-
-- why AI was used for these tasks;
-- how AI use affected your understanding and workflow;
-- what you would do differently;
-- which parts you can now explain without AI (the interview is without AI).
+The main lesson I learned from this project continues on from the limitation. Despite myself not knowing a lot of the code, AI can be used a great timer saver for coding despite the user not knowing what every single python coding function does. This process taught me to develop the skills such as checking the AI code through hand calculations, troubleshooting the project when results or outputs desired were not met and understanding how to interpret the results of an AI code generated numerical method model through my own personal engineering judgement. 
